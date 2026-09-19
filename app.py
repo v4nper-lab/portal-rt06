@@ -14,8 +14,19 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-st.title("🏠 Portal Resmi RT 06 / RW 14")
-st.markdown("### Griya Permata Raya - Desa Nanjung Mekar")
+# Header dengan Logo RT 06
+col_logo, col_title = st.columns([1, 6])
+with col_logo:
+    logo_path = "logo_rt06.jpg"  # Sesuaikan jika nama file gambarnya berbeda di GitHub
+    if os.path.exists(logo_path):
+        st.image(logo_path, width=110)
+    else:
+        st.image("logo r6.jpg", width=110) if os.path.exists("logo r6.jpg") else st.write("🏠")
+
+with col_title:
+    st.title("🏠 Portal Resmi RT 06 / RW 14")
+    st.markdown("### Griya Permata Raya - Desa Nanjung Mekar")
+
 st.write("---")
 
 @st.cache_data
@@ -111,7 +122,6 @@ if not df.empty:
             df_keluarga = df[df[col_kk].astype(str).str.strip() == pilihan_kk.strip()].copy()
             no_rmh = str(df_keluarga[col_rumah].dropna().iloc[0]) if col_rumah and not df_keluarga[df_keluarga[col_rumah].notna()].empty else "-"
             
-            # Saring kolom untuk web (buang Kepala Keluarga, No Urut, dan kolom No di awal)
             cols_tampilan_web = [c for c in df_keluarga.columns if c != col_kk and "URUT" not in c and c != "NO"]
             
             st.markdown(f"""
@@ -124,7 +134,6 @@ if not df.empty:
             
             st.dataframe(df_keluarga[cols_tampilan_web], use_container_width=True, hide_index=True)
             
-            # Fungsi Pembuat PDF Kartu Keluarga A4 Landscape (Tanpa No. Urut dan Tanpa Kepala Keluarga)
             def buat_pdf_kk_landscape(keluarga_df, kepala, rumah):
                 buffer = io.BytesIO()
                 doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=20, leftMargin=20, topMargin=25, bottomMargin=25)
@@ -140,7 +149,6 @@ if not df.empty:
                 elements.append(Paragraph(f"<b>Kepala Keluarga:</b> {kepala}", styles['Normal']))
                 elements.append(Spacer(1, 10))
                 
-                # Pembersihan ketat: pastikan kolom KK, No Urut, dan No benar-benar dibuang
                 kolom_pdf = [c for c in keluarga_df.columns if c != col_kk and "URUT" not in c and c != "NO"]
                 
                 cell_style = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=7, leading=8, alignment=1)
