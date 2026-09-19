@@ -102,15 +102,16 @@ if not df.empty:
         st.subheader("🗂️ Pencarian & Cetak Kartu Keluarga (KK) per Rumah")
         st.markdown("Pilih Nama Kepala Keluarga untuk melihat seluruh anggota keluarga dan mencetaknya ke format PDF A4 Landscape.")
         
-        # Ambil daftar unik Kepala Keluarga secara bersih tanpa duplikat
         daftar_kk = df[col_kk].dropna().astype(str).str.strip()
         daftar_kk = sorted(list(set([x for x in daftar_kk if x != "" and x.lower() != "nan"])))
         
         pilihan_kk = st.selectbox("Pilih Kepala Keluarga:", daftar_kk)
         
         if pilihan_kk:
-            df_keluarga = df[df[col_kk].astype(str).str.strip() == pilihan_kk.strip()]
+            df_keluarga = df[df[col_kk].astype(str).str.strip() == pilihan_kk.strip()].copy()
             no_rmh = str(df_keluarga[col_rumah].iloc[0]) if col_rumah and not df_keluarga.empty else "-"
+            
+            cols_tampilan_web = [c for c in df_keluarga.columns if c != col_kk]
             
             st.markdown(f"""
             <div style="background-color: #f8fafc; border: 2px solid #2563eb; border-radius: 10px; padding: 20px; margin-top: 15px; margin-bottom: 20px;">
@@ -120,9 +121,8 @@ if not df.empty:
             </div>
             """, unsafe_allow_html=True)
             
-            st.dataframe(df_keluarga, use_container_width=True, hide_index=True)
+            st.dataframe(df_keluarga[cols_tampilan_web], use_container_width=True, hide_index=True)
             
-            # Fungsi Pembuat PDF ukuran A4 Landscape agar seluruh kolom (sampai domisili) tampil penuh
             def buat_pdf_kk_landscape(keluarga_df, kepala, rumah):
                 buffer = io.BytesIO()
                 doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=25, leftMargin=25, topMargin=25, bottomMargin=25)
@@ -138,11 +138,10 @@ if not df.empty:
                 elements.append(Paragraph(f"<b>Kepala Keluarga:</b> {kepala}", styles['Normal']))
                 elements.append(Spacer(1, 10))
                 
-                # Menggunakan seluruh kolom data tanpa dibatasi agar sampai status domisili tampil semua
-                kolom_tampil = list(keluarga_df.columns)
-                table_data = [kolom_tampil]
+                kolom_pdf = [c for c in keluarga_df.columns if c != col_kk]
+                table_data = [kolom_pdf]
                 for _, row in keluarga_df.iterrows():
-                    table_data.append([str(row[col]) for col in kolom_tampil])
+                    table_data.append([str(row[col]) for col in kolom_pdf])
                     
                 t = Table(table_data, repeatRows=1)
                 t.setStyle(TableStyle([
@@ -270,19 +269,50 @@ if not df.empty:
         if aksi == "➕ Tambah Data Warga Baru":
             st.markdown("### Form Tambah Warga Baru")
             with st.form("form_tambah"):
-                st.text_input("No. Rumah")
-                st.text_input("Nama Kepala Keluarga")
-                st.text_input("Nama Anggota Keluarga")
-                st.selectbox("Jenis Kelamin", ["L", "P"])
-                st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"])
-                st.text_input("Tempat & Tanggal Lahir")
-                st.number_input("Usia", min_value=0, max_value=120, value=25)
-                st.selectbox("Status Pernikahan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"])
-                st.text_input("Pendidikan Terakhir", "Tamat SLTA/sederajat")
-                st.text_input("Pekerjaan", "Karyawan Swasta")
+                # Opsi Dropdown untuk No Rumah
+                daftar_no_rumah = sorted(list(set(df[col_rumah].dropna().astype(str).tolist()))) if col_rumah else ["B3-01", "B3-02", "B3-03", "B3-04"]
+                no_rumah = st.selectbox("No. Rumah", daftar_no_rumah)
+                
+                nama_kk = st.selectbox("Nama Kepala Keluarga", sorted(list(set(df[col_kk].dropna().astype(str).tolist()))))
+                nama_anggota = st.text_input("Nama Lengkap Anggota Keluarga")
+                jk = st.selectbox("Jenis Kelamin", ["L", "P"])
+                hubungan = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"])
+                tempat_lahir = st.text_input("Tempat Lahir")
+                tanggal_lahir = st.text_input("Tanggal Lahir (Contoh: 02 Agustus 1991)")
+                usia = st.number_input("Usia", min_value=0, max_value=120, value=25)
+                status_nikah = st.selectbox("Status Pernikahan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"])
+                
+                # Opsi Dropdown untuk Pendidikan
+                pendidikan = st.selectbox("Pendidikan Terakhir", [
+                    "Tamat SLTA/sederajat", 
+                    "Tamat SLTP/sederajat", 
+                    "Tamat SD/sederajat", 
+                    "Diploma / Sarjana (S1/S2/S3)", 
+                    "Belum / Tidak Sekolah", 
+                    "Sedang SLTA/Sederajat", 
+                    "Sedang SLTP/Sederajat"
+                ])
+                
+                # Opsi Dropdown untuk Pekerjaan
+                pekerjaan = st.selectbox("Pekerjaan", [
+                    "Karyawan Swasta", 
+                    "Wiraswasta", 
+                    "Mengurus Rumah Tangga", 
+                    "Belum Bekerja", 
+                    "Pelajar / Mahasiswa", 
+                    "PNS / TNI / Polri", 
+                    "Buruh / Freelance", 
+                    "Pensiunan"
+                ])
+                
+                # Opsi Dropdown untuk Status Rumah
+                status_rumah = st.selectbox("Status Rumah", ["Milik / Tetap", "Sewa / Kontrak"])
+                
+                # Opsi Dropdown untuk Status Domisili
+                status_domisili = st.selectbox("Status Domisili", ["Warga Tetap", "Warga Kontrak", "Luar NM"])
                 
                 if st.form_submit_button("Simpan Data Warga Baru"):
-                    st.success("Data warga baru berhasil disiapkan!")
+                    st.success(f"Data warga baru atas nama **{nama_anggota}** berhasil disiapkan!")
 
         elif aksi == "✏️ Edit Data Warga":
             st.markdown("### Edit Data Warga")
