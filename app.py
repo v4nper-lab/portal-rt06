@@ -2,6 +2,11 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import os
+import io
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
 
 st.set_page_config(
     page_title="Portal Resmi RT 06 RW 14 Griya Permata Raya",
@@ -74,7 +79,6 @@ if not df.empty:
                     df_jk = df[col_jk].dropna().value_counts().reset_index()
                     df_jk.columns = ["Jenis Kelamin", "Jumlah"]
                     fig_jk = px.pie(df_jk, names="Jenis Kelamin", values="Jumlah", hole=0.4, color_discrete_sequence=px.colors.qualitative.Set2)
-                    # Memperbesar ukuran font/angka di dalam grafik
                     fig_jk.update_traces(textfont_size=16, textinfo="percent+label+value")
                     fig_jk.update_layout(font=dict(size=14))
                     st.plotly_chart(fig_jk, use_container_width=True)
@@ -162,15 +166,13 @@ if not df.empty:
                 submit_tambah = st.form_submit_button("Simpan Data Warga Baru")
                 if submit_tambah:
                     st.success(f"Data warga atas nama **{nama}** berhasil disiapkan untuk ditambahkan!")
-                    st.info("Catatan: Untuk menyimpan permanen ke file Excel, pastikan file Excel di GitHub diperbarui.")
 
         elif aksi == "✏️ Edit Data Warga":
             st.markdown("### Edit Data Warga")
             nama_pilih = st.selectbox("Pilih Warga yang Ingin Diedit:", df.iloc[:, 2] if len(df.columns) > 2 else df.iloc[:, 0])
-            st.info(f"Fitur edit untuk **{nama_pilih}** aktif. Silakan ubah data melalui form di bawah.")
+            st.info(f"Fitur edit untuk **{nama_pilih}** aktif.")
             with st.form("form_edit"):
                 st.text_input("Perbarui Nama", value=str(nama_pilih))
-                st.text_input("Perbarui No. Rumah")
                 st.form_submit_button("Simpan Perubahan")
 
         elif aksi == "🗑️ Hapus Data Warga":
@@ -180,20 +182,66 @@ if not df.empty:
                 st.success(f"Data warga **{nama_hapus}** berhasil dihapus dari tampilan.")
 
     elif menu == "Cetak Laporan PDF":
-        st.subheader("🖨️ Cetak Rekapitulasi Data Warga RT 06")
-        st.write("Klik tombol di bawah ini untuk mengunduh rekapitulasi data warga dalam format cetak/PDF:")
+        st.subheader("🖨️ Unduh Laporan Rekapitulasi Data Warga (PDF)")
+        st.write("Klik tombol di bawah ini untuk mengunduh laporan resmi data warga RT 06 dalam bentuk file PDF berformat tabel:")
         
-        # Tombol cetak via browser
-        if st.button("📥 Unduh / Cetak Laporan (PDF / Print View)"):
-            st.markdown("""
-                <script>
-                    window.print();
-                </script>
-            """, unsafe_allow_html=True)
-            st.success("Perintah cetak dikirim ke browser Anda. Pilih 'Save as PDF' pada jendela cetak yang muncul.")
+        # Fungsi Pembuat PDF dengan ReportLab
+        def buat_pdf(data_df):
+            buffer = io.BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+            elements = []
             
+            styles = getSampleStyleSheet()
+            title_style = ParagraphStyle(
+                'TitleStyle',
+                parent=styles['Heading1'],
+                fontSize=16,
+                alignment=1,
+                textColor=colors.HexColor('#1f2937')
+            )
+            
+            elements.append(Paragraph("REKAPITULASI DATA WARGA RT 06 / RW 14", title_style))
+            elements.append(Paragraph("Griya Permata Raya - Desa Nanjung Mekar", ParagraphStyle('Sub', parent=styles['Normal'], alignment=1, fontSize=11, textColor=colors.gray)))
+            elements.append(Spacer(1, 15))
+            
+            # Ambil kolom utama agar muat di PDF
+            kolom_tampil = data_df.columns[:min(8, len(data_df.columns))]
+            table_data = [list(kolom_tampil)]
+            
+            for _, row in data_df.iterrows():
+                table_data.append([str(row[col])[:20] for col in kolom_tampil])
+                
+            t = Table(table_data, repeatRows=1)
+            t.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#2563eb')),
+                ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+                ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0,0), (-1,0), 9),
+                ('BOTTOMPADDING', (0,0), (-1,0), 6),
+                ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f9fafb')),
+                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d1d5db')),
+                ('FONTSIZE', (0,1), (-1,-1), 8),
+                ('TOPPADDING', (0,1), (-1,-1), 4),
+            ]))
+            
+            elements.append(t)
+            doc.build(elements)
+            buffer.seek(0)
+            return buffer.getvalue()
+
+        pdf_bytes = buat_pdf(df)
+        
+        st.download_button(
+            label="📥 Download File PDF Rekapitulasi Warga",
+            data=pdf_bytes,
+            file_name="Laporan_Data_Warga_RT06.pdf",
+            mime="application/pdf",
+            type="primary"
+        )
+        
         st.markdown("---")
-        st.markdown("### Preview Data yang Akan Dicetak:")
+        st.markdown("### Preview Data:")
         st.dataframe(df, use_container_width=True, hide_index=True)
 
 else:
