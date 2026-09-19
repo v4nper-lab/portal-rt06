@@ -16,7 +16,7 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-# Custom CSS untuk background yang elegan, modern, dan profesional
+# Custom CSS untuk background elegan dan modern
 st.markdown("""
 <style>
     .stApp {
@@ -159,7 +159,6 @@ if not df.empty:
             jml_balita = len(usia_series[(usia_series >= 0) & (usia_series <= 5)])
             jml_lansia = len(usia_series[usia_series > 60])
 
-        # Kartu Statistik Elegan dengan Border Aksen Warna
         st.markdown(f"""
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-top: 15px; margin-bottom: 30px;">
             <div class="metric-card" style="border-left: 5px solid #2563eb;">
@@ -286,15 +285,55 @@ if not df.empty:
             st.plotly_chart(fig_jk, use_container_width=True)
 
     elif menu == "🛠️ Kelola Warga":
-        st.subheader("🛠️ Kelola Data Warga")
-        aksi = st.selectbox("Pilih Aksi:", ["➕ Tambah Warga Baru"])
-        if aksi == "➕ Tambah Warga Baru":
+        st.subheader("🛠️ Panel Pengelolaan Data Warga")
+        aksi = st.selectbox("Pilih Aksi Pengelolaan:", ["➕ Tambah Data Warga Baru"])
+        
+        if aksi == "➕ Tambah Data Warga Baru":
+            st.markdown("### Form Tambah Warga Baru")
             with st.form("form_tambah"):
-                st.text_input("Nama Lengkap Anggota Keluarga")
-                st.selectbox("Jenis Kelamin", ["L", "P"])
-                st.date_input("Tanggal Lahir", value=date(1995, 1, 1))
-                if st.form_submit_button("Simpan Data"):
-                    st.success("Data berhasil disiapkan.")
+                daftar_no_rumah = sorted(list(set(df[col_rumah].dropna().astype(str).tolist()))) if col_rumah else ["B3-01", "B3-02", "B3-03"]
+                no_rumah = st.selectbox("No. Rumah", daftar_no_rumah)
+                
+                nama_kk = st.selectbox("Nama Kepala Keluarga", sorted(list(set(df[col_kk].dropna().astype(str).tolist()))))
+                nama_anggota = st.text_input("Nama Lengkap Anggota Keluarga")
+                jk = st.selectbox("Jenis Kelamin", ["L", "P"])
+                hubungan = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"])
+                tempat_lahir = st.text_input("Tempat Lahir")
+                
+                # Date Picker Kalender Interaktif
+                tanggal_lahir_date = st.date_input("Tanggal Lahir", value=date(1995, 1, 1))
+                bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
+                tanggal_lahir_str = f"{tanggal_lahir_date.day:02d} {bulan_indo_nama.get(tanggal_lahir_date.month, '')} {tanggal_lahir_date.year}"
+                
+                usia = st.number_input("Usia", min_value=0, max_value=120, value=25)
+                status_nikah = st.selectbox("Status Pernikahan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"])
+                
+                pendidikan = st.selectbox("Pendidikan Terakhir", [
+                    "Tamat SLTA/sederajat", 
+                    "Tamat SLTP/sederajat", 
+                    "Tamat SD/sederajat", 
+                    "Diploma / Sarjana (S1/S2/S3)", 
+                    "Belum / Tidak Sekolah", 
+                    "Sedang SLTA/Sederajat", 
+                    "Sedang SLTP/Sederajat"
+                ])
+                
+                pekerjaan = st.selectbox("Pekerjaan", [
+                    "Karyawan Swasta", 
+                    "Wiraswasta", 
+                    "Mengurus Rumah Tangga", 
+                    "Belum Bekerja", 
+                    "Pelajar / Mahasiswa", 
+                    "PNS / TNI / Polri", 
+                    "Buruh / Freelance", 
+                    "Pensiunan"
+                ])
+                
+                status_rumah = st.selectbox("Status Rumah", ["Milik / Tetap", "Sewa / Kontrak"])
+                status_domisili = st.selectbox("Status Domisili", ["Warga Tetap", "Warga Kontrak", "Luar NM"])
+                
+                if st.form_submit_button("Simpan Data Warga Baru"):
+                    st.success(f"Data warga baru atas nama **{nama_anggota}** (Lahir: {tanggal_lahir_str}) berhasil disiapkan!")
 
     elif menu == "🖨️ Cetak Rekap PDF":
         st.subheader("🖨️ Cetak Laporan Rekapitulasi Keseluruhan (PDF)")
