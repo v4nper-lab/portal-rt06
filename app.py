@@ -43,13 +43,6 @@ def load_data_rt06():
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
         
-        # Simpan versi bersih untuk tampilan tabel tanpa duplikat (mengganti nama KK yang sama dengan None/dash)
-        col_kk_candi = [c for c in df.columns if "KEPALA" in c or "KK" in c]
-        col_kk = col_kk_candi[0] if col_kk_candi else df.columns[2]
-        
-        col_rumah_candi = [c for c in df.columns if "RUMAH" in c or "ALAMAT" in c]
-        col_rumah = col_rumah_candi[0] if col_rumah_candi else None
-
         bulan_indo = {
             1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
             7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
@@ -97,7 +90,6 @@ if not df.empty:
         st.subheader("📋 Dashboard Seluruh Data Warga RT 06")
         st.markdown("Berikut adalah tabel lengkap rekapitulasi data penduduk dengan duplikat nama Kepala Keluarga yang diringkas.")
         
-        # Buat salinan untuk tampilan dashboard di mana nilai duplikat Kepala Keluarga & No Rumah dijadikan kosong (None) agar rapi
         df_dash = df.copy()
         if col_kk in df_dash.columns:
             df_dash[col_kk] = df_dash[col_kk].mask(df_dash[col_kk].duplicated(), None)
@@ -110,7 +102,6 @@ if not df.empty:
         st.subheader("🗂️ Pencarian & Cetak Kartu Keluarga (KK) per Rumah")
         st.markdown("Pilih Nama Kepala Keluarga untuk melihat seluruh anggota keluarga dan mencetaknya ke format PDF A4 Landscape.")
         
-        # Ambil daftar unik Kepala Keluarga
         daftar_kk = df[col_kk].dropna().astype(str).str.strip()
         daftar_kk = sorted(list(set([x for x in daftar_kk if x != "" and x.lower() != "nan"])))
         
@@ -120,8 +111,8 @@ if not df.empty:
             df_keluarga = df[df[col_kk].astype(str).str.strip() == pilihan_kk.strip()].copy()
             no_rmh = str(df_keluarga[col_rumah].dropna().iloc[0]) if col_rumah and not df_keluarga[df_keluarga[col_rumah].notna()].empty else "-"
             
-            # Sembunyikan kolom Kepala Keluarga dari tabel web KK agar tidak duplikat
-            cols_tampilan_web = [c for c in df_keluarga.columns if c != col_kk]
+            # Sembunyikan kolom Kepala Keluarga dan buang kolom nomor urut jika ada di awal
+            cols_tampilan_web = [c for c in df_keluarga.columns if c != col_kk and "URUT" not in c and c != "NO"]
             
             st.markdown(f"""
             <div style="background-color: #f8fafc; border: 2px solid #2563eb; border-radius: 10px; padding: 20px; margin-top: 15px; margin-bottom: 20px;">
@@ -133,10 +124,9 @@ if not df.empty:
             
             st.dataframe(df_keluarga[cols_tampilan_web], use_container_width=True, hide_index=True)
             
-            # Fungsi Pembuat PDF Kartu Keluarga A4 Landscape dengan Lebar Kolom Terstruktur
+            # Fungsi Pembuat PDF Kartu Keluarga A4 Landscape (Dimulai dari No. Rumah, tanpa No. Urut & Tanpa Kepala Keluarga)
             def buat_pdf_kk_landscape(keluarga_df, kepala, rumah):
                 buffer = io.BytesIO()
-                # Ukuran A4 Landscape dalam poin: width = 842, height = 595
                 doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=20, leftMargin=20, topMargin=25, bottomMargin=25)
                 elements = []
                 styles = getSampleStyleSheet()
@@ -150,33 +140,17 @@ if not df.empty:
                 elements.append(Paragraph(f"<b>Kepala Keluarga:</b> {kepala}", styles['Normal']))
                 elements.append(Spacer(1, 10))
                 
-                # Buang kolom Kepala Keluarga dari tabel PDF agar tidak duplikat
-                kolom_pdf = [c for c in keluarga_df.columns if c != col_kk]
+                # Buang kolom Kepala Keluarga, No. Urut, dan No agar tabel dimulai tepat dari No. Rumah
+                kolom_pdf = [c for c in keluarga_df.columns if c != col_kk and "URUT" not in c and c != "NO"]
                 
-                # Bungkus setiap sel dengan Paragraph agar teks panjang terbungkus rapi (wrap text) dan tidak terpotong
-                cell_style = ParagraphStyle(
-                    'Cell',
-                    parent=styles['Normal'],
-                    fontSize=7,
-                    leading=8,
-                    alignment=1
-                )
-                header_style = ParagraphStyle(
-                    'HeaderCell',
-                    parent=styles['Normal'],
-                    fontSize=7.5,
-                    leading=9,
-                    textColor=colors.whitesmoke,
-                    fontName='Helvetica-Bold',
-                    alignment=1
-                )
+                cell_style = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=7, leading=8, alignment=1)
+                header_style = ParagraphStyle('HeaderCell', parent=styles['Normal'], fontSize=7.5, leading=9, textColor=colors.whitesmoke, fontName='Helvetica-Bold', alignment=1)
                 
                 table_data = [[Paragraph(str(col), header_style) for col in kolom_pdf]]
                 for _, row in keluarga_df.iterrows():
                     row_cells = [Paragraph(str(row[col]) if pd.notnull(row[col]) else "", cell_style) for col in kolom_pdf]
                     table_data.append(row_cells)
                     
-                # Tentukan lebar total 800 pt agar pas di kertas A4 Landscape (842 pt)
                 num_cols = len(kolom_pdf)
                 col_width = 800.0 / num_cols if num_cols > 0 else 100
                 col_widths = [col_width] * num_cols
