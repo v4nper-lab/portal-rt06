@@ -16,7 +16,7 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-# Custom CSS responsif untuk Mobile & Desktop
+# Custom CSS responsif untuk Mobile & Desktop, Ukuran Teks Menu Besar, dan Warna-Warni Keren
 st.markdown("""
 <style>
     .stApp {
@@ -31,25 +31,46 @@ st.markdown("""
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
         margin-bottom: 12px;
     }
-    @media (max-width: 768px) {
-        .metric-card {
-            padding: 15px;
-        }
+    /* Styling Tombol Menu Utama Menjadi Besar dan Berwarna-Warni Keren */
+    .stButton button {
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        padding: 20px 24px !important;
+        border-radius: 14px !important;
+        border: none !important;
+        color: white !important;
+        box-shadow: 0 8px 15px rgba(0,0,0,0.1) !important;
+        transition: all 0.3s ease !important;
+        width: 100% !important;
     }
+    .stButton button:hover {
+        transform: translateY(-3px) !important;
+        box-shadow: 0 12px 20px rgba(0,0,0,0.15) !important;
+    }
+    /* Variasi Warna-Warni Tombol Menu */
+    div.stButton:nth-of-type(1) button { background: linear-gradient(135deg, #2563eb, #1d4ed8) !important; }
+    div.stButton:nth-of-type(2) button { background: linear-gradient(135deg, #059669, #047857) !important; }
+    div.stButton:nth-of-type(3) button { background: linear-gradient(135deg, #0284c7, #0369a1) !important; }
+    div.stButton:nth-of-type(4) button { background: linear-gradient(135deg, #db2777, #be185d) !important; }
+    div.stButton:nth-of-type(5) button { background: linear-gradient(135deg, #d97706, #b45309) !important; }
+    div.stButton:nth-of-type(6) button { background: linear-gradient(135deg, #7c3aed, #6d28d9) !important; }
+    div.stButton:nth-of-type(7) button { background: linear-gradient(135deg, #ea580c, #c2410c) !important; }
 </style>
 """, unsafe_allow_html=True)
 
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Header Utama Portal RT 06
+# Header Utama Portal RT 06 (Logo diperbesar 2x lipat tanpa background putih dengan efek CSS mix-blend-mode)
 col_logo, col_title = st.columns([1, 4])
 with col_logo:
     logo_path = "logo_rt06.jpg"
     if os.path.exists(logo_path):
-        st.image(logo_path, width=200)
+        st.markdown('<div style="mix-blend-mode: multiply;">', unsafe_allow_html=True)
+        st.image(logo_path, width=400)
+        st.markdown('</div>', unsafe_allow_html=True)
     else:
-        st.image("logo r6.jpg", width=200) if os.path.exists("logo r6.jpg") else st.write("🏠")
+        st.image("logo r6.jpg", width=400) if os.path.exists("logo r6.jpg") else st.write("🏠")
 
 with col_title:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -145,15 +166,18 @@ if not df.empty:
     col_usia = next((c for c in df.columns if "USIA" in c or "UMUR" in c), None)
 
     st.sidebar.markdown("### 🧭 Navigasi Menu")
-    selected_sidebar = st.sidebar.selectbox("Pilih Halaman:", [
+    daftar_menu_pilihan = [
         "Beranda / Dashboard",
         "📋 Data Seluruh Warga",
         "🗂️ Cetak Kartu Keluarga (KK)", 
         "📈 Grafik Demografi", 
         "🛠️ Kelola Warga", 
         "📊 Rekapitulasi Administrasi RW",
+        "💰 Laporan Kas RT & Sosial (Perelek R6 Suayunan)",
         "🖨️ Cetak Rekap PDF"
-    ], index=["Beranda / Dashboard", "📋 Data Seluruh Warga", "🗂️ Cetak Kartu Keluarga (KK)", "📈 Grafik Demografi", "🛠️ Kelola Warga", "📊 Rekapitulasi Administrasi RW", "🖨️ Cetak Rekap PDF"].index(st.session_state.selected_menu) if st.session_state.selected_menu in ["Beranda / Dashboard", "📋 Data Seluruh Warga", "🗂️ Cetak Kartu Keluarga (KK)", "📈 Grafik Demografi", "🛠️ Kelola Warga", "📊 Rekapitulasi Administrasi RW", "🖨️ Cetak Rekap PDF"] else 0)
+    ]
+    
+    selected_sidebar = st.sidebar.selectbox("Pilih Halaman:", daftar_menu_pilihan, index=daftar_menu_pilihan.index(st.session_state.selected_menu) if st.session_state.selected_menu in daftar_menu_pilihan else 0)
 
     if selected_sidebar != st.session_state.selected_menu:
         st.session_state.selected_menu = selected_sidebar
@@ -190,7 +214,7 @@ if not df.empty:
             jml_lansia = len(usia_series[usia_series > 60])
 
         st.markdown(f"""
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 10px; margin-bottom: 20px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 10px; margin-bottom: 25px;">
             <div class="metric-card" style="border-left: 4px solid #2563eb;">
                 <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: #64748b;">Jumlah KK</div>
                 <div style="font-size: 24px; font-weight: 800; color: #1e3a8a; margin-top: 4px;">{total_kk} <span style="font-size: 13px; font-weight: 500; color: #64748b;">KK</span></div>
@@ -219,27 +243,31 @@ if not df.empty:
         """, unsafe_allow_html=True)
 
         st.write("---")
-        st.markdown("### 🚀 Menu Utama Portal")
+        st.markdown("### 🚀 Menu Utama Portal RT 06")
         
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("📋 Data Warga", use_container_width=True, type="primary"):
+        # Tombol Menu Ukuran Besar & Berwarna-Warni di Depan Dashboard
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            if st.button("📋 Data Seluruh Warga", use_container_width=True):
                 st.session_state.selected_menu = "📋 Data Seluruh Warga"
                 st.rerun()
-            if st.button("🗂️ Kartu Keluarga", use_container_width=True, type="primary"):
+            if st.button("🗂️ Cetak Kartu Keluarga (KK)", use_container_width=True):
                 st.session_state.selected_menu = "🗂️ Cetak Kartu Keluarga (KK)"
                 st.rerun()
-            if st.button("📊 Rekap RW", use_container_width=True, type="primary"):
+            if st.button("📊 Rekapitulasi Administrasi RW", use_container_width=True):
                 st.session_state.selected_menu = "📊 Rekapitulasi Administrasi RW"
                 st.rerun()
-        with c2:
-            if st.button("📈 Grafik", use_container_width=True):
+            if st.button("💰 Laporan Kas RT & Sosial (Perelek R6)", use_container_width=True):
+                st.session_state.selected_menu = "💰 Laporan Kas RT & Sosial (Perelek R6 Suayunan)"
+                st.rerun()
+        with col_m2:
+            if st.button("📈 Grafik Demografi", use_container_width=True):
                 st.session_state.selected_menu = "📈 Grafik Demografi"
                 st.rerun()
-            if st.button("🛠️ Kelola Warga", use_container_width=True):
+            if st.button("🛠️ Kelola Data Warga", use_container_width=True):
                 st.session_state.selected_menu = "🛠️ Kelola Warga"
                 st.rerun()
-            if st.button("🖨️ Cetak PDF", use_container_width=True):
+            if st.button("🖨️ Cetak Laporan Rekap PDF", use_container_width=True):
                 st.session_state.selected_menu = "🖨️ Cetak Rekap PDF"
                 st.rerun()
 
@@ -345,17 +373,14 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("📈 Analisis & Statistik Grafik Demografi Warga")
-        st.markdown("Berikut adalah visualisasi data demografi kependudukan RT 06 yang disajikan secara interaktif, modern, dan jelas.")
-
+        
         col_pend = next((c for c in df.columns if "PENDIDIKAN" in c), None)
         col_pek = next((c for c in df.columns if "PEKERJAAN" in c), None)
         col_status = next((c for c in df.columns if "STATUS" in c and "KAWIN" in c) or (c for c in df.columns if "STATUS" in c), None)
         
-        # Pengaturan Font & Ukuran Besar agar Sangat Jelas Terbaca
         chart_font = dict(size=15, family="Arial, sans-serif")
         title_font = dict(size=20, family="Arial, sans-serif")
 
-        # 1. Grafik Jenis Kelamin
         if col_jk:
             df_jk = df[col_jk].dropna().value_counts().reset_index()
             df_jk.columns = ["Jenis Kelamin", "Jumlah"]
@@ -364,37 +389,33 @@ if not df.empty:
             fig_jk.update_layout(font=chart_font, title_font=title_font, legend=dict(font=dict(size=14)))
             st.plotly_chart(fig_jk, use_container_width=True)
 
-        # 2. Grafik Status Pernikahan
         if col_status:
             st.markdown("---")
             df_st = df[col_status].dropna().value_counts().reset_index()
             df_st.columns = ["Status", "Jumlah"]
             fig_st = px.bar(df_st, x="Status", y="Jumlah", text="Jumlah", title="💍 Distribusi Status Pernikahan Warga", color="Status", color_discrete_sequence=px.colors.qualitative.Pastel)
             fig_st.update_traces(textfont_size=16, textposition="outside")
-            fig_st.update_layout(font=chart_font, title_font=title_font, xaxis=dict(tickfont=dict(size=14)), yaxis=dict(tickfont=dict(size=14)))
+            fig_st.update_layout(font=chart_font, title_font=title_font)
             st.plotly_chart(fig_st, use_container_width=True)
 
-        # 3. Grafik Pendidikan Terakhir
         if col_pend:
             st.markdown("---")
             df_pd = df[col_pend].dropna().value_counts().reset_index()
             df_pd.columns = ["Pendidikan", "Jumlah"]
             fig_pd = px.bar(df_pd, x="Pendidikan", y="Jumlah", text="Jumlah", title="🎓 Tingkat Pendidikan Terakhir Warga", color="Pendidikan", color_discrete_sequence=px.colors.qualitative.Vivid)
             fig_pd.update_traces(textfont_size=16, textposition="outside")
-            fig_pd.update_layout(font=chart_font, title_font=title_font, xaxis=dict(tickangle=-20, tickfont=dict(size=13)), yaxis=dict(tickfont=dict(size=14)))
+            fig_pd.update_layout(font=chart_font, title_font=title_font)
             st.plotly_chart(fig_pd, use_container_width=True)
 
-        # 4. Grafik Pekerjaan
         if col_pek:
             st.markdown("---")
             df_pk = df[col_pek].dropna().value_counts().reset_index()
             df_pk.columns = ["Pekerjaan", "Jumlah"]
             fig_pk = px.bar(df_pk, x="Pekerjaan", y="Jumlah", text="Jumlah", title="💼 Distribusi Mata Pencaharian / Pekerjaan Warga", color="Pekerjaan", color_discrete_sequence=px.colors.qualitative.Safe)
             fig_pk.update_traces(textfont_size=16, textposition="outside")
-            fig_pk.update_layout(font=chart_font, title_font=title_font, xaxis=dict(tickangle=-25, tickfont=dict(size=13)), yaxis=dict(tickfont=dict(size=14)))
+            fig_pk.update_layout(font=chart_font, title_font=title_font)
             st.plotly_chart(fig_pk, use_container_width=True)
 
-        # 5. Grafik Kelompok Usia
         if col_usia:
             st.markdown("---")
             def kategorikan_usia(u):
@@ -415,7 +436,7 @@ if not df.empty:
             
             fig_usia = px.pie(df_usia_count, names="Kategori Usia", values="Jumlah", hole=0.4, title="👶 Kelompok Rentang Usia Penduduk", color_discrete_sequence=px.colors.qualitative.Set3)
             fig_usia.update_traces(textfont_size=18, textinfo="percent+label+value")
-            fig_usia.update_layout(font=chart_font, title_font=title_font, legend=dict(font=dict(size=14)))
+            fig_usia.update_layout(font=chart_font, title_font=title_font)
             st.plotly_chart(fig_usia, use_container_width=True)
 
     elif menu == "🛠️ Kelola Warga":
@@ -499,6 +520,40 @@ if not df.empty:
         }
         df_rekap_rw = pd.DataFrame(data_rekap_rw)
         st.dataframe(df_rekap_rw, use_container_width=True, hide_index=True)
+
+    elif menu == "💰 Laporan Kas RT & Sosial (Perelek R6 Suayunan)":
+        if st.button("⬅️ Kembali ke Beranda"):
+            st.session_state.selected_menu = "Beranda / Dashboard"
+            st.rerun()
+        st.subheader("💰 Laporan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
+        st.markdown("Pusat transparansi keuangan warga RT 06, termasuk iuran kas RT serta pengelolaan dana sosial melalui **Perelek R6 Suayunan**.")
+        
+        tab_kas1, tab_kas2 = st.tabs(["📊 Kas RT 06", "🌾 Kas Sosial (Perelek R6 Suayunan)"])
+        
+        with tab_kas1:
+            st.markdown("### Rekapitulasi Keuangan Kas RT 06")
+            st.info("💡 Dana Kas RT digunakan untuk keperluan kebersihan lingkungan, keamanan, dan fasilitas umum warga.")
+            
+            # Tabel simulasi Kas RT
+            data_kas_rt = {
+                "No": [1, 2, 3, 4],
+                "Keterangan Transaksi": ["Saldo Awal Bulan", "Iuran Warga Bulanan (Periode Berjalan)", "Pengeluaran Perbaikan Lampu Jalan", "Saldo Akhir Kas RT"],
+                "Jenis": ["Masuk", "Masuk", "Keluar", "Total Saldo"],
+                "Jumlah (Rp)": ["Rp 1.500.000", "Rp 2.400.000", "Rp 350.000", "Rp 3.550.000"]
+            }
+            st.dataframe(pd.DataFrame(data_kas_rt), use_container_width=True, hide_index=True)
+
+        with tab_kas2:
+            st.markdown("### Laporan Dana Sosial & Perelek R6 Suayunan")
+            st.info("🌾 Program **Perelek R6 Suayunan** merupakan wujud gotong royong warga RT 06 untuk dana sosial kemasyarakatan (bantuan warga sakit, kedukaan, dll).")
+            
+            data_perelek = {
+                "No": [1, 2, 3],
+                "Uraian / Kegiatan Sosial": ["Saldo Kotak Sosial Perelek Sebelumnya", "Pemasukan Hasil Perelek Warga Bulanan", "Penyaluran Santunan Warga Sakit / Kedukaan"],
+                "Status": ["Saldo", "Masuk", "Keluar"],
+                "Nominal": ["Rp 750.000", "Rp 600.000", "Rp 250.000 (Saldo Akhir: Rp 1.100.000)"]
+            }
+            st.dataframe(pd.DataFrame(data_perelek), use_container_width=True, hide_index=True)
 
     elif menu == "🖨️ Cetak Rekap PDF":
         if st.button("⬅️ Kembali ke Beranda"):
