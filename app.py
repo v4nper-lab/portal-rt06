@@ -43,9 +43,12 @@ def load_data_rt06():
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
         
-        for col in df.columns:
-            if "KEPALA" in col or "KK" in col or "RUMAH" in col:
-                df[col] = df[col].ffill()
+        # Simpan versi bersih untuk tampilan tabel tanpa duplikat (mengganti nama KK yang sama dengan None/dash)
+        col_kk_candi = [c for c in df.columns if "KEPALA" in c or "KK" in c]
+        col_kk = col_kk_candi[0] if col_kk_candi else df.columns[2]
+        
+        col_rumah_candi = [c for c in df.columns if "RUMAH" in c or "ALAMAT" in c]
+        col_rumah = col_rumah_candi[0] if col_rumah_candi else None
 
         bulan_indo = {
             1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
@@ -92,13 +95,22 @@ if not df.empty:
     
     if menu == "📋 Dashboard Data Seluruh Warga":
         st.subheader("📋 Dashboard Seluruh Data Warga RT 06")
-        st.markdown("Berikut adalah tabel lengkap rekapitulasi data penduduk sesuai dengan sumber data Excel.")
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.markdown("Berikut adalah tabel lengkap rekapitulasi data penduduk dengan duplikat nama Kepala Keluarga yang diringkas.")
+        
+        # Buat salinan untuk tampilan dashboard di mana nilai duplikat Kepala Keluarga & No Rumah dijadikan kosong (None) agar rapi
+        df_dash = df.copy()
+        if col_kk in df_dash.columns:
+            df_dash[col_kk] = df_dash[col_kk].mask(df_dash[col_kk].duplicated(), None)
+        if col_rumah in df_dash.columns:
+            df_dash[col_rumah] = df_dash[col_rumah].mask(df_dash[col_rumah].duplicated(), None)
+            
+        st.dataframe(df_dash, use_container_width=True, hide_index=True)
 
     elif menu == "🗂️ Cetak / Lihat Kartu Keluarga (KK)":
         st.subheader("🗂️ Pencarian & Cetak Kartu Keluarga (KK) per Rumah")
         st.markdown("Pilih Nama Kepala Keluarga untuk melihat seluruh anggota keluarga dan mencetaknya ke format PDF A4 Landscape.")
         
+        # Ambil daftar unik Kepala Keluarga
         daftar_kk = df[col_kk].dropna().astype(str).str.strip()
         daftar_kk = sorted(list(set([x for x in daftar_kk if x != "" and x.lower() != "nan"])))
         
@@ -106,23 +118,26 @@ if not df.empty:
         
         if pilihan_kk:
             df_keluarga = df[df[col_kk].astype(str).str.strip() == pilihan_kk.strip()].copy()
-            no_rmh = str(df_keluarga[col_rumah].iloc[0]) if col_rumah and not df_keluarga.empty else "-"
+            no_rmh = str(df_keluarga[col_rumah].dropna().iloc[0]) if col_rumah and not df_keluarga[df_keluarga[col_rumah].notna()].empty else "-"
             
+            # Sembunyikan kolom Kepala Keluarga dari tabel web KK agar tidak duplikat
             cols_tampilan_web = [c for c in df_keluarga.columns if c != col_kk]
             
             st.markdown(f"""
             <div style="background-color: #f8fafc; border: 2px solid #2563eb; border-radius: 10px; padding: 20px; margin-top: 15px; margin-bottom: 20px;">
                 <h4 style="margin: 0; color: #1e3a8a;">🏠 KARTU KELUARGA - NO. RUMAH: {no_rmh}</h4>
-                <p style="margin: 8px 0 0 0; font-size: 16px;"><strong>Kepala Keluarga:</strong> {pilihan_kk}</p>
+                <p style="margin: 8px 0 0 0; font-size: 16px;"><b>Kepala Keluarga:</b> {pilihan_kk}</p>
                 <p style="margin: 4px 0 0 0; font-size: 14px; color: #64748b;">Jumlah Anggota: {len(df_keluarga)} Jiwa</p>
             </div>
             """, unsafe_allow_html=True)
             
             st.dataframe(df_keluarga[cols_tampilan_web], use_container_width=True, hide_index=True)
             
+            # Fungsi Pembuat PDF Kartu Keluarga A4 Landscape dengan Lebar Kolom Terstruktur
             def buat_pdf_kk_landscape(keluarga_df, kepala, rumah):
                 buffer = io.BytesIO()
-                doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=25, leftMargin=25, topMargin=25, bottomMargin=25)
+                # Ukuran A4 Landscape dalam poin: width = 842, height = 595
+                doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=20, leftMargin=20, topMargin=25, bottomMargin=25)
                 elements = []
                 styles = getSampleStyleSheet()
                 
@@ -135,22 +150,46 @@ if not df.empty:
                 elements.append(Paragraph(f"<b>Kepala Keluarga:</b> {kepala}", styles['Normal']))
                 elements.append(Spacer(1, 10))
                 
+                # Buang kolom Kepala Keluarga dari tabel PDF agar tidak duplikat
                 kolom_pdf = [c for c in keluarga_df.columns if c != col_kk]
-                table_data = [kolom_pdf]
+                
+                # Bungkus setiap sel dengan Paragraph agar teks panjang terbungkus rapi (wrap text) dan tidak terpotong
+                cell_style = ParagraphStyle(
+                    'Cell',
+                    parent=styles['Normal'],
+                    fontSize=7,
+                    leading=8,
+                    alignment=1
+                )
+                header_style = ParagraphStyle(
+                    'HeaderCell',
+                    parent=styles['Normal'],
+                    fontSize=7.5,
+                    leading=9,
+                    textColor=colors.whitesmoke,
+                    fontName='Helvetica-Bold',
+                    alignment=1
+                )
+                
+                table_data = [[Paragraph(str(col), header_style) for col in kolom_pdf]]
                 for _, row in keluarga_df.iterrows():
-                    table_data.append([str(row[col]) for col in kolom_pdf])
+                    row_cells = [Paragraph(str(row[col]) if pd.notnull(row[col]) else "", cell_style) for col in kolom_pdf]
+                    table_data.append(row_cells)
                     
-                t = Table(table_data, repeatRows=1)
+                # Tentukan lebar total 800 pt agar pas di kertas A4 Landscape (842 pt)
+                num_cols = len(kolom_pdf)
+                col_width = 800.0 / num_cols if num_cols > 0 else 100
+                col_widths = [col_width] * num_cols
+                
+                t = Table(table_data, colWidths=col_widths, repeatRows=1)
                 t.setStyle(TableStyle([
                     ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#2563eb')),
-                    ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
                     ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-                    ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0,0), (-1,0), 7),
-                    ('BOTTOMPADDING', (0,0), (-1,0), 5),
+                    ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                    ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+                    ('TOPPADDING', (0,0), (-1,-1), 6),
                     ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f9fafb')),
                     ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d1d5db')),
-                    ('FONTSIZE', (0,1), (-1,-1), 6),
                 ]))
                 elements.append(t)
                 doc.build(elements)
@@ -325,7 +364,7 @@ if not df.empty:
         
         def buat_pdf_rekap(data_df):
             buffer = io.BytesIO()
-            doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=25, leftMargin=25, topMargin=25, bottomMargin=25)
+            doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=20, leftMargin=20, topMargin=25, bottomMargin=25)
             elements = []
             styles = getSampleStyleSheet()
             
@@ -334,21 +373,27 @@ if not df.empty:
             elements.append(Spacer(1, 15))
             
             kolom_tampil = list(data_df.columns)
-            table_data = [kolom_tampil]
+            
+            cell_style = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=6.5, leading=7.5, alignment=1)
+            header_style = ParagraphStyle('HeaderCell', parent=styles['Normal'], fontSize=7, leading=8.5, textColor=colors.whitesmoke, fontName='Helvetica-Bold', alignment=1)
+            
+            table_data = [[Paragraph(str(col), header_style) for col in kolom_tampil]]
             for _, row in data_df.iterrows():
-                table_data.append([str(row[col]) for col in kolom_tampil])
+                table_data.append([Paragraph(str(row[col]) if pd.notnull(row[col]) else "", cell_style) for col in kolom_tampil])
                 
-            t = Table(table_data, repeatRows=1)
+            num_cols = len(kolom_tampil)
+            col_width = 800.0 / num_cols if num_cols > 0 else 100
+            col_widths = [col_width] * num_cols
+            
+            t = Table(table_data, colWidths=col_widths, repeatRows=1)
             t.setStyle(TableStyle([
                 ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#2563eb')),
-                ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
                 ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0,0), (-1,0), 7),
-                ('BOTTOMPADDING', (0,0), (-1,0), 5),
+                ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+                ('TOPPADDING', (0,0), (-1,-1), 5),
                 ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f9fafb')),
                 ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d1d5db')),
-                ('FONTSIZE', (0,1), (-1,-1), 6),
             ]))
             elements.append(t)
             doc.build(elements)
@@ -366,7 +411,12 @@ if not df.empty:
         
         st.markdown("---")
         st.markdown("### Preview Data:")
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        df_dash_prev = df.copy()
+        if col_kk in df_dash_prev.columns:
+            df_dash_prev[col_kk] = df_dash_prev[col_kk].mask(df_dash_prev[col_kk].duplicated(), None)
+        if col_rumah in df_dash_prev.columns:
+            df_dash_prev[col_rumah] = df_dash_prev[col_rumah].mask(df_dash_prev[col_rumah].duplicated(), None)
+        st.dataframe(df_dash_prev, use_container_width=True, hide_index=True)
 
 else:
     st.info("Silakan pastikan file Excel data warga RT 06 sudah di-upload dengan benar.")
