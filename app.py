@@ -43,7 +43,7 @@ def load_data_rt06():
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
         
-        # Konversi Format Tanggal Lahir ke Format Indonesia (Contoh: 02 Agustus 1991)
+        # Konversi Format Tanggal Lahir ke Format Indonesia
         bulan_indo = {
             1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
             7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
@@ -71,86 +71,123 @@ df = load_data_rt06()
 if not df.empty:
     st.metric("👥 Total Warga RT 06 Terdaftar", f"{len(df)} Jiwa")
     
-    # Navigasi Menu Utama
-    menu = st.sidebar.selectbox("📂 Navigasi Menu", ["Dashboard & Data Warga", "Kelola Data Warga (Tambah/Edit/Hapus)", "Cetak Laporan PDF"])
+    # Navigasi Menu Utama (Dipisah agar rapi dan tidak numpuk)
+    menu = st.sidebar.selectbox("📂 Pilih Menu Utama", [
+        "🗂️ Kartu Keluarga (KK) Warga", 
+        "📊 Grafik Demografi Interaktif", 
+        "🛠️ Kelola Data Warga", 
+        "🖨️ Cetak Laporan PDF"
+    ])
     
-    if menu == "Dashboard & Data Warga":
-        tab_data, tab_grafik = st.tabs(["📋 Data Warga (Format KK)", "📈 Grafik Demografi Interaktif"])
+    # Deteksi kolom penting
+    col_kk = next((c for c in df.columns if "KEPALA KELUARGA" in c or "KK" in c), None)
+    col_rumah = next((c for c in df.columns if "RUMAH" in c), None)
+    
+    if menu == "🗂️ Kartu Keluarga (KK) Warga":
+        st.subheader("🗂️ Lembar Kartu Keluarga (KK) Warga RT 06")
+        st.markdown("Setiap kartu di bawah ini menampilkan rincian Kepala Keluarga beserta seluruh anggota keluarganya secara berdampingan.")
         
-        with tab_data:
-            st.subheader("📋 Daftar Warga Berdasarkan Kartu Keluarga (Kepala Keluarga)")
+        if col_kk:
+            daftar_kk = df[col_kk].dropna().unique()
             
-            # Deteksi kolom Kepala Keluarga dan Anggota Keluarga
-            col_kk = next((c for c in df.columns if "KEPALA KELUARGA" in c or "KK" in c), None)
-            col_nama = next((c for c in df.columns if "ANGGOTA" in c or "NAMA" in c), None)
+            # Filter pencarian nama Kepala Keluarga
+            pencarian_kk = st.text_input("🔍 Cari Nama Kepala Keluarga:", "")
+            if pencarian_kk:
+                daftar_kk = [kk for kk in daftar_kk if pencarian_kk.lower() in str(kk).lower()]
             
-            if col_kk and col_nama:
-                # Mengelompokkan warga berdasarkan Kepala Keluarga
-                daftar_kk = df[col_kk].dropna().unique()
+            for idx, kk in enumerate(daftar_kk, 1):
+                df_anggota = df[df[col_kk] == kk]
+                no_rmh = df_anggota[col_rumah].iloc[0] if col_rumah and not df_anggota.empty else "-"
                 
-                for idx, kk in enumerate(daftar_kk, 1):
-                    with st.expander(f"🏠 Keluarga: {kk} (No. {idx})", expanded=(idx == 1)):
-                        df_anggota = df[df[col_kk] == kk]
-                        st.dataframe(df_anggota, use_container_width=True, hide_index=True)
-            else:
-                # Fallback jika nama kolom berbeda
-                st.dataframe(df, use_container_width=True, hide_index=True)
-            
-        with tab_grafik:
-            st.subheader("📊 Statistik & Grafik Demografi Warga RT 06")
-            
-            col_jk = next((c for c in df.columns if "JK" in c or "KELAMIN" in c or "GENDER" in c), None)
-            col_pend = next((c for c in df.columns if "PENDIDIKAN" in c), None)
-            col_pek = next((c for c in df.columns if "PEKERJAAN" in c), None)
-            col_usia = next((c for c in df.columns if "USIA" in c or "UMUR" in c), None)
-            col_status = next((c for c in df.columns if "STATUS" in c or "KAWIN" in c), None)
-            
-            c1, c2 = st.columns(2)
-            
-            with c1:
-                if col_jk:
-                    st.markdown("#### 👥 Berdasarkan Jenis Kelamin")
-                    df_jk = df[col_jk].dropna().value_counts().reset_index()
-                    df_jk.columns = ["Jenis Kelamin", "Jumlah"]
-                    fig_jk = px.pie(df_jk, names="Jenis Kelamin", values="Jumlah", hole=0.4, color_discrete_sequence=px.colors.qualitative.Set2)
-                    fig_jk.update_traces(textfont_size=16, textinfo="percent+label+value")
-                    fig_jk.update_layout(font=dict(size=14))
-                    st.plotly_chart(fig_jk, use_container_width=True)
+                # Desain Kartu ala Lembar KK Resmi
+                with st.container():
+                    st.markdown(f"""
+                    <div style="background-color: #f8fafc; border: 2px solid #cbd5e1; border-radius: 10px; padding: 20px; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 15px;">
+                            <h3 style="margin: 0; color: #1e3a8a;">🏠 KARTU KELUARGA (KK)</h3>
+                            <span style="background-color: #2563eb; color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 14px;">No. Rumah: {no_rmh}</span>
+                        </div>
+                        <p style="margin: 5px 0; font-size: 16px;"><strong>Kepala Keluarga:</strong> {kk}</p>
+                        <p style="margin: 5px 0; font-size: 14px; color: #64748b;">Jumlah Anggota Keluarga: <strong>{len(df_anggota)} Jiwa</strong></p>
+                    </div>
+                    """, unsafe_allow_html=True)
                     
-            with c2:
-                if col_status:
-                    st.markdown("#### 💍 Berdasarkan Status Pernikahan")
-                    df_st = df[col_status].dropna().value_counts().reset_index()
-                    df_st.columns = ["Status", "Jumlah"]
-                    fig_st = px.bar(df_st, x="Status", y="Jumlah", text="Jumlah", color="Status", color_discrete_sequence=px.colors.qualitative.Pastel)
-                    fig_st.update_traces(textfont_size=16, textposition="outside")
-                    fig_st.update_layout(font=dict(size=14), xaxis=dict(tickfont=dict(size=14)), yaxis=dict(tickfont=dict(size=14)))
-                    st.plotly_chart(fig_st, use_container_width=True)
-                    
-            c3, c4 = st.columns(2)
+                    st.dataframe(df_anggota, use_container_width=True, hide_index=True)
+                    st.write("---")
+        else:
+            st.dataframe(df, use_container_width=True, hide_index=True)
             
-            with c3:
-                if col_pend:
-                    st.markdown("#### 🎓 Berdasarkan Pendidikan")
-                    df_pd = df[col_pend].dropna().value_counts().reset_index()
-                    df_pd.columns = ["Pendidikan", "Jumlah"]
-                    fig_pd = px.bar(df_pd, x="Pendidikan", y="Jumlah", text="Jumlah", color="Pendidikan", color_discrete_sequence=px.colors.qualitative.Bold)
-                    fig_pd.update_traces(textfont_size=16, textposition="outside")
-                    fig_pd.update_layout(font=dict(size=14), xaxis=dict(tickangle=-30, tickfont=dict(size=13)), yaxis=dict(tickfont=dict(size=14)))
-                    st.plotly_chart(fig_pd, use_container_width=True)
-                    
-            with c4:
-                if col_pek:
-                    st.markdown("#### 💼 Berdasarkan Pekerjaan")
-                    df_pk = df[col_pek].dropna().value_counts().reset_index()
-                    df_pk.columns = ["Pekerjaan", "Jumlah"]
-                    fig_pk = px.bar(df_pk, x="Pekerjaan", y="Jumlah", text="Jumlah", color="Pekerjaan", color_discrete_sequence=px.colors.qualitative.Vivid)
-                    fig_pk.update_traces(textfont_size=16, textposition="outside")
-                    fig_pk.update_layout(font=dict(size=14), xaxis=dict(tickangle=-30, tickfont=dict(size=13)), yaxis=dict(tickfont=dict(size=14)))
-                    st.plotly_chart(fig_pk, use_container_width=True)
+    elif menu == "📊 Grafik Demografi Interaktif":
+        st.subheader("📊 Analisis & Statistik Grafik Demografi Warga RT 06")
+        st.markdown("Grafik interaktif modern dengan ukuran penuh agar angka dan persentasenya sangat jelas dibaca saat sosialisasi.")
+        
+        col_jk = next((c for c in df.columns if "JK" in c or "KELAMIN" in c or "GENDER" in c), None)
+        col_pend = next((c for c in df.columns if "PENDIDIKAN" in c), None)
+        col_pek = next((c for c in df.columns if "PEKERJAAN" in c), None)
+        col_usia = next((c for c in df.columns if "USIA" in c or "UMUR" in c), None)
+        col_status = next((c for c in df.columns if "STATUS" in c or "KAWIN" in c), None)
+        
+        # 1. Grafik Jenis Kelamin (Full Width & Modern)
+        if col_jk:
+            st.markdown("---")
+            col_g1, col_desc1 = st.columns([3, 2])
+            with col_g1:
+                df_jk = df[col_jk].dropna().value_counts().reset_index()
+                df_jk.columns = ["Jenis Kelamin", "Jumlah"]
+                fig_jk = px.pie(df_jk, names="Jenis Kelamin", values="Jumlah", hole=0.5, title="Rasio Penduduk Berdasarkan Jenis Kelamin", color_discrete_sequence=px.colors.qualitative.Set2)
+                fig_jk.update_traces(textfont_size=18, textinfo="percent+label+value")
+                fig_jk.update_layout(font=dict(size=15), title_font=dict(size=18))
+                st.plotly_chart(fig_jk, use_container_width=True)
+            with col_desc1:
+                st.markdown("### 📌 Keterangan & Analisis")
+                st.info("Grafik donat di samping menyajikan perbandingan jumlah penduduk laki-laki dan perempuan di lingkungan RT 06 secara real-time.")
+                for _, r in df_jk.iterrows():
+                    st.write(f"- **{r['Jenis Kelamin']}**: {r['Jumlah']} Jiwa")
 
-            if col_usia:
-                st.markdown("#### 👶 Berdasarkan Kategori Usia")
+        # 2. Grafik Status Pernikahan
+        if col_status:
+            st.markdown("---")
+            col_desc2, col_g2 = st.columns([2, 3])
+            with col_desc2:
+                st.markdown("### 💍 Status Pernikahan Warga")
+                st.info("Menunjukkan data demografi status pernikahan warga RT 06 untuk keperluan pendataan administrasi sosial.")
+                df_st = df[col_status].dropna().value_counts().reset_index()
+                df_st.columns = ["Status", "Jumlah"]
+                for _, r in df_st.iterrows():
+                    st.write(f"- **{r['Status']}**: {r['Jumlah']} Orang")
+            with col_g2:
+                fig_st = px.bar(df_st, x="Status", y="Jumlah", text="Jumlah", title="Distribusi Status Pernikahan", color="Status", color_discrete_sequence=px.colors.qualitative.Pastel)
+                fig_st.update_traces(textfont_size=16, textposition="outside")
+                fig_st.update_layout(font=dict(size=15), title_font=dict(size=18))
+                st.plotly_chart(fig_st, use_container_width=True)
+
+        # 3. Grafik Pendidikan
+        if col_pend:
+            st.markdown("---")
+            st.markdown("### 🎓 Tingkat Pendidikan Terakhir Warga")
+            df_pd = df[col_pend].dropna().value_counts().reset_index()
+            df_pd.columns = ["Pendidikan", "Jumlah"]
+            fig_pd = px.bar(df_pd, x="Pendidikan", y="Jumlah", text="Jumlah", color="Pendidikan", color_discrete_sequence=px.colors.qualitative.Bold)
+            fig_pd.update_traces(textfont_size=16, textposition="outside")
+            fig_pd.update_layout(font=dict(size=15), xaxis=dict(tickangle=-20, tickfont=dict(size=14)))
+            st.plotly_chart(fig_pd, use_container_width=True)
+
+        # 4. Grafik Pekerjaan
+        if col_pek:
+            st.markdown("---")
+            st.markdown("### 💼 Distribusi Mata Pencaharian / Pekerjaan Warga")
+            df_pk = df[col_pek].dropna().value_counts().reset_index()
+            df_pk.columns = ["Pekerjaan", "Jumlah"]
+            fig_pk = px.bar(df_pk, x="Pekerjaan", y="Jumlah", text="Jumlah", color="Pekerjaan", color_discrete_sequence=px.colors.qualitative.Vivid)
+            fig_pk.update_traces(textfont_size=16, textposition="outside")
+            fig_pk.update_layout(font=dict(size=15), xaxis=dict(tickangle=-25, tickfont=dict(size=13)))
+            st.plotly_chart(fig_pk, use_container_width=True)
+
+        # 5. Grafik Kategori Usia
+        if col_usia:
+            st.markdown("---")
+            col_g5, col_desc5 = st.columns([3, 2])
+            with col_g5:
                 def kategorikan_usia(u):
                     try:
                         u = int(u)
@@ -167,47 +204,47 @@ if not df.empty:
                 df_usia_count = df_u["KATEGORI_USIA"].value_counts().reset_index()
                 df_usia_count.columns = ["Kategori Usia", "Jumlah"]
                 
-                fig_usia = px.pie(df_usia_count, names="Kategori Usia", values="Jumlah", hole=0.4, color_discrete_sequence=px.colors.qualitative.Safe)
+                fig_usia = px.pie(df_usia_count, names="Kategori Usia", values="Jumlah", hole=0.4, title="Kelompok Rentang Usia Penduduk", color_discrete_sequence=px.colors.qualitative.Safe)
                 fig_usia.update_traces(textfont_size=16, textinfo="percent+label+value")
-                fig_usia.update_layout(font=dict(size=14))
+                fig_usia.update_layout(font=dict(size=15), title_font=dict(size=18))
                 st.plotly_chart(fig_usia, use_container_width=True)
+            with col_desc5:
+                st.markdown("### 👶 Klasifikasi Usia Warga")
+                st.info("Pengelompokan usia warga untuk memetakan program Posyandu, Karang Taruna, dan Lansia.")
+                for _, r in df_usia_count.iterrows():
+                    st.write(f"- **{r['Kategori Usia']}**: {r['Jumlah']} Jiwa")
 
-    elif menu == "Kelola Data Warga (Tambah/Edit/Hapus)":
+    elif menu == "🛠️ Kelola Data Warga":
         st.subheader("🛠️ Panel Pengelolaan Data Warga RT 06")
         aksi = st.selectbox("Pilih Aksi Pengelolaan:", ["➕ Tambah Data Warga Baru", "✏️ Edit Data Warga", "🗑️ Hapus Data Warga"])
         
         if aksi == "➕ Tambah Data Warga Baru":
-            st.markdown("### Form Tambah Warga")
             with st.form("form_tambah"):
                 st.text_input("No. Rumah")
                 st.text_input("Nama Kepala Keluarga")
                 st.text_input("Nama Anggota Keluarga")
                 st.selectbox("Jenis Kelamin", ["L", "P"])
-                st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"])
-                st.text_input("Tempat Lahir")
-                st.text_input("Tanggal Lahir (Contoh: 17 Agustus 1995)")
+                st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain"])
+                st.text_input("Tempat & Tanggal Lahir")
                 st.number_input("Usia", min_value=0, max_value=120, value=25)
-                st.selectbox("Status Pernikahan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"])
-                st.text_input("Pendidikan Terakhir", "Tamat SLTA/sederajat")
-                st.text_input("Pekerjaan", "Karyawan Swasta")
-                
+                st.selectbox("Status Pernikahan", ["Belum Kawin", "Kawin", "Cerai Hidup"])
+                st.text_input("Pendidikan Terakhir")
+                st.text_input("Pekerjaan")
                 if st.form_submit_button("Simpan Data Warga Baru"):
                     st.success("Data warga baru berhasil disiapkan!")
 
         elif aksi == "✏️ Edit Data Warga":
-            st.markdown("### Edit Data Warga")
             st.selectbox("Pilih Warga yang Ingin Diedit:", df.iloc[:, 2] if len(df.columns) > 2 else df.iloc[:, 0])
             with st.form("form_edit"):
                 st.text_input("Perbarui Data")
                 st.form_submit_button("Simpan Perubahan")
 
         elif aksi == "🗑️ Hapus Data Warga":
-            st.markdown("### Hapus Data Warga")
             nama_hapus = st.selectbox("Pilih Warga yang Ingin Dihapus:", df.iloc[:, 2] if len(df.columns) > 2 else df.iloc[:, 0])
-            if st.button("Konfirmasi Hapus Warga Ini"):
+            if st.button("Konfirmasi Hapus"):
                 st.success(f"Data **{nama_hapus}** berhasil dihapus.")
 
-    elif menu == "Cetak Laporan PDF":
+    elif menu == "🖨️ Cetak Laporan PDF":
         st.subheader("🖨️ Unduh Laporan Rekapitulasi Data Warga (PDF)")
         
         def buat_pdf(data_df):
