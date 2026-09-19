@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import os
 import io
-from reportlab.lib.pagesizes import letter
+from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
@@ -43,9 +43,9 @@ def load_data_rt06():
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
         
-        # Forward fill untuk Kepala Keluarga dan No Rumah agar terbaca rapi per kelompok
+        # Forward fill untuk No Rumah agar terbaca rapi per kelompok rumah
         for col in df.columns:
-            if "KEPALA" in col or "KK" in col or "RUMAH" in col:
+            if "RUMAH" in col or "ALAMAT" in col:
                 df[col] = df[col].ffill()
 
         # Format Tanggal Lahir Indonesia
@@ -75,10 +75,11 @@ df = load_data_rt06()
 if not df.empty:
     st.metric("👥 Total Warga RT 06 Terdaftar", f"{len(df)} Jiwa")
     
-    # Navigasi Menu Utama
+    # Navigasi Menu Utama dengan tambahan Dashboard Data Seluruh Warga
     menu = st.sidebar.selectbox("📂 Pilih Menu Utama", [
-        "📊 Grafik Demografi Interaktif", 
+        "📋 Dashboard Data Seluruh Warga",
         "🗂️ Cetak / Lihat Kartu Keluarga (KK)", 
+        "📊 Grafik Demografi Interaktif", 
         "🛠️ Kelola Data Warga (Tambah/Edit/Hapus)", 
         "🖨️ Cetak Laporan Rekap PDF"
     ])
@@ -93,13 +94,19 @@ if not df.empty:
     col_rumah_candi = [c for c in df.columns if "RUMAH" in c or "ALAMAT" in c]
     col_rumah = col_rumah_candi[0] if col_rumah_candi else None
     
-    if menu == "🗂️ Cetak / Lihat Kartu Keluarga (KK)":
+    if menu == "📋 Dashboard Data Seluruh Warga":
+        st.subheader("📋 Dashboard Seluruh Data Warga RT 06")
+        st.markdown("Berikut adalah tabel lengkap rekapitulasi data penduduk sesuai dengan sumber data Excel.")
+        st.dataframe(df, use_container_width=True, hide_index=True)
+
+    elif menu == "🗂️ Cetak / Lihat Kartu Keluarga (KK)":
         st.subheader("🗂️ Pencarian & Cetak Kartu Keluarga (KK) per Rumah")
-        st.markdown("Pilih atau ketik Nomor Rumah / Nama Kepala Keluarga untuk melihat dan mengunduh Kartu Keluarga.")
+        st.markdown("Pilih Nama Kepala Keluarga untuk melihat rincian anggota keluarga dan mencetaknya ke PDF.")
         
-        daftar_kk = [str(x) for x in df[col_kk].dropna().unique() if str(x).strip() != "" and str(x).lower() != "nan"]
+        # Membersihkan duplikat nama Kepala Keluarga agar tampil bersih sekali saja
+        daftar_kk = df[col_kk].dropna().astype(str).str.strip()
+        daftar_kk = sorted(list(set([x for x in daftar_kk if x != "" and x.lower() != "nan"])))
         
-        # Dropdown atau pilihan pencarian Kepala Keluarga / No Rumah
         pilihan_kk = st.selectbox("Pilih Kepala Keluarga:", daftar_kk)
         
         if pilihan_kk:
@@ -114,10 +121,8 @@ if not df.empty:
             </div>
             """, unsafe_allow_html=True)
             
-            # Tampilkan tabel anggota keluarga tersebut
             st.dataframe(df_keluarga, use_container_width=True, hide_index=True)
             
-            # Fungsi untuk membuat PDF khusus 1 Kartu Keluarga
             def buat_pdf_kk(keluarga_df, kepala, rumah):
                 buffer = io.BytesIO()
                 doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
@@ -125,7 +130,7 @@ if not df.empty:
                 styles = getSampleStyleSheet()
                 
                 elements.append(Paragraph("PEMERINTAH KABUPATEN BANDUNG", ParagraphStyle('Sub1', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
-                elements.append(Paragraph("KECAMATAN MMARGAASIH - DESA NANJUNG MEKAR", ParagraphStyle('Sub2', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
+                elements.append(Paragraph("KECAMATAN MARGAASIH - DESA NANJUNG MEKAR", ParagraphStyle('Sub2', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
                 elements.append(Paragraph("KARTU KELUARGA RT 06 / RW 14", ParagraphStyle('Title', parent=styles['Heading1'], fontSize=15, alignment=1, textColor=colors.HexColor('#1f2937'))))
                 elements.append(Spacer(1, 10))
                 
