@@ -20,19 +20,16 @@ def load_data_rt06():
         return pd.DataFrame()
     
     try:
-        # Langsung membaca file dengan menetapkan baris judul kolom secara pasti 
-        # (Jika header ada di baris ke-4 Excel, indeksnya adalah 3 atau sesuaikan)
+        # Membaca Excel dengan header di baris ke-4 (indeks 3)
         df = pd.read_excel(file_excel, header=3)
         
         df.columns = df.columns.astype(str).str.strip().str.upper()
         
-        # Membuang baris pertama jika masih berupa baris angka penomoran kolom
+        # Membuang baris pertama data secara mutlak karena berisi angka nomor kolom (1, 2, 5, dst)
         if len(df) > 0:
-            # Mengecek apakah baris pertama berisi angka/simbol nomor kolom
-            cell_pertama = str(df.iloc[0, 0]).strip()
-            if cell_pertama.isdigit() or cell_pertama in ["1", "2", "5", "6", "7", "8", "9", "10", "11"]:
-                df = df.iloc[1:].reset_index(drop=True)
+            df = df.iloc[1:].reset_index(drop=True)
             
+        # Buang kolom Unnamed jika ada
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
         return df
