@@ -20,18 +20,15 @@ def load_data_rt06():
         return pd.DataFrame()
     
     try:
-        df_raw = pd.read_excel(file_excel)
+        # Menggunakan header=4 (baris ke-5 di Excel) agar langsung tepat pada judul kolom asli
+        # Jika kolom masih bergeser, Anda bisa mengubah angka 4 menjadi 3 atau 5
+        df = pd.read_excel(file_excel, header=4)
         
-        # Cari baris header yang benar secara aman (menghindari error data kosong/float)
-        header_row = 0
-        for idx, row in df_raw.iterrows():
-            row_str = [str(val) for val in row.values]
-            if any("nama" in val.lower() for val in row_str):
-                header_row = idx
-                break
-        
-        df = pd.read_excel(file_excel, header=header_row)
+        # Bersihkan nama kolom dari spasi atau karakter aneh
         df.columns = df.columns.astype(str).str.strip().str.upper()
+        
+        # Buang kolom yang tidak bernama (Unnamed) atau baris yang kosong total
+        df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
         return df
     except Exception as e:
@@ -52,18 +49,19 @@ if not df.empty:
     with tab_grafik:
         st.subheader("📊 Statistik & Grafik Demografi Warga RT 06")
         
+        # Deteksi nama kolom secara fleksibel
         col_jk = next((c for c in df.columns if "JK" in c or "KELAMIN" in c or "GENDER" in c), None)
         col_pend = next((c for c in df.columns if "PENDIDIKAN" in c), None)
         col_pek = next((c for c in df.columns if "PEKERJAAN" in c), None)
         col_usia = next((c for c in df.columns if "USIA" in c or "UMUR" in c), None)
-        col_status = next((c for c in df.columns if "STATUS" in c and "KAWIN" in c) or (c for c in df.columns if c == "STATUS"), None)
+        col_status = next((c for c in df.columns if "STATUS" in c or "KAWIN" in c), None)
         
         c1, c2 = st.columns(2)
         
         with c1:
             if col_jk:
                 st.markdown("#### 👥 Berdasarkan Jenis Kelamin")
-                df_jk = df[col_jk].value_counts().reset_index()
+                df_jk = df[col_jk].dropna().value_counts().reset_index()
                 df_jk.columns = ["Jenis Kelamin", "Jumlah"]
                 fig_jk = px.pie(df_jk, names="Jenis Kelamin", values="Jumlah", hole=0.4, color_discrete_sequence=px.colors.qualitative.Set2)
                 st.plotly_chart(fig_jk, use_container_width=True)
@@ -73,7 +71,7 @@ if not df.empty:
         with c2:
             if col_status:
                 st.markdown("#### 💍 Berdasarkan Status Pernikahan")
-                df_st = df[col_status].value_counts().reset_index()
+                df_st = df[col_status].dropna().value_counts().reset_index()
                 df_st.columns = ["Status", "Jumlah"]
                 fig_st = px.bar(df_st, x="Status", y="Jumlah", text="Jumlah", color="Status", color_discrete_sequence=px.colors.qualitative.Pastel)
                 st.plotly_chart(fig_st, use_container_width=True)
@@ -85,7 +83,7 @@ if not df.empty:
         with c3:
             if col_pend:
                 st.markdown("#### 🎓 Berdasarkan Pendidikan")
-                df_pd = df[col_pend].value_counts().reset_index()
+                df_pd = df[col_pend].dropna().value_counts().reset_index()
                 df_pd.columns = ["Pendidikan", "Jumlah"]
                 fig_pd = px.bar(df_pd, x="Pendidikan", y="Jumlah", text="Jumlah", color="Pendidikan", color_discrete_sequence=px.colors.qualitative.Bold)
                 fig_pd.update_layout(xaxis=dict(tickangle=-30))
@@ -96,7 +94,7 @@ if not df.empty:
         with c4:
             if col_pek:
                 st.markdown("#### 💼 Berdasarkan Pekerjaan")
-                df_pk = df[col_pek].value_counts().reset_index()
+                df_pk = df[col_pek].dropna().value_counts().reset_index()
                 df_pk.columns = ["Pekerjaan", "Jumlah"]
                 fig_pk = px.bar(df_pk, x="Pekerjaan", y="Jumlah", text="Jumlah", color="Pekerjaan", color_discrete_sequence=px.colors.qualitative.Vivid)
                 fig_pk.update_layout(xaxis=dict(tickangle=-30))
