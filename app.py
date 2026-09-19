@@ -20,21 +20,18 @@ def load_data_rt06():
         return pd.DataFrame()
     
     try:
-        df_raw = pd.read_excel(file_excel, header=None)
+        # Langsung membaca file dengan menetapkan baris judul kolom secara pasti 
+        # (Jika header ada di baris ke-4 Excel, indeksnya adalah 3 atau sesuaikan)
+        df = pd.read_excel(file_excel, header=3)
         
-        header_row = 0
-        for idx, row in df_raw.iterrows():
-            row_str = [str(val).strip().upper() for val in row.values]
-            if any("NAMA" in val or "NIK" in val for val in row_str):
-                header_row = idx
-                break
-        
-        df = pd.read_excel(file_excel, header=header_row)
         df.columns = df.columns.astype(str).str.strip().str.upper()
         
-        # Menghapus baris pertama data yang berisi angka penomoran kolom (1, 2, 5, dst)
+        # Membuang baris pertama jika masih berupa baris angka penomoran kolom
         if len(df) > 0:
-            df = df.iloc[1:].reset_index(drop=True)
+            # Mengecek apakah baris pertama berisi angka/simbol nomor kolom
+            cell_pertama = str(df.iloc[0, 0]).strip()
+            if cell_pertama.isdigit() or cell_pertama in ["1", "2", "5", "6", "7", "8", "9", "10", "11"]:
+                df = df.iloc[1:].reset_index(drop=True)
             
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
