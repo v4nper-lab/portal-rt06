@@ -16,6 +16,28 @@ st.set_page_config(
     page_icon="🏠"
 )
 
+# Custom CSS untuk background yang elegan, modern, dan profesional
+st.markdown("""
+<style>
+    .stApp {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    }
+    .metric-card {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        padding: 24px;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .metric-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # Header Utama Portal RT 06 dengan Logo
 col_logo, col_title = st.columns([1, 5])
 with col_logo:
@@ -116,7 +138,6 @@ if not df.empty:
         with col_jam2:
             placeholder_waktu = st.empty()
 
-        # Hitung Metrik Rekapitulasi Utama
         total_jiwa = len(df)
         total_kk = df[col_kk].nunique() if col_kk in df.columns else 0
         
@@ -131,40 +152,39 @@ if not df.empty:
         if col_usia:
             def hitung_kategori(u):
                 try:
-                    val = int(u)
-                    return val
+                    return int(u)
                 except:
                     return -1
             usia_series = df[col_usia].apply(hitung_kategori)
             jml_balita = len(usia_series[(usia_series >= 0) & (usia_series <= 5)])
             jml_lansia = len(usia_series[usia_series > 60])
 
-        # Kartu Rekapitulasi Profesional Warga (Warna-warni Segar & Modern)
+        # Kartu Statistik Elegan dengan Border Aksen Warna
         st.markdown(f"""
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-top: 15px; margin-bottom: 30px;">
-            <div style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 22px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;">Jumlah KK (Kepala Keluarga)</div>
-                <div style="font-size: 30px; font-weight: bold; margin-top: 8px;">{total_kk} KK</div>
+            <div class="metric-card" style="border-left: 5px solid #2563eb;">
+                <div style="font-size: 12px; text-transform: uppercase; font-weight: 600; color: #64748b; letter-spacing: 0.5px;">Jumlah KK (Kepala Keluarga)</div>
+                <div style="font-size: 32px; font-weight: 800; color: #1e3a8a; margin-top: 8px;">{total_kk} <span style="font-size: 16px; font-weight: 500; color: #64748b;">KK</span></div>
             </div>
-            <div style="background: linear-gradient(135deg, #059669, #047857); color: white; padding: 22px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;">Jumlah Jiwa Total</div>
-                <div style="font-size: 30px; font-weight: bold; margin-top: 8px;">{total_jiwa} Jiwa</div>
+            <div class="metric-card" style="border-left: 5px solid #059669;">
+                <div style="font-size: 12px; text-transform: uppercase; font-weight: 600; color: #64748b; letter-spacing: 0.5px;">Jumlah Jiwa Total</div>
+                <div style="font-size: 32px; font-weight: 800; color: #065f46; margin-top: 8px;">{total_jiwa} <span style="font-size: 16px; font-weight: 500; color: #64748b;">Jiwa</span></div>
             </div>
-            <div style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 22px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;">Laki-laki</div>
-                <div style="font-size: 30px; font-weight: bold; margin-top: 8px;">{jml_l} Orang</div>
+            <div class="metric-card" style="border-left: 5px solid #0284c7;">
+                <div style="font-size: 12px; text-transform: uppercase; font-weight: 600; color: #64748b; letter-spacing: 0.5px;">Laki-laki</div>
+                <div style="font-size: 32px; font-weight: 800; color: #0369a1; margin-top: 8px;">{jml_l} <span style="font-size: 16px; font-weight: 500; color: #64748b;">Orang</span></div>
             </div>
-            <div style="background: linear-gradient(135deg, #db2777, #be185d); color: white; padding: 22px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;">Perempuan</div>
-                <div style="font-size: 30px; font-weight: bold; margin-top: 8px;">{jml_p} Orang</div>
+            <div class="metric-card" style="border-left: 5px solid #db2777;">
+                <div style="font-size: 12px; text-transform: uppercase; font-weight: 600; color: #64748b; letter-spacing: 0.5px;">Perempuan</div>
+                <div style="font-size: 32px; font-weight: 800; color: #9d174d; margin-top: 8px;">{jml_p} <span style="font-size: 16px; font-weight: 500; color: #64748b;">Orang</span></div>
             </div>
-            <div style="background: linear-gradient(135deg, #d97706, #b45309); color: white; padding: 22px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;">Jumlah Balita (0-5 tahun)</div>
-                <div style="font-size: 30px; font-weight: bold; margin-top: 8px;">{jml_balita} Jiwa</div>
+            <div class="metric-card" style="border-left: 5px solid #d97706;">
+                <div style="font-size: 12px; text-transform: uppercase; font-weight: 600; color: #64748b; letter-spacing: 0.5px;">Jumlah Balita (0-5 tahun)</div>
+                <div style="font-size: 32px; font-weight: 800; color: #b45309; margin-top: 8px;">{jml_balita} <span style="font-size: 16px; font-weight: 500; color: #64748b;">Jiwa</span></div>
             </div>
-            <div style="background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white; padding: 22px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;">Jumlah Lansia (>60 tahun)</div>
-                <div style="font-size: 30px; font-weight: bold; margin-top: 8px;">{jml_lansia} Jiwa</div>
+            <div class="metric-card" style="border-left: 5px solid #7c3aed;">
+                <div style="font-size: 12px; text-transform: uppercase; font-weight: 600; color: #64748b; letter-spacing: 0.5px;">Jumlah Lansia (>60 tahun)</div>
+                <div style="font-size: 32px; font-weight: 800; color: #5b21b6; margin-top: 8px;">{jml_lansia} <span style="font-size: 16px; font-weight: 500; color: #64748b;">Jiwa</span></div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -172,7 +192,7 @@ if not df.empty:
         for _ in range(3):
             waktu_sekarang = datetime.now().strftime("%d %B %Y | %H:%M:%S")
             placeholder_waktu.markdown(f"""
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 15px; border-radius: 10px; text-align: right;">
+            <div style="background: rgba(255, 255, 255, 0.9); border: 1px solid #cbd5e1; padding: 10px 15px; border-radius: 12px; text-align: right; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
                 <span style="font-size: 11px; color: #64748b;">🕒 Waktu Sistem:</span><br>
                 <strong style="font-size: 13px; color: #0f172a;">{waktu_sekarang}</strong>
             </div>
@@ -197,7 +217,7 @@ if not df.empty:
             cols_tampilan_web = [c for c in df_keluarga.columns if c != col_kk and "URUT" not in c and c != "NO"]
             
             st.markdown(f"""
-            <div style="background: #f8fafc; border: 2px solid #2563eb; border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+            <div style="background: #ffffff; border: 2px solid #2563eb; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
                 <h4 style="margin: 0; color: #1e3a8a;">🏠 No. Rumah: {no_rmh} | Kepala Keluarga: {pilihan_kk}</h4>
             </div>
             """, unsafe_allow_html=True)
