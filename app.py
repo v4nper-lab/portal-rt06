@@ -16,27 +16,48 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-# Custom CSS untuk background elegan dan modern
+# Custom CSS untuk Background Gradasi, Efek Glassmorphism, dan Kartu Menu Modern Berwarna-Warni
 st.markdown("""
 <style>
     .stApp {
-        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%);
     }
     .metric-card {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(226, 232, 240, 0.8);
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(226, 232, 240, 0.9);
         padding: 24px;
         border-radius: 16px;
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .metric-card:hover {
-        transform: translateY(-3px);
+        transform: translateY(-4px);
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    .menu-card {
+        padding: 25px;
+        border-radius: 16px;
+        color: white;
+        text-align: center;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        cursor: pointer;
+        margin-bottom: 15px;
+    }
+    .menu-card:hover {
+        transform: scale(1.03);
+        box-shadow: 0 15px 25px rgba(0,0,0,0.15);
     }
 </style>
 """, unsafe_allow_html=True)
+
+# Inisialisasi State Menu Navigasi di Depan Dashboard
+if 'selected_menu' not in st.session_state:
+    st.session_state.selected_menu = "Beranda / Dashboard"
+
+def set_menu(menu_name):
+    st.session_state.selected_menu = menu_name
 
 # Header Utama Portal RT 06 dengan Logo
 col_logo, col_title = st.columns([1, 5])
@@ -110,15 +131,6 @@ if 'df_warga' not in st.session_state:
 df = st.session_state.df_warga
 
 if not df.empty:
-    menu = st.sidebar.selectbox("📂 Navigasi Menu", [
-        "📊 Dashboard & Rekapitulasi",
-        "📋 Data Seluruh Warga",
-        "🗂️ Cetak Kartu Keluarga (KK)", 
-        "📈 Grafik Demografi", 
-        "🛠️ Kelola Warga", 
-        "🖨️ Cetak Rekap PDF"
-    ])
-    
     col_kk_candi = [c for c in df.columns if "KEPALA" in c or "KK" in c]
     col_kk = col_kk_candi[0] if col_kk_candi else df.columns[2]
     
@@ -131,7 +143,25 @@ if not df.empty:
     col_jk = next((c for c in df.columns if "JK" in c or "KELAMIN" in c or "GENDER" in c), None)
     col_usia = next((c for c in df.columns if "USIA" in c or "UMUR" in c), None)
 
-    if menu == "📊 Dashboard & Rekapitulasi":
+    # Sidebar Navigasi Pendukung
+    st.sidebar.markdown("### 🧭 Navigasi Cepat")
+    selected_sidebar = st.sidebar.selectbox("Pindah ke Menu:", [
+        "Beranda / Dashboard",
+        "📋 Data Seluruh Warga",
+        "🗂️ Cetak Kartu Keluarga (KK)", 
+        "📈 Grafik Demografi", 
+        "🛠️ Kelola Warga", 
+        "📊 Rekapitulasi Administrasi RW",
+        "🖨️ Cetak Rekap PDF"
+    ], index=["Beranda / Dashboard", "📋 Data Seluruh Warga", "🗂️ Cetak Kartu Keluarga (KK)", "📈 Grafik Demografi", "🛠️ Kelola Warga", "📊 Rekapitulasi Administrasi RW", "🖨️ Cetak Rekap PDF"].index(st.session_state.selected_menu) if st.session_state.selected_menu in ["Beranda / Dashboard", "📋 Data Seluruh Warga", "🗂️ Cetak Kartu Keluarga (KK)", "📈 Grafik Demografi", "🛠️ Kelola Warga", "📊 Rekapitulasi Administrasi RW", "🖨️ Cetak Rekap PDF"] else 0)
+
+    if selected_sidebar != st.session_state.selected_menu:
+        st.session_state.selected_menu = selected_sidebar
+        st.rerun()
+
+    menu = st.session_state.selected_menu
+
+    if menu == "Beranda / Dashboard":
         col_jam1, col_jam2 = st.columns([3, 1])
         with col_jam1:
             st.subheader("📊 Dashboard Eksekutif Kependudukan RT 06")
@@ -159,6 +189,7 @@ if not df.empty:
             jml_balita = len(usia_series[(usia_series >= 0) & (usia_series <= 5)])
             jml_lansia = len(usia_series[usia_series > 60])
 
+        # Kartu Statistik Eksekutif Warna-Warni
         st.markdown(f"""
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-top: 15px; margin-bottom: 30px;">
             <div class="metric-card" style="border-left: 5px solid #2563eb;">
@@ -188,6 +219,33 @@ if not df.empty:
         </div>
         """, unsafe_allow_html=True)
 
+        st.write("---")
+        st.markdown("### 🚀 Menu Navigasi Utama Portal")
+        
+        # Tombol Navigasi Menu Berwarna-Warni dan Modern di Depan Dashboard
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            if st.button("📋 Kelola & Lihat Data Seluruh Warga", use_container_width=True, type="primary"):
+                st.session_state.selected_menu = "📋 Data Seluruh Warga"
+                st.rerun()
+            if st.button("📈 Analisis Grafik Demografi", use_container_width=True):
+                st.session_state.selected_menu = "📈 Grafik Demografi"
+                st.rerun()
+        with c2:
+            if st.button("🗂️ Cetak Kartu Keluarga (KK)", use_container_width=True, type="primary"):
+                st.session_state.selected_menu = "🗂️ Cetak Kartu Keluarga (KK)"
+                st.rerun()
+            if st.button("🛠️ Tambah / Kelola Warga", use_container_width=True):
+                st.session_state.selected_menu = "🛠️ Kelola Warga"
+                st.rerun()
+        with c3:
+            if st.button("📊 Rekapitulasi Administrasi RW", use_container_width=True, type="primary"):
+                st.session_state.selected_menu = "📊 Rekapitulasi Administrasi RW"
+                st.rerun()
+            if st.button("🖨️ Cetak Laporan Rekap PDF", use_container_width=True):
+                st.session_state.selected_menu = "🖨️ Cetak Rekap PDF"
+                st.rerun()
+
         for _ in range(3):
             waktu_sekarang = datetime.now().strftime("%d %B %Y | %H:%M:%S")
             placeholder_waktu.markdown(f"""
@@ -199,10 +257,16 @@ if not df.empty:
             time.sleep(1)
 
     elif menu == "📋 Data Seluruh Warga":
+        if st.button("⬅️ Kembali ke Beranda / Dashboard"):
+            st.session_state.selected_menu = "Beranda / Dashboard"
+            st.rerun()
         st.subheader("📋 Data Keseluruhan Warga RT 06")
         st.data_editor(df, num_rows="dynamic", use_container_width=True, key="editor_warga_grid")
 
     elif menu == "🗂️ Cetak Kartu Keluarga (KK)":
+        if st.button("⬅️ Kembali ke Beranda / Dashboard"):
+            st.session_state.selected_menu = "Beranda / Dashboard"
+            st.rerun()
         st.subheader("🗂️ Cetak Kartu Keluarga (KK) per Rumah")
         daftar_kk = df[col_kk].dropna().astype(str).str.strip()
         daftar_kk = sorted(list(set([x for x in daftar_kk if x != "" and x.lower() != "nan"])))
@@ -277,6 +341,9 @@ if not df.empty:
             )
 
     elif menu == "📈 Grafik Demografi":
+        if st.button("⬅️ Kembali ke Beranda / Dashboard"):
+            st.session_state.selected_menu = "Beranda / Dashboard"
+            st.rerun()
         st.subheader("📈 Analisis Grafik Demografi Warga")
         if col_jk:
             df_jk = df[col_jk].dropna().value_counts().reset_index()
@@ -285,6 +352,9 @@ if not df.empty:
             st.plotly_chart(fig_jk, use_container_width=True)
 
     elif menu == "🛠️ Kelola Warga":
+        if st.button("⬅️ Kembali ke Beranda / Dashboard"):
+            st.session_state.selected_menu = "Beranda / Dashboard"
+            st.rerun()
         st.subheader("🛠️ Panel Pengelolaan Data Warga")
         aksi = st.selectbox("Pilih Aksi Pengelolaan:", ["➕ Tambah Data Warga Baru"])
         
@@ -300,7 +370,6 @@ if not df.empty:
                 hubungan = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"])
                 tempat_lahir = st.text_input("Tempat Lahir")
                 
-                # Date Picker Kalender Interaktif
                 tanggal_lahir_date = st.date_input("Tanggal Lahir", value=date(1995, 1, 1))
                 bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
                 tanggal_lahir_str = f"{tanggal_lahir_date.day:02d} {bulan_indo_nama.get(tanggal_lahir_date.month, '')} {tanggal_lahir_date.year}"
@@ -335,7 +404,54 @@ if not df.empty:
                 if st.form_submit_button("Simpan Data Warga Baru"):
                     st.success(f"Data warga baru atas nama **{nama_anggota}** (Lahir: {tanggal_lahir_str}) berhasil disiapkan!")
 
+    elif menu == "📊 Rekapitulasi Administrasi RW":
+        if st.button("⬅️ Kembali ke Beranda / Dashboard"):
+            st.session_state.selected_menu = "Beranda / Dashboard"
+            st.rerun()
+        st.subheader("📊 Laporan Rekapitulasi Administrasi untuk RW")
+        st.markdown("Berikut adalah rekapitulasi data resmi kependudukan RT 06 yang disusun sesuai standar kebutuhan administrasi RW.")
+
+        # Buat ringkasan tabel rekapitulasi administrasi RW
+        total_kk_rw = df[col_kk].nunique() if col_kk in df.columns else 0
+        total_jiwa_rw = len(df)
+        jml_l_rw = len(df[df[col_jk].astype(str).str.upper().str.contains("L")]) if col_jk else 0
+        jml_p_rw = len(df[df[col_jk].astype(str).str.upper().str.contains("P")]) if col_jk else 0
+        
+        # Hitung Balita & Lansia
+        balita_rw, lansia_rw = 0, 0
+        if col_usia:
+            u_ser = df[col_usia].apply(lambda x: int(x) if str(x).isdigit() else -1)
+            balita_rw = len(u_ser[(u_ser >= 0) & (u_ser <= 5)])
+            lansia_rw = len(u_ser[u_ser > 60])
+
+        data_rekap_rw = {
+            "No": [1, 2, 3, 4, 5, 6, 7],
+            "Komponen Rekapitulasi Administrasi": [
+                "Jumlah Kepala Keluarga (KK)",
+                "Jumlah Jiwa / Penduduk Total",
+                "Jumlah Penduduk Laki-Laki",
+                "Jumlah Penduduk Perempuan",
+                "Jumlah Balita (0-5 Tahun)",
+                "Jumlah Lansia (>60 Tahun)",
+                "Jumlah Total Rumah Terdata"
+            ],
+            "Jumlah / Volume": [
+                f"{total_kk_rw} KK",
+                f"{total_jiwa_rw} Jiwa",
+                f"{jml_l_rw} Orang",
+                f"{jml_p_rw} Orang",
+                f"{balita_rw} Jiwa",
+                f"{lansia_rw} Jiwa",
+                f"{df[col_rumah].nunique() if col_rumah in df.columns else 0} Rumah"
+            ]
+        }
+        df_rekap_rw = pd.DataFrame(data_rekap_rw)
+        st.dataframe(df_rekap_rw, use_container_width=True, hide_index=True)
+
     elif menu == "🖨️ Cetak Rekap PDF":
+        if st.button("⬅️ Kembali ke Beranda / Dashboard"):
+            st.session_state.selected_menu = "Beranda / Dashboard"
+            st.rerun()
         st.subheader("🖨️ Cetak Laporan Rekapitulasi Keseluruhan (PDF)")
         def buat_pdf_rekap(data_df):
             buffer = io.BytesIO()
