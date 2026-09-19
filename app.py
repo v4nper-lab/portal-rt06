@@ -43,7 +43,7 @@ def load_data_rt06():
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
         
-        # Mengisi ke bawah kolom Kepala Keluarga & No Rumah jika dalam format merged cell Excel
+        # Forward fill untuk Kepala Keluarga dan No Rumah agar terbaca rapi per kelompok
         for col in df.columns:
             if "KEPALA" in col or "KK" in col or "RUMAH" in col:
                 df[col] = df[col].ffill()
@@ -75,6 +75,7 @@ df = load_data_rt06()
 if not df.empty:
     st.metric("👥 Total Warga RT 06 Terdaftar", f"{len(df)} Jiwa")
     
+    # Navigasi Menu Utama
     menu = st.sidebar.selectbox("📂 Pilih Menu Utama", [
         "🗂️ Kartu Keluarga (KK) Warga", 
         "📊 Grafik Demografi Interaktif", 
@@ -82,61 +83,101 @@ if not df.empty:
         "🖨️ Cetak Laporan PDF"
     ])
     
-    # Deteksi kolom Kepala Keluarga, Anggota, Hubungan, dan Rumah secara fleksibel
+    # Deteksi kolom secara dinamis
     col_kk_candi = [c for c in df.columns if "KEPALA" in c or "KK" in c]
     col_kk = col_kk_candi[0] if col_kk_candi else df.columns[2]
     
-    col_hub_candi = [c for c in df.columns if "HUBUNGAN" in c]
-    col_hub = col_hub_candi[0] if col_hub_candi else None
+    col_nama_candi = [c for c in df.columns if "ANGGOTA" in c or "NAMA" in c]
+    col_nama = col_nama_candi[0] if col_nama_candi else df.columns[3]
     
     col_rumah_candi = [c for c in df.columns if "RUMAH" in c or "ALAMAT" in c]
     col_rumah = col_rumah_candi[0] if col_rumah_candi else None
     
+    col_jk = next((c for c in df.columns if "JK" in c or "KELAMIN" in c), None)
+    col_hub = next((c for c in df.columns if "HUBUNGAN" in c), None)
+    col_usia = next((c for c in df.columns if "USIA" in c or "UMUR" in c), None)
+    col_pek = next((c for c in df.columns if "PEKERJAAN" in c), None)
+    col_status_rumah = next((c for c in df.columns if "RUMAH" in c and c != col_rumah), None)
+    col_domisili = next((c for c in df.columns if "DOMISILI" in c), None)
+    
     if menu == "🗂️ Kartu Keluarga (KK) Warga":
-        st.subheader("🗂️ Daftar Lembar Kartu Keluarga (KK) Berdasarkan Hubungan Keluarga")
-        st.markdown("Setiap kartu keluarga dikelompokkan berdasarkan Kepala Keluarga dan menyertakan seluruh anggota keluarga serta hubungan keluarganya.")
+        st.subheader("🗂️ Lembar Kartu Keluarga (KK) Warga RT 06")
+        st.markdown("Tampilan mobile-friendly per nomor rumah dan kepala keluarga.")
         
-        # Ambil daftar unik kepala keluarga
         daftar_kk = [str(x) for x in df[col_kk].dropna().unique() if str(x).strip() != "" and str(x).lower() != "nan"]
         
-        pencarian_kk = st.text_input("🔍 Cari Nama Kepala Keluarga:", "")
+        pencarian_kk = st.text_input("🔍 Cari Nama Kepala Keluarga / No Rumah:", "")
         if pencarian_kk:
             daftar_kk = [kk for kk in daftar_kk if pencarian_kk.lower() in kk.lower()]
         
         if len(daftar_kk) == 0:
             st.warning("Data Kepala Keluarga tidak ditemukan.")
-            st.dataframe(df, use_container_width=True)
         else:
             for idx, kk in enumerate(daftar_kk, 1):
-                # Ambil baris yang memiliki kepala keluarga tersebut
                 df_anggota = df[df[col_kk].astype(str).str.strip() == kk.strip()]
                 no_rmh = str(df_anggota[col_rumah].iloc[0]) if col_rumah and not df_anggota.empty else "-"
+                st_rumah = str(df_anggota[col_status_rumah].iloc[0]) if col_status_rumah and not df_anggota.empty else "Milik / Tetap"
+                dom = str(df_anggota[col_domisili].iloc[0]) if col_domisili and not df_anggota.empty else "Nanjung Mekar"
                 
-                # Kotak Kartu Keluarga Resmi
-                st.markdown(f"""
-                <div style="background-color: #f8fafc; border: 2px solid #cbd5e1; border-radius: 10px; padding: 20px; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 15px;">
-                        <h3 style="margin: 0; color: #1e3a8a;">🏠 KARTU KELUARGA (KK) #{idx}</h3>
-                        <span style="background-color: #2563eb; color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 14px;">No. Rumah: {no_rmh}</span>
-                    </div>
-                    <p style="margin: 5px 0; font-size: 16px;"><strong>Kepala Keluarga:</strong> {kk}</p>
-                    <p style="margin: 5px 0; font-size: 14px; color: #64748b;">Total Anggota & Hubungan Keluarga Terdaftar: <strong>{len(df_anggota)} Jiwa</strong></p>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Tampilkan tabel anggota beserta hubungan keluarganya
-                st.dataframe(df_anggota, use_container_width=True, hide_index=True)
-                st.markdown("<br>", unsafe_allow_html=True)
+                # Kartu Utama Per Rumah / Kepala Keluarga
+                with st.container():
+                    st.markdown(f"""
+                    <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <span style="background-color: #eff6ff; color: #1d4ed8; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 15px; margin-right: 10px;">{no_rmh}</span>
+                            <span style="font-size: 18px; font-weight: bold; color: #0f172a;">{kk}</span>
+                        </div>
+                        <div style="font-size: 13px; color: #64748b; margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
+                            <strong>{len(df_anggota)} anggota</strong> &nbsp;&bull;&nbsp; {st_rumah} &nbsp;&bull;&nbsp; {dom}
+                        </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Daftar Anggota Keluarga di dalam Kartu
+                    for i, (_, row) in enumerate(df_anggota.iterrows()):
+                        nama_anggota = row.get(col_nama, "-")
+                        jk_val = row.get(col_jk, "-")
+                        hub_val = row.get(col_hub, "-")
+                        usia_val = row.get(col_usia, "-")
+                        pek_val = row.get(col_pek, "-")
+                        
+                        cols = st.columns([6, 2, 2])
+                        with cols[0]:
+                            badge_color = "#2563eb" if str(jk_val).upper() == "L" else "#db2777"
+                            st.markdown(f"""
+                            <div style="margin-bottom: 10px;">
+                                <span style="font-weight: bold; font-size: 15px; color: #1e293b;">{nama_anggota}</span><br>
+                                <span style="background-color: {badge_color}; color: white; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: bold;">{jk_val}</span> 
+                                <span style="font-size: 13px; color: #475569;">{hub_val} &bull; {pek_val}</span>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        with cols[1]:
+                            st.markdown(f"<div style='font-size: 14px; color: #334155; padding-top: 4px;'><strong>{usia_val} th</strong></div>", unsafe_allow_html=True)
+                        with cols[2]:
+                            sub_cols = st.columns(2)
+                            with sub_cols[0]:
+                                if st.button("Ubah", key=f"edit_{idx}_{i}", help="Edit data"):
+                                    st.toast(f"Edit data: {nama_anggota}")
+                            with sub_cols[1]:
+                                if st.button("Hapus", key=f"del_{idx}_{i}", help="Hapus data"):
+                                    st.toast(f"Hapus data: {nama_anggota}")
+                        
+                        if i < len(df_anggota) - 1:
+                            st.markdown("<hr style='margin: 6px 0; border: none; border-top: 1px dashed #e2e8f0;'>", unsafe_allow_html=True)
+                    
+                    # Tombol tambah anggota di bawah kartu
+                    st.markdown("<div style='margin-top: 12px;'>", unsafe_allow_html=True)
+                    if st.button(f"+ Tambah anggota keluarga ini", key=f"add_member_{idx}", use_container_width=True):
+                        st.info(f"Form tambah anggota untuk keluarga {kk} dibuka.")
+                    st.markdown("</div></div>", unsafe_allow_html=True)
             
     elif menu == "📊 Grafik Demografi Interaktif":
         st.subheader("📊 Analisis & Statistik Grafik Demografi Warga RT 06")
-        st.markdown("Grafik interaktif modern dengan ukuran penuh dan keterangan analisis di sampingnya.")
         
         col_jk = next((c for c in df.columns if "JK" in c or "KELAMIN" in c or "GENDER" in c), None)
         col_pend = next((c for c in df.columns if "PENDIDIKAN" in c), None)
         col_pek = next((c for c in df.columns if "PEKERJAAN" in c), None)
         col_usia = next((c for c in df.columns if "USIA" in c or "UMUR" in c), None)
-        col_status = next((c for c in df.columns if "STATUS" in c or "KAWIN" in c), None)
+        col_status = next((c for c in df.columns if "STATUS" in c and "KAWIN" in c) or (c for c in df.columns if "STATUS" in c), None)
         
         if col_jk:
             st.markdown("---")
@@ -224,8 +265,7 @@ if not df.empty:
         st.subheader("🛠️ Panel Pengelolaan Data Warga RT 06")
         aksi = st.selectbox("Pilih Aksi Pengelolaan:", ["➕ Tambah Data Warga Baru", "✏️ Edit Data Warga", "🗑️ Hapus Data Warga"])
         
-        kol_nama_warga = [c for c in df.columns if "NAMA" in c or "ANGGOTA" in c]
-        kol_pilih_nama = kol_nama_warga[0] if kol_nama_warga else df.columns[0]
+        kol_pilih_nama = col_nama if col_nama else df.columns[0]
         
         if aksi == "➕ Tambah Data Warga Baru":
             st.markdown("### Form Tambah Warga Baru")
