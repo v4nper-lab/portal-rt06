@@ -16,7 +16,7 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-# Custom CSS untuk Background Gradasi, Efek Glassmorphism, dan Kartu Menu Modern Berwarna-Warni
+# Custom CSS responsif untuk Mobile & Desktop (Background Gradasi, Glassmorphism, Kartu Menu)
 st.markdown("""
 <style>
     .stApp {
@@ -26,28 +26,16 @@ st.markdown("""
         background: rgba(255, 255, 255, 0.9);
         backdrop-filter: blur(12px);
         border: 1px solid rgba(226, 232, 240, 0.9);
-        padding: 24px;
+        padding: 20px;
         border-radius: 16px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        margin-bottom: 12px;
     }
-    .metric-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    }
-    .menu-card {
-        padding: 25px;
-        border-radius: 16px;
-        color: white;
-        text-align: center;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        transition: all 0.3s ease;
-        cursor: pointer;
-        margin-bottom: 15px;
-    }
-    .menu-card:hover {
-        transform: scale(1.03);
-        box-shadow: 0 15px 25px rgba(0,0,0,0.15);
+    /* Responsif untuk Tampilan Mobile HP */
+    @media (max-width: 768px) {
+        .metric-card {
+            padding: 15px;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -56,26 +44,23 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-def set_menu(menu_name):
-    st.session_state.selected_menu = menu_name
-
-# Header Utama Portal RT 06 dengan Logo
-col_logo, col_title = st.columns([1, 5])
+# Header Utama Portal RT 06 dengan Logo Responsif
+col_logo, col_title = st.columns([1, 4])
 with col_logo:
     logo_path = "logo_rt06.jpg"
     if os.path.exists(logo_path):
-        st.image(logo_path, width=330)
+        st.image(logo_path, width=200)
     else:
-        st.image("logo r6.jpg", width=330) if os.path.exists("logo r6.jpg") else st.write("🏠")
+        st.image("logo r6.jpg", width=200) if os.path.exists("logo r6.jpg") else st.write("🏠")
 
 with col_title:
     st.markdown("<br>", unsafe_allow_html=True)
-    st.title("🏠 PORTAL RESMI RT 06 / RW 14")
-    st.markdown("### Griya Permata Raya - Desa Nanjung Mekar, Kec. Rancaekek")
+    st.title("🏠 PORTAL RT 06 / RW 14")
+    st.markdown("**Griya Permata Raya** • Desa Nanjung Mekar, Rancaekek")
 
 st.write("---")
 
-@st.cache_data
+@st.cache_data(ttl=60) # Cache otomatis diperbarui setiap 60 detik untuk live data mobile
 def load_data_rt06():
     file_excel = "data_warga_rt06.xlsx"
     if not os.path.exists(file_excel):
@@ -143,9 +128,9 @@ if not df.empty:
     col_jk = next((c for c in df.columns if "JK" in c or "KELAMIN" in c or "GENDER" in c), None)
     col_usia = next((c for c in df.columns if "USIA" in c or "UMUR" in c), None)
 
-    # Sidebar Navigasi Pendukung
-    st.sidebar.markdown("### 🧭 Navigasi Cepat")
-    selected_sidebar = st.sidebar.selectbox("Pindah ke Menu:", [
+    # Sidebar Navigasi Pendukung untuk Mobile & Desktop
+    st.sidebar.markdown("### 🧭 Navigasi Menu")
+    selected_sidebar = st.sidebar.selectbox("Pilih Halaman:", [
         "Beranda / Dashboard",
         "📋 Data Seluruh Warga",
         "🗂️ Cetak Kartu Keluarga (KK)", 
@@ -162,9 +147,9 @@ if not df.empty:
     menu = st.session_state.selected_menu
 
     if menu == "Beranda / Dashboard":
-        col_jam1, col_jam2 = st.columns([3, 1])
+        col_jam1, col_jam2 = st.columns([2, 2])
         with col_jam1:
-            st.subheader("📊 Dashboard Eksekutif Kependudukan RT 06")
+            st.subheader("📊 Dashboard Eksekutif")
         with col_jam2:
             placeholder_waktu = st.empty()
 
@@ -189,85 +174,86 @@ if not df.empty:
             jml_balita = len(usia_series[(usia_series >= 0) & (usia_series <= 5)])
             jml_lansia = len(usia_series[usia_series > 60])
 
-        # Kartu Statistik Eksekutif Warna-Warni
+        # Kartu Statistik Responsif Mobile
         st.markdown(f"""
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-top: 15px; margin-bottom: 30px;">
-            <div class="metric-card" style="border-left: 5px solid #2563eb;">
-                <div style="font-size: 12px; text-transform: uppercase; font-weight: 600; color: #64748b; letter-spacing: 0.5px;">Jumlah KK (Kepala Keluarga)</div>
-                <div style="font-size: 32px; font-weight: 800; color: #1e3a8a; margin-top: 8px;">{total_kk} <span style="font-size: 16px; font-weight: 500; color: #64748b;">KK</span></div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 10px; margin-bottom: 20px;">
+            <div class="metric-card" style="border-left: 4px solid #2563eb;">
+                <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: #64748b;">Jumlah KK</div>
+                <div style="font-size: 24px; font-weight: 800; color: #1e3a8a; margin-top: 4px;">{total_kk} <span style="font-size: 13px; font-weight: 500; color: #64748b;">KK</span></div>
             </div>
-            <div class="metric-card" style="border-left: 5px solid #059669;">
-                <div style="font-size: 12px; text-transform: uppercase; font-weight: 600; color: #64748b; letter-spacing: 0.5px;">Jumlah Jiwa Total</div>
-                <div style="font-size: 32px; font-weight: 800; color: #065f46; margin-top: 8px;">{total_jiwa} <span style="font-size: 16px; font-weight: 500; color: #64748b;">Jiwa</span></div>
+            <div class="metric-card" style="border-left: 4px solid #059669;">
+                <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: #64748b;">Total Jiwa</div>
+                <div style="font-size: 24px; font-weight: 800; color: #065f46; margin-top: 4px;">{total_jiwa} <span style="font-size: 13px; font-weight: 500; color: #64748b;">Jiwa</span></div>
             </div>
-            <div class="metric-card" style="border-left: 5px solid #0284c7;">
-                <div style="font-size: 12px; text-transform: uppercase; font-weight: 600; color: #64748b; letter-spacing: 0.5px;">Laki-laki</div>
-                <div style="font-size: 32px; font-weight: 800; color: #0369a1; margin-top: 8px;">{jml_l} <span style="font-size: 16px; font-weight: 500; color: #64748b;">Orang</span></div>
+            <div class="metric-card" style="border-left: 4px solid #0284c7;">
+                <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: #64748b;">Laki-laki</div>
+                <div style="font-size: 24px; font-weight: 800; color: #0369a1; margin-top: 4px;">{jml_l}</div>
             </div>
-            <div class="metric-card" style="border-left: 5px solid #db2777;">
-                <div style="font-size: 12px; text-transform: uppercase; font-weight: 600; color: #64748b; letter-spacing: 0.5px;">Perempuan</div>
-                <div style="font-size: 32px; font-weight: 800; color: #9d174d; margin-top: 8px;">{jml_p} <span style="font-size: 16px; font-weight: 500; color: #64748b;">Orang</span></div>
+            <div class="metric-card" style="border-left: 4px solid #db2777;">
+                <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: #64748b;">Perempuan</div>
+                <div style="font-size: 24px; font-weight: 800; color: #9d174d; margin-top: 4px;">{jml_p}</div>
             </div>
-            <div class="metric-card" style="border-left: 5px solid #d97706;">
-                <div style="font-size: 12px; text-transform: uppercase; font-weight: 600; color: #64748b; letter-spacing: 0.5px;">Jumlah Balita (0-5 tahun)</div>
-                <div style="font-size: 32px; font-weight: 800; color: #b45309; margin-top: 8px;">{jml_balita} <span style="font-size: 16px; font-weight: 500; color: #64748b;">Jiwa</span></div>
+            <div class="metric-card" style="border-left: 4px solid #d97706;">
+                <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: #64748b;">Balita (0-5 th)</div>
+                <div style="font-size: 24px; font-weight: 800; color: #b45309; margin-top: 4px;">{jml_balita}</div>
             </div>
-            <div class="metric-card" style="border-left: 5px solid #7c3aed;">
-                <div style="font-size: 12px; text-transform: uppercase; font-weight: 600; color: #64748b; letter-spacing: 0.5px;">Jumlah Lansia (>60 tahun)</div>
-                <div style="font-size: 32px; font-weight: 800; color: #5b21b6; margin-top: 8px;">{jml_lansia} <span style="font-size: 16px; font-weight: 500; color: #64748b;">Jiwa</span></div>
+            <div class="metric-card" style="border-left: 4px solid #7c3aed;">
+                <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: #64748b;">Lansia (>60 th)</div>
+                <div style="font-size: 24px; font-weight: 800; color: #5b21b6; margin-top: 4px;">{jml_lansia}</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
         st.write("---")
-        st.markdown("### 🚀 Menu Navigasi Utama Portal")
+        st.markdown("### 🚀 Menu Utama Portal")
         
-        # Tombol Navigasi Menu Berwarna-Warni dan Modern di Depan Dashboard
-        c1, c2, c3 = st.columns(3)
+        # Tombol Navigasi Menu Interaktif di HP
+        c1, c2 = st.columns(2)
         with c1:
-            if st.button("📋 Kelola & Lihat Data Seluruh Warga", use_container_width=True, type="primary"):
+            if st.button("📋 Data Warga", use_container_width=True, type="primary"):
                 st.session_state.selected_menu = "📋 Data Seluruh Warga"
                 st.rerun()
-            if st.button("📈 Analisis Grafik Demografi", use_container_width=True):
-                st.session_state.selected_menu = "📈 Grafik Demografi"
-                st.rerun()
-        with c2:
-            if st.button("🗂️ Cetak Kartu Keluarga (KK)", use_container_width=True, type="primary"):
+            if st.button("🗂️ Kartu Keluarga", use_container_width=True, type="primary"):
                 st.session_state.selected_menu = "🗂️ Cetak Kartu Keluarga (KK)"
                 st.rerun()
-            if st.button("🛠️ Tambah / Kelola Warga", use_container_width=True):
-                st.session_state.selected_menu = "🛠️ Kelola Warga"
-                st.rerun()
-        with c3:
-            if st.button("📊 Rekapitulasi Administrasi RW", use_container_width=True, type="primary"):
+            if st.button("📊 Rekap RW", use_container_width=True, type="primary"):
                 st.session_state.selected_menu = "📊 Rekapitulasi Administrasi RW"
                 st.rerun()
-            if st.button("🖨️ Cetak Laporan Rekap PDF", use_container_width=True):
+        with c2:
+            if st.button("📈 Grafik", use_container_width=True):
+                st.session_state.selected_menu = "📈 Grafik Demografi"
+                st.rerun()
+            if st.button("🛠️ Kelola Warga", use_container_width=True):
+                st.session_state.selected_menu = "🛠️ Kelola Warga"
+                st.rerun()
+            if st.button("🖨️ Cetak PDF", use_container_width=True):
                 st.session_state.selected_menu = "🖨️ Cetak Rekap PDF"
                 st.rerun()
 
-        for _ in range(3):
+        # Fitur Auto-Refresh Loop agar data dan waktu otomatis terupdate real-time di HP
+        for _ in range(5):
             waktu_sekarang = datetime.now().strftime("%d %B %Y | %H:%M:%S")
             placeholder_waktu.markdown(f"""
-            <div style="background: rgba(255, 255, 255, 0.9); border: 1px solid #cbd5e1; padding: 10px 15px; border-radius: 12px; text-align: right; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
-                <span style="font-size: 11px; color: #64748b;">🕒 Waktu Sistem:</span><br>
-                <strong style="font-size: 13px; color: #0f172a;">{waktu_sekarang}</strong>
+            <div style="background: rgba(255, 255, 255, 0.9); border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 10px; text-align: right;">
+                <span style="font-size: 10px; color: #64748b;">🕒 Live Update:</span><br>
+                <strong style="font-size: 12px; color: #0f172a;">{waktu_sekarang}</strong>
             </div>
             """, unsafe_allow_html=True)
             time.sleep(1)
+        st.rerun() # Refresh otomatis halaman secara berkala agar sinkron dengan file Excel terbaru
 
     elif menu == "📋 Data Seluruh Warga":
-        if st.button("⬅️ Kembali ke Beranda / Dashboard"):
+        if st.button("⬅️ Kembali ke Beranda"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
-        st.subheader("📋 Data Keseluruhan Warga RT 06")
+        st.subheader("📋 Data Keseluruhan Warga")
         st.data_editor(df, num_rows="dynamic", use_container_width=True, key="editor_warga_grid")
 
     elif menu == "🗂️ Cetak Kartu Keluarga (KK)":
-        if st.button("⬅️ Kembali ke Beranda / Dashboard"):
+        if st.button("⬅️ Kembali ke Beranda"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
-        st.subheader("🗂️ Cetak Kartu Keluarga (KK) per Rumah")
+        st.subheader("🗂️ Cetak Kartu Keluarga (KK)")
         daftar_kk = df[col_kk].dropna().astype(str).str.strip()
         daftar_kk = sorted(list(set([x for x in daftar_kk if x != "" and x.lower() != "nan"])))
         
@@ -280,8 +266,8 @@ if not df.empty:
             cols_tampilan_web = [c for c in df_keluarga.columns if c != col_kk and "URUT" not in c and c != "NO"]
             
             st.markdown(f"""
-            <div style="background: #ffffff; border: 2px solid #2563eb; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-                <h4 style="margin: 0; color: #1e3a8a;">🏠 No. Rumah: {no_rmh} | Kepala Keluarga: {pilihan_kk}</h4>
+            <div style="background: #ffffff; border: 2px solid #2563eb; border-radius: 12px; padding: 12px; margin-bottom: 12px;">
+                <h4 style="margin: 0; color: #1e3a8a; font-size: 15px;">🏠 No. Rumah: {no_rmh} | KK: {pilihan_kk}</h4>
             </div>
             """, unsafe_allow_html=True)
             
@@ -333,7 +319,7 @@ if not df.empty:
 
             pdf_kk_bytes = buat_pdf_kk_landscape(df_keluarga, pilihan_kk, no_rmh)
             st.download_button(
-                label=f"📥 Download PDF Kartu Keluarga ({pilihan_kk})",
+                label=f"📥 Download PDF KK ({pilihan_kk})",
                 data=pdf_kk_bytes,
                 file_name=f"KK_{pilihan_kk.replace(' ', '_')}.pdf",
                 mime="application/pdf",
@@ -341,10 +327,10 @@ if not df.empty:
             )
 
     elif menu == "📈 Grafik Demografi":
-        if st.button("⬅️ Kembali ke Beranda / Dashboard"):
+        if st.button("⬅️ Kembali ke Beranda"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
-        st.subheader("📈 Analisis Grafik Demografi Warga")
+        st.subheader("📈 Grafik Demografi Warga")
         if col_jk:
             df_jk = df[col_jk].dropna().value_counts().reset_index()
             df_jk.columns = ["Jenis Kelamin", "Jumlah"]
@@ -352,16 +338,15 @@ if not df.empty:
             st.plotly_chart(fig_jk, use_container_width=True)
 
     elif menu == "🛠️ Kelola Warga":
-        if st.button("⬅️ Kembali ke Beranda / Dashboard"):
+        if st.button("⬅️ Kembali ke Beranda"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
-        st.subheader("🛠️ Panel Pengelolaan Data Warga")
-        aksi = st.selectbox("Pilih Aksi Pengelolaan:", ["➕ Tambah Data Warga Baru"])
+        st.subheader("🛠️ Kelola Data Warga")
+        aksi = st.selectbox("Aksi:", ["➕ Tambah Warga Baru"])
         
-        if aksi == "➕ Tambah Data Warga Baru":
-            st.markdown("### Form Tambah Warga Baru")
+        if aksi == "➕ Tambah Warga Baru":
             with st.form("form_tambah"):
-                daftar_no_rumah = sorted(list(set(df[col_rumah].dropna().astype(str).tolist()))) if col_rumah else ["B3-01", "B3-02", "B3-03"]
+                daftar_no_rumah = sorted(list(set(df[col_rumah].dropna().astype(str).tolist()))) if col_rumah else ["B3-01", "B3-02"]
                 no_rumah = st.selectbox("No. Rumah", daftar_no_rumah)
                 
                 nama_kk = st.selectbox("Nama Kepala Keluarga", sorted(list(set(df[col_kk].dropna().astype(str).tolist()))))
@@ -378,46 +363,32 @@ if not df.empty:
                 status_nikah = st.selectbox("Status Pernikahan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"])
                 
                 pendidikan = st.selectbox("Pendidikan Terakhir", [
-                    "Tamat SLTA/sederajat", 
-                    "Tamat SLTP/sederajat", 
-                    "Tamat SD/sederajat", 
-                    "Diploma / Sarjana (S1/S2/S3)", 
-                    "Belum / Tidak Sekolah", 
-                    "Sedang SLTA/Sederajat", 
-                    "Sedang SLTP/Sederajat"
+                    "Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", 
+                    "Diploma / Sarjana (S1/S2/S3)", "Belum / Tidak Sekolah"
                 ])
                 
                 pekerjaan = st.selectbox("Pekerjaan", [
-                    "Karyawan Swasta", 
-                    "Wiraswasta", 
-                    "Mengurus Rumah Tangga", 
-                    "Belum Bekerja", 
-                    "Pelajar / Mahasiswa", 
-                    "PNS / TNI / Polri", 
-                    "Buruh / Freelance", 
-                    "Pensiunan"
+                    "Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", 
+                    "Belum Bekerja", "Pelajar / Mahasiswa", "PNS / TNI / Polri"
                 ])
                 
                 status_rumah = st.selectbox("Status Rumah", ["Milik / Tetap", "Sewa / Kontrak"])
                 status_domisili = st.selectbox("Status Domisili", ["Warga Tetap", "Warga Kontrak", "Luar NM"])
                 
                 if st.form_submit_button("Simpan Data Warga Baru"):
-                    st.success(f"Data warga baru atas nama **{nama_anggota}** (Lahir: {tanggal_lahir_str}) berhasil disiapkan!")
+                    st.success(f"Data **{nama_anggota}** berhasil disiapkan!")
 
     elif menu == "📊 Rekapitulasi Administrasi RW":
-        if st.button("⬅️ Kembali ke Beranda / Dashboard"):
+        if st.button("⬅️ Kembali ke Beranda"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
-        st.subheader("📊 Laporan Rekapitulasi Administrasi untuk RW")
-        st.markdown("Berikut adalah rekapitulasi data resmi kependudukan RT 06 yang disusun sesuai standar kebutuhan administrasi RW.")
-
-        # Buat ringkasan tabel rekapitulasi administrasi RW
+        st.subheader("📊 Rekapitulasi Administrasi RW")
+        
         total_kk_rw = df[col_kk].nunique() if col_kk in df.columns else 0
         total_jiwa_rw = len(df)
         jml_l_rw = len(df[df[col_jk].astype(str).str.upper().str.contains("L")]) if col_jk else 0
         jml_p_rw = len(df[df[col_jk].astype(str).str.upper().str.contains("P")]) if col_jk else 0
         
-        # Hitung Balita & Lansia
         balita_rw, lansia_rw = 0, 0
         if col_usia:
             u_ser = df[col_usia].apply(lambda x: int(x) if str(x).isdigit() else -1)
@@ -449,10 +420,10 @@ if not df.empty:
         st.dataframe(df_rekap_rw, use_container_width=True, hide_index=True)
 
     elif menu == "🖨️ Cetak Rekap PDF":
-        if st.button("⬅️ Kembali ke Beranda / Dashboard"):
+        if st.button("⬅️ Kembali ke Beranda"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
-        st.subheader("🖨️ Cetak Laporan Rekapitulasi Keseluruhan (PDF)")
+        st.subheader("🖨️ Cetak Rekapitulasi Keseluruhan (PDF)")
         def buat_pdf_rekap(data_df):
             buffer = io.BytesIO()
             doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=20, leftMargin=20, topMargin=25, bottomMargin=25)
@@ -492,7 +463,7 @@ if not df.empty:
 
         pdf_rekap = buat_pdf_rekap(df)
         st.download_button(
-            label="📥 Download PDF Rekapitulasi Keseluruhan",
+            label="📥 Download PDF Rekapitulasi",
             data=pdf_rekap,
             file_name="Rekap_Warga_RT06.pdf",
             mime="application/pdf",
