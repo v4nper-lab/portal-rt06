@@ -16,7 +16,7 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-# Header dengan Logo RT 06
+# Header Utama Portal RT 06 dengan Logo
 col_logo, col_title = st.columns([1, 5])
 with col_logo:
     logo_path = "logo_rt06.jpg"
@@ -27,7 +27,7 @@ with col_logo:
 
 with col_title:
     st.markdown("<br>", unsafe_allow_html=True)
-    st.title("🏠 Portal Resmi RT 06 / RW 14")
+    st.title("🏠 PORTAL RESMI RT 06 / RW 14")
     st.markdown("### Griya Permata Raya - Desa Nanjung Mekar, Kec. Rancaekek")
 
 st.write("---")
@@ -57,7 +57,6 @@ def load_data_rt06():
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
         
-        # Format Tanggal Lahir Indonesia (Bersih dari 00:00:00)
         bulan_indo = {
             1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
             7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
@@ -89,12 +88,13 @@ if 'df_warga' not in st.session_state:
 df = st.session_state.df_warga
 
 if not df.empty:
-    menu = st.sidebar.selectbox("📂 Pilih Menu Utama", [
-        "📋 Dashboard Data Seluruh Warga",
-        "🗂️ Cetak / Lihat Kartu Keluarga (KK)", 
-        "📊 Grafik Demografi Interaktif", 
-        "🛠️ Kelola Data Warga (Tambah/Edit/Hapus)", 
-        "🖨️ Cetak Laporan Rekap PDF"
+    menu = st.sidebar.selectbox("📂 Navigasi Menu", [
+        "📊 Dashboard & Rekapitulasi",
+        "📋 Data Seluruh Warga",
+        "🗂️ Cetak Kartu Keluarga (KK)", 
+        "📈 Grafik Demografi", 
+        "🛠️ Kelola Warga", 
+        "🖨️ Cetak Rekap PDF"
     ])
     
     col_kk_candi = [c for c in df.columns if "KEPALA" in c or "KK" in c]
@@ -105,63 +105,86 @@ if not df.empty:
     
     col_rumah_candi = [c for c in df.columns if "RUMAH" in c or "ALAMAT" in c]
     col_rumah = col_rumah_candi[0] if col_rumah_candi else None
-    
-    if menu == "📋 Dashboard Data Seluruh Warga":
+
+    col_jk = next((c for c in df.columns if "JK" in c or "KELAMIN" in c or "GENDER" in c), None)
+    col_usia = next((c for c in df.columns if "USIA" in c or "UMUR" in c), None)
+
+    if menu == "📊 Dashboard & Rekapitulasi":
         col_jam1, col_jam2 = st.columns([3, 1])
         with col_jam1:
-            st.subheader("📋 Dashboard Modern & Interaktif Warga RT 06")
-            st.markdown("Pusat informasi data kependudukan real-time Griya Permata Raya.")
+            st.subheader("📊 Dashboard Eksekutif Kependudukan RT 06")
         with col_jam2:
             placeholder_waktu = st.empty()
-            
-        total_warga = len(df)
+
+        # Hitung Metrik Rekapitulasi Utama
+        total_jiwa = len(df)
         total_kk = df[col_kk].nunique() if col_kk in df.columns else 0
-        total_rumah = df[col_rumah].nunique() if col_rumah in df.columns else 0
         
+        jml_l = 0
+        jml_p = 0
+        if col_jk:
+            jml_l = len(df[df[col_jk].astype(str).str.upper().str.contains("L")])
+            jml_p = len(df[df[col_jk].astype(str).str.upper().str.contains("P")])
+
+        jml_balita = 0
+        jml_lansia = 0
+        if col_usia:
+            def hitung_kategori(u):
+                try:
+                    val = int(u)
+                    return val
+                except:
+                    return -1
+            usia_series = df[col_usia].apply(hitung_kategori)
+            jml_balita = len(usia_series[(usia_series >= 0) & (usia_series <= 5)])
+            jml_lansia = len(usia_series[usia_series > 60])
+
+        # Kartu Rekapitulasi Profesional Warga (Warna-warni Segar & Modern)
         st.markdown(f"""
-        <div style="display: flex; gap: 20px; margin-bottom: 25px; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 220px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 20px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <div style="font-size: 14px; opacity: 0.9;">👥 Total Jiwa Warga</div>
-                <div style="font-size: 28px; font-weight: bold; margin-top: 5px;">{total_warga} Orang</div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-top: 15px; margin-bottom: 30px;">
+            <div style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 22px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;">Jumlah KK (Kepala Keluarga)</div>
+                <div style="font-size: 30px; font-weight: bold; margin-top: 8px;">{total_kk} KK</div>
             </div>
-            <div style="flex: 1; min-width: 220px; background: linear-gradient(135deg, #10b981, #047857); color: white; padding: 20px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <div style="font-size: 14px; opacity: 0.9;">🏠 Total Kepala Keluarga</div>
-                <div style="font-size: 28px; font-weight: bold; margin-top: 5px;">{total_kk} KK</div>
+            <div style="background: linear-gradient(135deg, #059669, #047857); color: white; padding: 22px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;">Jumlah Jiwa Total</div>
+                <div style="font-size: 30px; font-weight: bold; margin-top: 8px;">{total_jiwa} Jiwa</div>
             </div>
-            <div style="flex: 1; min-width: 220px; background: linear-gradient(135deg, #f59e0b, #b45309); color: white; padding: 20px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <div style="font-size: 14px; opacity: 0.9;">🏡 Total Rumah Terdata</div>
-                <div style="font-size: 28px; font-weight: bold; margin-top: 5px;">{total_rumah} Rumah</div>
+            <div style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 22px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;">Laki-laki</div>
+                <div style="font-size: 30px; font-weight: bold; margin-top: 8px;">{jml_l} Orang</div>
+            </div>
+            <div style="background: linear-gradient(135deg, #db2777, #be185d); color: white; padding: 22px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;">Perempuan</div>
+                <div style="font-size: 30px; font-weight: bold; margin-top: 8px;">{jml_p} Orang</div>
+            </div>
+            <div style="background: linear-gradient(135deg, #d97706, #b45309); color: white; padding: 22px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;">Jumlah Balita (0-5 tahun)</div>
+                <div style="font-size: 30px; font-weight: bold; margin-top: 8px;">{jml_balita} Jiwa</div>
+            </div>
+            <div style="background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white; padding: 22px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;">Jumlah Lansia (>60 tahun)</div>
+                <div style="font-size: 30px; font-weight: bold; margin-top: 8px;">{jml_lansia} Jiwa</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
-        
-        st.markdown("### 📑 Tabel Interaktif Warga (Edit & Hapus Baris Layaknya Excel)")
-        st.info("💡 **Petunjuk:** Anda dapat langsung mengedit teks di dalam tabel atau menghapus baris dengan memilih dan menekan tombol Delete.")
-        
-        df_edited = st.data_editor(
-            df, 
-            num_rows="dynamic", 
-            use_container_width=True, 
-            key="editor_warga_grid"
-        )
-        
-        if not df_edited.equals(df):
-            st.session_state.df_warga = df_edited
-            
+
         for _ in range(3):
             waktu_sekarang = datetime.now().strftime("%d %B %Y | %H:%M:%S")
             placeholder_waktu.markdown(f"""
-            <div style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; padding: 12px 18px; border-radius: 12px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <span style="font-size: 11px; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px;">🕒 Waktu Sistem Real-Time</span><br>
-                <strong style="font-size: 15px;">{waktu_sekarang}</strong>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 15px; border-radius: 10px; text-align: right;">
+                <span style="font-size: 11px; color: #64748b;">🕒 Waktu Sistem:</span><br>
+                <strong style="font-size: 13px; color: #0f172a;">{waktu_sekarang}</strong>
             </div>
             """, unsafe_allow_html=True)
             time.sleep(1)
 
-    elif menu == "🗂️ Cetak / Lihat Kartu Keluarga (KK)":
-        st.subheader("🗂️ Pencarian & Cetak Kartu Keluarga (KK) per Rumah")
-        st.markdown("Pilih Nama Kepala Keluarga untuk melihat seluruh anggota keluarga dan mencetaknya ke format PDF A4 Landscape.")
-        
+    elif menu == "📋 Data Seluruh Warga":
+        st.subheader("📋 Data Keseluruhan Warga RT 06")
+        st.data_editor(df, num_rows="dynamic", use_container_width=True, key="editor_warga_grid")
+
+    elif menu == "🗂️ Cetak Kartu Keluarga (KK)":
+        st.subheader("🗂️ Cetak Kartu Keluarga (KK) per Rumah")
         daftar_kk = df[col_kk].dropna().astype(str).str.strip()
         daftar_kk = sorted(list(set([x for x in daftar_kk if x != "" and x.lower() != "nan"])))
         
@@ -174,10 +197,8 @@ if not df.empty:
             cols_tampilan_web = [c for c in df_keluarga.columns if c != col_kk and "URUT" not in c and c != "NO"]
             
             st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #eff6ff, #dbeafe); border: 2px solid #3b82f6; border-radius: 12px; padding: 20px; margin-top: 15px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-                <h4 style="margin: 0; color: #1e3a8a;">🏠 KARTU KELUARGA - NO. RUMAH: {no_rmh}</h4>
-                <p style="margin: 8px 0 0 0; font-size: 16px; color: #1f2937;"><b>Kepala Keluarga:</b> {pilihan_kk}</p>
-                <p style="margin: 4px 0 0 0; font-size: 14px; color: #4b5563;">Jumlah Anggota: {len(df_keluarga)} Jiwa</p>
+            <div style="background: #f8fafc; border: 2px solid #2563eb; border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+                <h4 style="margin: 0; color: #1e3a8a;">🏠 No. Rumah: {no_rmh} | Kepala Keluarga: {pilihan_kk}</h4>
             </div>
             """, unsafe_allow_html=True)
             
@@ -229,180 +250,34 @@ if not df.empty:
 
             pdf_kk_bytes = buat_pdf_kk_landscape(df_keluarga, pilihan_kk, no_rmh)
             st.download_button(
-                label=f"📥 Download PDF Kartu Keluarga A4 Landscape ({pilihan_kk})",
+                label=f"📥 Download PDF Kartu Keluarga ({pilihan_kk})",
                 data=pdf_kk_bytes,
                 file_name=f"KK_{pilihan_kk.replace(' ', '_')}.pdf",
                 mime="application/pdf",
                 type="primary"
             )
 
-    elif menu == "📊 Grafik Demografi Interaktif":
-        st.subheader("📊 Analisis & Statistik Grafik Demografi Warga RT 06")
-        
-        col_jk = next((c for c in df.columns if "JK" in c or "KELAMIN" in c or "GENDER" in c), None)
-        col_pend = next((c for c in df.columns if "PENDIDIKAN" in c), None)
-        col_pek = next((c for c in df.columns if "PEKERJAAN" in c), None)
-        col_usia = next((c for c in df.columns if "USIA" in c or "UMUR" in c), None)
-        col_status = next((c for c in df.columns if "STATUS" in c and "KAWIN" in c) or (c for c in df.columns if "STATUS" in c), None)
-        
+    elif menu == "📈 Grafik Demografi":
+        st.subheader("📈 Analisis Grafik Demografi Warga")
         if col_jk:
-            st.markdown("---")
-            col_g1, col_desc1 = st.columns([3, 2])
-            with col_g1:
-                df_jk = df[col_jk].dropna().value_counts().reset_index()
-                df_jk.columns = ["Jenis Kelamin", "Jumlah"]
-                fig_jk = px.pie(df_jk, names="Jenis Kelamin", values="Jumlah", hole=0.5, title="Rasio Penduduk Berdasarkan Jenis Kelamin", color_discrete_sequence=px.colors.qualitative.Set2)
-                fig_jk.update_traces(textfont_size=18, textinfo="percent+label+value")
-                fig_jk.update_layout(font=dict(size=15), title_font=dict(size=18))
-                st.plotly_chart(fig_jk, use_container_width=True)
-            with col_desc1:
-                st.markdown("### 📌 Keterangan & Analisis")
-                st.info("Perbandingan jumlah penduduk laki-laki dan perempuan di lingkungan RT 06.")
-                for _, r in df_jk.iterrows():
-                    st.write(f"- **{r['Jenis Kelamin']}**: {r['Jumlah']} Jiwa")
+            df_jk = df[col_jk].dropna().value_counts().reset_index()
+            df_jk.columns = ["Jenis Kelamin", "Jumlah"]
+            fig_jk = px.pie(df_jk, names="Jenis Kelamin", values="Jumlah", hole=0.4, title="Rasio Jenis Kelamin", color_discrete_sequence=px.colors.qualitative.Set2)
+            st.plotly_chart(fig_jk, use_container_width=True)
 
-        if col_status:
-            st.markdown("---")
-            col_desc2, col_g2 = st.columns([2, 3])
-            with col_desc2:
-                st.markdown("### 💍 Status Pernikahan Warga")
-                st.info("Data demografi status pernikahan warga RT 06.")
-                df_st = df[col_status].dropna().value_counts().reset_index()
-                df_st.columns = ["Status", "Jumlah"]
-                for _, r in df_st.iterrows():
-                    st.write(f"- **{r['Status']}**: {r['Jumlah']} Orang")
-            with col_g2:
-                fig_st = px.bar(df_st, x="Status", y="Jumlah", text="Jumlah", title="Distribusi Status Pernikahan", color="Status", color_discrete_sequence=px.colors.qualitative.Pastel)
-                fig_st.update_traces(textfont_size=16, textposition="outside")
-                fig_st.update_layout(font=dict(size=15), title_font=dict(size=18))
-                st.plotly_chart(fig_st, use_container_width=True)
-
-        if col_pend:
-            st.markdown("---")
-            st.markdown("### 🎓 Tingkat Pendidikan Terakhir Warga")
-            df_pd = df[col_pend].dropna().value_counts().reset_index()
-            df_pd.columns = ["Pendidikan", "Jumlah"]
-            fig_pd = px.bar(df_pd, x="Pendidikan", y="Jumlah", text="Jumlah", color="Pendidikan", color_discrete_sequence=px.colors.qualitative.Bold)
-            fig_pd.update_traces(textfont_size=16, textposition="outside")
-            fig_pd.update_layout(font=dict(size=15), xaxis=dict(tickangle=-20, tickfont=dict(size=14)))
-            st.plotly_chart(fig_pd, use_container_width=True)
-
-        if col_pek:
-            st.markdown("---")
-            st.markdown("### 💼 Distribusi Mata Pencaharian / Pekerjaan Warga")
-            df_pk = df[col_pek].dropna().value_counts().reset_index()
-            df_pk.columns = ["Pekerjaan", "Jumlah"]
-            fig_pk = px.bar(df_pk, x="Pekerjaan", y="Jumlah", text="Jumlah", color="Pekerjaan", color_discrete_sequence=px.colors.qualitative.Vivid)
-            fig_pk.update_traces(textfont_size=16, textposition="outside")
-            fig_pk.update_layout(font=dict(size=15), xaxis=dict(tickangle=-25, tickfont=dict(size=13)))
-            st.plotly_chart(fig_pk, use_container_width=True)
-
-        if col_usia:
-            st.markdown("---")
-            col_g5, col_desc5 = st.columns([3, 2])
-            with col_g5:
-                def kategorikan_usia(u):
-                    try:
-                        u = int(u)
-                        if u <= 5: return "Balita (0-5)"
-                        elif u <= 12: return "Anak-anak (6-12)"
-                        elif u <= 25: return "Remaja (13-25)"
-                        elif u <= 50: return "Dewasa (26-50)"
-                        else: return "Lansia (>50)"
-                    except:
-                        return "Tidak Diketahui"
-                
-                df_u = df.copy()
-                df_u["KATEGORI_USIA"] = df_u[col_usia].apply(kategorikan_usia)
-                df_usia_count = df_u["KATEGORI_USIA"].value_counts().reset_index()
-                df_usia_count.columns = ["Kategori Usia", "Jumlah"]
-                
-                fig_usia = px.pie(df_usia_count, names="Kategori Usia", values="Jumlah", hole=0.4, title="Kelompok Rentang Usia Penduduk", color_discrete_sequence=px.colors.qualitative.Safe)
-                fig_usia.update_traces(textfont_size=16, textinfo="percent+label+value")
-                fig_usia.update_layout(font=dict(size=15), title_font=dict(size=18))
-                st.plotly_chart(fig_usia, use_container_width=True)
-            with col_desc5:
-                st.markdown("### 👶 Klasifikasi Usia Warga")
-                st.info("Pengelompokan usia warga.")
-                for _, r in df_usia_count.iterrows():
-                    st.write(f"- **{r['Kategori Usia']}**: {r['Jumlah']} Jiwa")
-
-    elif menu == "🛠️ Kelola Data Warga (Tambah/Edit/Hapus)":
-        st.subheader("🛠️ Panel Pengelolaan Data Warga RT 06")
-        aksi = st.selectbox("Pilih Aksi Pengelolaan:", ["➕ Tambah Data Warga Baru", "✏️ Edit Data Warga", "🗑️ Hapus Data Warga"])
-        
-        kol_pilih_nama = col_nama if col_nama else df.columns[0]
-        
-        if aksi == "➕ Tambah Data Warga Baru":
-            st.markdown("### Form Tambah Warga Baru")
+    elif menu == "🛠️ Kelola Warga":
+        st.subheader("🛠️ Kelola Data Warga")
+        aksi = st.selectbox("Pilih Aksi:", ["➕ Tambah Warga Baru"])
+        if aksi == "➕ Tambah Warga Baru":
             with st.form("form_tambah"):
-                daftar_no_rumah = sorted(list(set(df[col_rumah].dropna().astype(str).tolist()))) if col_rumah else ["B3-01", "B3-02", "B3-03", "B3-04"]
-                no_rumah = st.selectbox("No. Rumah", daftar_no_rumah)
-                
-                nama_kk = st.selectbox("Nama Kepala Keluarga", sorted(list(set(df[col_kk].dropna().astype(str).tolist()))))
-                nama_anggota = st.text_input("Nama Lengkap Anggota Keluarga")
-                jk = st.selectbox("Jenis Kelamin", ["L", "P"])
-                hubungan = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"])
-                tempat_lahir = st.text_input("Tempat Lahir")
-                
-                # Komponen Date Picker Kalender Interaktif (Dropdown Tanggal, Bulan, Tahun)
-                tanggal_lahir_date = st.date_input("Tanggal Lahir", value=date(1995, 1, 1))
-                # Konversi hasil date picker ke format teks Indonesia (contoh: 02 Agustus 1995)
-                bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
-                tanggal_lahir_str = f"{tanggal_lahir_date.day:02d} {bulan_indo_nama.get(tanggal_lahir_date.month, '')} {tanggal_lahir_date.year}"
-                
-                usia = st.number_input("Usia", min_value=0, max_value=120, value=25)
-                status_nikah = st.selectbox("Status Pernikahan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"])
-                
-                pendidikan = st.selectbox("Pendidikan Terakhir", [
-                    "Tamat SLTA/sederajat", 
-                    "Tamat SLTP/sederajat", 
-                    "Tamat SD/sederajat", 
-                    "Diploma / Sarjana (S1/S2/S3)", 
-                    "Belum / Tidak Sekolah", 
-                    "Sedang SLTA/Sederajat", 
-                    "Sedang SLTP/Sederajat"
-                ])
-                
-                pekerjaan = st.selectbox("Pekerjaan", [
-                    "Karyawan Swasta", 
-                    "Wiraswasta", 
-                    "Mengurus Rumah Tangga", 
-                    "Belum Bekerja", 
-                    "Pelajar / Mahasiswa", 
-                    "PNS / TNI / Polri", 
-                    "Buruh / Freelance", 
-                    "Pensiunan"
-                ])
-                
-                status_rumah = st.selectbox("Status Rumah", ["Milik / Tetap", "Sewa / Kontrak"])
-                status_domisili = st.selectbox("Status Domisili", ["Warga Tetap", "Warga Kontrak", "Luar NM"])
-                
-                if st.form_submit_button("Simpan Data Warga Baru"):
-                    st.success(f"Data warga baru atas nama **{nama_anggota}** dengan tanggal lahir **{tanggal_lahir_str}** berhasil disiapkan!")
+                st.text_input("Nama Lengkap Anggota Keluarga")
+                st.selectbox("Jenis Kelamin", ["L", "P"])
+                st.date_input("Tanggal Lahir", value=date(1995, 1, 1))
+                if st.form_submit_button("Simpan Data"):
+                    st.success("Data berhasil disiapkan.")
 
-        elif aksi == "✏️ Edit Data Warga":
-            st.markdown("### Edit Data Warga")
-            warga_pilih = st.selectbox("Pilih Warga yang Ingin Diedit:", df[kol_pilih_nama].astype(str).tolist())
-            st.info(f"Form edit untuk **{warga_pilih}** aktif.")
-            with st.form("form_edit"):
-                st.text_input("Perbarui Nama", value=str(warga_pilih))
-                st.text_input("Perbarui No. Rumah / Alamat")
-                
-                # Tambahan Date Picker di menu edit juga
-                st.date_input("Perbarui Tanggal Lahir", value=date(1995, 1, 1))
-                
-                st.form_submit_button("Simpan Perubahan")
-
-        elif aksi == "🗑️ Hapus Data Warga":
-            st.markdown("### Hapus Data Warga (Pindah / Keluar)")
-            warga_hapus = st.selectbox("Pilih Warga yang Ingin Dihapus:", df[kol_pilih_nama].astype(str).tolist())
-            if st.button("Konfirmasi Hapus Warga Ini", type="primary"):
-                st.success(f"Data warga **{warga_hapus}** berhasil dihapus dari sistem.")
-
-    elif menu == "🖨️ Cetak Laporan Rekap PDF":
-        st.subheader("🖨️ Unduh Laporan Rekapitulasi Data Warga Keseluruhan (PDF)")
-        
+    elif menu == "🖨️ Cetak Rekap PDF":
+        st.subheader("🖨️ Cetak Laporan Rekapitulasi Keseluruhan (PDF)")
         def buat_pdf_rekap(data_df):
             buffer = io.BytesIO()
             doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=20, leftMargin=20, topMargin=25, bottomMargin=25)
@@ -414,7 +289,6 @@ if not df.empty:
             elements.append(Spacer(1, 15))
             
             kolom_tampil = list(data_df.columns)
-            
             cell_style = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=6.5, leading=7.5, alignment=1)
             header_style = ParagraphStyle('HeaderCell', parent=styles['Normal'], fontSize=7, leading=8.5, textColor=colors.whitesmoke, fontName='Helvetica-Bold', alignment=1)
             
@@ -443,16 +317,12 @@ if not df.empty:
 
         pdf_rekap = buat_pdf_rekap(df)
         st.download_button(
-            label="📥 Download File PDF Rekapitulasi Keseluruhan",
+            label="📥 Download PDF Rekapitulasi Keseluruhan",
             data=pdf_rekap,
             file_name="Rekap_Warga_RT06.pdf",
             mime="application/pdf",
             type="primary"
         )
-        
-        st.markdown("---")
-        st.markdown("### Preview Data:")
-        st.dataframe(df, use_container_width=True, hide_index=True)
 
 else:
-    st.info("Silakan pastikan file Excel data warga RT 06 sudah di-upload dengan benar.")
+    st.info("Pastikan file Excel data warga RT 06 sudah tersedia.")
