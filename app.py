@@ -111,7 +111,7 @@ if not df.empty:
             df_keluarga = df[df[col_kk].astype(str).str.strip() == pilihan_kk.strip()].copy()
             no_rmh = str(df_keluarga[col_rumah].dropna().iloc[0]) if col_rumah and not df_keluarga[df_keluarga[col_rumah].notna()].empty else "-"
             
-            # Sembunyikan kolom Kepala Keluarga dan buang kolom nomor urut jika ada di awal
+            # Saring kolom untuk web (buang Kepala Keluarga, No Urut, dan kolom No di awal)
             cols_tampilan_web = [c for c in df_keluarga.columns if c != col_kk and "URUT" not in c and c != "NO"]
             
             st.markdown(f"""
@@ -124,7 +124,7 @@ if not df.empty:
             
             st.dataframe(df_keluarga[cols_tampilan_web], use_container_width=True, hide_index=True)
             
-            # Fungsi Pembuat PDF Kartu Keluarga A4 Landscape (Dimulai dari No. Rumah, tanpa No. Urut & Tanpa Kepala Keluarga)
+            # Fungsi Pembuat PDF Kartu Keluarga A4 Landscape (Tanpa No. Urut dan Tanpa Kepala Keluarga)
             def buat_pdf_kk_landscape(keluarga_df, kepala, rumah):
                 buffer = io.BytesIO()
                 doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=20, leftMargin=20, topMargin=25, bottomMargin=25)
@@ -140,7 +140,7 @@ if not df.empty:
                 elements.append(Paragraph(f"<b>Kepala Keluarga:</b> {kepala}", styles['Normal']))
                 elements.append(Spacer(1, 10))
                 
-                # Buang kolom Kepala Keluarga, No. Urut, dan No agar tabel dimulai tepat dari No. Rumah
+                # Pembersihan ketat: pastikan kolom KK, No Urut, dan No benar-benar dibuang
                 kolom_pdf = [c for c in keluarga_df.columns if c != col_kk and "URUT" not in c and c != "NO"]
                 
                 cell_style = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=7, leading=8, alignment=1)
