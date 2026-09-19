@@ -78,10 +78,13 @@ def load_data_rt06():
         st.error(f"Gagal memuat data: {e}")
         return pd.DataFrame()
 
-df = load_data_rt06()
+# Gunakan session_state untuk menyimpan data agar penghapusan baris langsung terasa interaktif
+if 'df_warga' not in st.session_state:
+    st.session_state.df_warga = load_data_rt06()
+
+df = st.session_state.df_warga
 
 if not df.empty:
-    # Navigasi Menu Utama
     menu = st.sidebar.selectbox("📂 Pilih Menu Utama", [
         "📋 Dashboard Data Seluruh Warga",
         "🗂️ Cetak / Lihat Kartu Keluarga (KK)", 
@@ -107,11 +110,11 @@ if not df.empty:
         with col_jam2:
             placeholder_waktu = st.empty()
             
-        # Statistik Utama dengan Desain Kartu Warna-Warni
         total_warga = len(df)
         total_kk = df[col_kk].nunique() if col_kk in df.columns else 0
         total_rumah = df[col_rumah].nunique() if col_rumah in df.columns else 0
         
+        # Kartu Statistik Warna-Warni yang Fresh
         st.markdown(f"""
         <div style="display: flex; gap: 20px; margin-bottom: 25px; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 220px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 20px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -129,7 +132,6 @@ if not df.empty:
         </div>
         """, unsafe_allow_html=True)
         
-        # Fitur Pencarian Cepat Warga di Dashboard
         pencarian_dashboard = st.text_input("🔍 Cari Cepat Data Warga (Ketik Nama / No. Rumah):", "")
         
         df_tampil_dash = df.copy()
@@ -137,38 +139,27 @@ if not df.empty:
             mask = df_tampil_dash.astype(str).apply(lambda x: x.str.contains(pencarian_dashboard, case=False)).any(axis=1)
             df_tampil_dash = df_tampil_dash[mask]
             
-        # Tambahkan Kolom Aksi Edit & Hapus di Dashboard
-        st.markdown("### 📊 Tabel Data Warga & Kontrol Cepat")
+        st.markdown("### 📑 Tabel Data Warga (Dilengkapi Tombol Hapus Baris Manual)")
         
-        # Header Tabel Kustom dengan Tombol Aksi
+        # Tabel interaktif dengan opsi hapus baris langsung
         for idx, row in df_tampil_dash.iterrows():
-            nama_warga = row.get(col_nama, f"Warga #{idx+1}")
+            nama_warga = row.get(col_nama, f"Baris #{idx+1}")
             no_rmh = row.get(col_rumah, "-")
-            kk_warga = row.get(col_kk, "-")
             
-            with st.expander(f"📌 [{idx+1}] {nama_warga} (Rumah: {no_rmh} | KK: {kk_warga})"):
-                c_info, c_btn1, c_btn2 = st.columns([6, 2, 2])
-                with c_info:
-                    # Tampilkan detail ringkas baris
-                    details = " | ".join([f"**{col}**: {row[col]}" for col in df.columns if pd.notnull(row[col])])
-                    st.markdown(details)
-                with c_btn1:
-                    if st.button("✏️ Edit Baris", key=f"dash_edit_{idx}"):
-                        st.toast(f"Membuka form edit untuk: {nama_warga}")
-                with c_btn2:
-                    if st.button("🗑️ Hapus Baris", key=f"dash_del_{idx}", type="primary"):
-                        st.toast(f"Data {nama_warga} ditandai untuk dihapus.")
-                        
-        st.write("---")
-        st.markdown("#### 📑 Tinjauan Keseluruhan Data Tabel")
-        if col_kk in df_tampil_dash.columns:
-            df_tampil_dash[col_kk] = df_tampil_dash[col_kk].mask(df_tampil_dash[col_kk].duplicated(), None)
-        if col_rumah in df_tampil_dash.columns:
-            df_tampil_dash[col_rumah] = df_tampil_dash[col_rumah].mask(df_tampil_dash[col_rumah].duplicated(), None)
+            cols = st.columns([0.8, 8.2, 1])
+            with cols[0]:
+                st.markdown(f"**{idx+1}**")
+            with cols[1]:
+                info_teks = " | ".join([f"**{c}**: {row[c]}" for c in df.columns if pd.notnull(row[c])])
+                st.markdown(f"<span style='font-size: 13px;'>{info_teks}</span>", unsafe_allow_html=True)
+            with cols[2]:
+                if st.button("🗑️ Hapus", key=f"del_row_{idx}", help="Hapus baris ini"):
+                    st.session_state.df_warga = st.session_state.df_warga.drop(idx).reset_index(drop=True)
+                    st.success(f"Baris data '{nama_warga}' berhasil dihapus!")
+                    st.rerun()
+            st.markdown("<hr style='margin: 4px 0; border: none; border-top: 1px solid #f1f5f9;'>", unsafe_allow_html=True)
             
-        st.dataframe(df_tampil_dash, use_container_width=True, hide_index=True)
-        
-        # Script interaktif waktu berjalan
+        # Waktu berjalan interaktif
         for _ in range(3):
             waktu_sekarang = datetime.now().strftime("%d %B %Y | %H:%M:%S")
             placeholder_waktu.markdown(f"""
