@@ -4,7 +4,7 @@ import plotly.express as px
 import os
 import io
 import time
-from datetime import datetime
+from datetime import datetime, date
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -72,7 +72,6 @@ def load_data_rt06():
                             return f"{dt.day:02d} {bulan_indo.get(dt.month, '')} {dt.year}"
                     except:
                         pass
-                    # Jika sudah berupa string atau format lain, buang bagian jam 00:00:00 jika ada
                     val_str = str(val)
                     if "00:00:00" in val_str:
                         val_str = val_str.replace("00:00:00", "").strip()
@@ -345,7 +344,13 @@ if not df.empty:
                 jk = st.selectbox("Jenis Kelamin", ["L", "P"])
                 hubungan = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"])
                 tempat_lahir = st.text_input("Tempat Lahir")
-                tanggal_lahir = st.text_input("Tanggal Lahir (Contoh: 02 Agustus 1991)")
+                
+                # Komponen Date Picker Kalender Interaktif (Dropdown Tanggal, Bulan, Tahun)
+                tanggal_lahir_date = st.date_input("Tanggal Lahir", value=date(1995, 1, 1))
+                # Konversi hasil date picker ke format teks Indonesia (contoh: 02 Agustus 1995)
+                bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
+                tanggal_lahir_str = f"{tanggal_lahir_date.day:02d} {bulan_indo_nama.get(tanggal_lahir_date.month, '')} {tanggal_lahir_date.year}"
+                
                 usia = st.number_input("Usia", min_value=0, max_value=120, value=25)
                 status_nikah = st.selectbox("Status Pernikahan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"])
                 
@@ -374,7 +379,7 @@ if not df.empty:
                 status_domisili = st.selectbox("Status Domisili", ["Warga Tetap", "Warga Kontrak", "Luar NM"])
                 
                 if st.form_submit_button("Simpan Data Warga Baru"):
-                    st.success(f"Data warga baru atas nama **{nama_anggota}** berhasil disiapkan!")
+                    st.success(f"Data warga baru atas nama **{nama_anggota}** dengan tanggal lahir **{tanggal_lahir_str}** berhasil disiapkan!")
 
         elif aksi == "✏️ Edit Data Warga":
             st.markdown("### Edit Data Warga")
@@ -383,6 +388,10 @@ if not df.empty:
             with st.form("form_edit"):
                 st.text_input("Perbarui Nama", value=str(warga_pilih))
                 st.text_input("Perbarui No. Rumah / Alamat")
+                
+                # Tambahan Date Picker di menu edit juga
+                st.date_input("Perbarui Tanggal Lahir", value=date(1995, 1, 1))
+                
                 st.form_submit_button("Simpan Perubahan")
 
         elif aksi == "🗑️ Hapus Data Warga":
