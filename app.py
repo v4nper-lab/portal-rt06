@@ -57,28 +57,33 @@ def load_data_rt06():
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
         
+        # Format Tanggal Lahir Indonesia (Bersih dari 00:00:00)
         bulan_indo = {
             1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
             7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
         }
-        col_tgl = next((c for c in df.columns if "TANGGAL" in c or "LAHIR" in c and "TGL" not in c), None)
-        if col_tgl:
-            def format_tgl_indo(val):
-                try:
-                    dt = pd.to_datetime(val)
-                    if pd.notnull(dt):
-                        return f"{dt.day:02d} {bulan_indo.get(dt.month, '')} {dt.year}"
-                except:
-                    pass
-                return str(val)
-            df[col_tgl] = df[col_tgl].apply(format_tgl_indo)
+        
+        for c in df.columns:
+            if "TGL" in c or "TANGGAL" in c or "LAHIR" in c:
+                def format_tgl_indo(val):
+                    try:
+                        dt = pd.to_datetime(val, errors='coerce')
+                        if pd.notnull(dt):
+                            return f"{dt.day:02d} {bulan_indo.get(dt.month, '')} {dt.year}"
+                    except:
+                        pass
+                    # Jika sudah berupa string atau format lain, buang bagian jam 00:00:00 jika ada
+                    val_str = str(val)
+                    if "00:00:00" in val_str:
+                        val_str = val_str.replace("00:00:00", "").strip()
+                    return val_str
+                df[c] = df[c].apply(format_tgl_indo)
             
         return df
     except Exception as e:
         st.error(f"Gagal memuat data: {e}")
         return pd.DataFrame()
 
-# Simpan data di session_state agar perubahan (hapus/edit baris) langsung tersimpan dinamis
 if 'df_warga' not in st.session_state:
     st.session_state.df_warga = load_data_rt06()
 
@@ -114,7 +119,6 @@ if not df.empty:
         total_kk = df[col_kk].nunique() if col_kk in df.columns else 0
         total_rumah = df[col_rumah].nunique() if col_rumah in df.columns else 0
         
-        # Kartu Statistik Warna-Warni
         st.markdown(f"""
         <div style="display: flex; gap: 20px; margin-bottom: 25px; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 220px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 20px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -133,9 +137,8 @@ if not df.empty:
         """, unsafe_allow_html=True)
         
         st.markdown("### 📑 Tabel Interaktif Warga (Edit & Hapus Baris Layaknya Excel)")
-        st.info("💡 **Petunjuk:** Anda dapat langsung mengedit teks di dalam tabel atau mencentang kotak di sebelah kiri baris lalu menekan tombol **Delete / Hapus Baris** di pojok kanan atas tabel.")
+        st.info("💡 **Petunjuk:** Anda dapat langsung mengedit teks di dalam tabel atau menghapus baris dengan memilih dan menekan tombol Delete.")
         
-        # Menggunakan st.data_editor agar interaktif layaknya spreadsheet Excel
         df_edited = st.data_editor(
             df, 
             num_rows="dynamic", 
@@ -143,11 +146,9 @@ if not df.empty:
             key="editor_warga_grid"
         )
         
-        # Simpan pembaruan jika ada perubahan dari user
         if not df_edited.equals(df):
             st.session_state.df_warga = df_edited
             
-        # Waktu berjalan interaktif
         for _ in range(3):
             waktu_sekarang = datetime.now().strftime("%d %B %Y | %H:%M:%S")
             placeholder_waktu.markdown(f"""
