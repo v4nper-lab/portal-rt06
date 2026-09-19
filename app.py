@@ -83,14 +83,12 @@ def load_data_rt06():
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
         
-        # Identifikasi Kolom Kepala Keluarga & No Rumah
         col_kk_candi = [c for c in df.columns if "KEPALA" in c or "KK" in c]
         col_kk = col_kk_candi[0] if col_kk_candi else df.columns[2]
         
         col_rumah_candi = [c for c in df.columns if "RUMAH" in c or "ALAMAT" in c]
         col_rumah = col_rumah_candi[0] if col_rumah_candi else None
 
-        # PENTING: Forward Fill agar sel kosong di bawah nama Kepala Keluarga terisi otomatis oleh Kepala Keluarga di atasnya
         if col_kk:
             df[col_kk] = df[col_kk].replace('', pd.NA)
             df[col_kk] = df[col_kk].ffill()
@@ -275,7 +273,6 @@ if not df.empty:
         pilihan_kk = st.selectbox("Pilih Kepala Keluarga:", daftar_kk)
         
         if pilihan_kk:
-            # Filter baris data yang memiliki nama Kepala Keluarga sama
             df_keluarga = df[df[col_kk].astype(str).str.strip().str.lower() == pilihan_kk.strip().lower()].copy()
             no_rmh = str(df_keluarga[col_rumah].dropna().iloc[0]) if col_rumah and not df_keluarga[df_keluarga[col_rumah].notna()].empty else "-"
             
@@ -348,41 +345,56 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("📈 Analisis & Statistik Grafik Demografi Warga")
-        
+        st.markdown("Berikut adalah visualisasi data demografi kependudukan RT 06 yang disajikan secara interaktif, modern, dan jelas.")
+
         col_pend = next((c for c in df.columns if "PENDIDIKAN" in c), None)
         col_pek = next((c for c in df.columns if "PEKERJAAN" in c), None)
         col_status = next((c for c in df.columns if "STATUS" in c and "KAWIN" in c) or (c for c in df.columns if "STATUS" in c), None)
         
+        # Pengaturan Font & Ukuran Besar agar Sangat Jelas Terbaca
+        chart_font = dict(size=15, family="Arial, sans-serif")
+        title_font = dict(size=20, family="Arial, sans-serif")
+
+        # 1. Grafik Jenis Kelamin
         if col_jk:
             df_jk = df[col_jk].dropna().value_counts().reset_index()
             df_jk.columns = ["Jenis Kelamin", "Jumlah"]
-            fig_jk = px.pie(df_jk, names="Jenis Kelamin", values="Jumlah", hole=0.5, title="Rasio Penduduk Berdasarkan Jenis Kelamin", color_discrete_sequence=px.colors.qualitative.Set2)
+            fig_jk = px.pie(df_jk, names="Jenis Kelamin", values="Jumlah", hole=0.5, title="👥 Rasio Penduduk Berdasarkan Jenis Kelamin", color_discrete_sequence=px.colors.qualitative.Bold)
+            fig_jk.update_traces(textfont_size=18, textinfo="percent+label+value")
+            fig_jk.update_layout(font=chart_font, title_font=title_font, legend=dict(font=dict(size=14)))
             st.plotly_chart(fig_jk, use_container_width=True)
 
+        # 2. Grafik Status Pernikahan
         if col_status:
             st.markdown("---")
             df_st = df[col_status].dropna().value_counts().reset_index()
             df_st.columns = ["Status", "Jumlah"]
-            fig_st = px.bar(df_st, x="Status", y="Jumlah", text="Jumlah", title="Distribusi Status Pernikahan", color="Status", color_discrete_sequence=px.colors.qualitative.Pastel)
-            fig_st.update_traces(textposition="outside")
+            fig_st = px.bar(df_st, x="Status", y="Jumlah", text="Jumlah", title="💍 Distribusi Status Pernikahan Warga", color="Status", color_discrete_sequence=px.colors.qualitative.Pastel)
+            fig_st.update_traces(textfont_size=16, textposition="outside")
+            fig_st.update_layout(font=chart_font, title_font=title_font, xaxis=dict(tickfont=dict(size=14)), yaxis=dict(tickfont=dict(size=14)))
             st.plotly_chart(fig_st, use_container_width=True)
 
+        # 3. Grafik Pendidikan Terakhir
         if col_pend:
             st.markdown("---")
             df_pd = df[col_pend].dropna().value_counts().reset_index()
             df_pd.columns = ["Pendidikan", "Jumlah"]
-            fig_pd = px.bar(df_pd, x="Pendidikan", y="Jumlah", text="Jumlah", title="Tingkat Pendidikan Terakhir Warga", color="Pendidikan", color_discrete_sequence=px.colors.qualitative.Bold)
-            fig_pd.update_traces(textposition="outside")
+            fig_pd = px.bar(df_pd, x="Pendidikan", y="Jumlah", text="Jumlah", title="🎓 Tingkat Pendidikan Terakhir Warga", color="Pendidikan", color_discrete_sequence=px.colors.qualitative.Vivid)
+            fig_pd.update_traces(textfont_size=16, textposition="outside")
+            fig_pd.update_layout(font=chart_font, title_font=title_font, xaxis=dict(tickangle=-20, tickfont=dict(size=13)), yaxis=dict(tickfont=dict(size=14)))
             st.plotly_chart(fig_pd, use_container_width=True)
 
+        # 4. Grafik Pekerjaan
         if col_pek:
             st.markdown("---")
             df_pk = df[col_pek].dropna().value_counts().reset_index()
             df_pk.columns = ["Pekerjaan", "Jumlah"]
-            fig_pk = px.bar(df_pk, x="Pekerjaan", y="Jumlah", text="Jumlah", title="Distribusi Pekerjaan Warga", color="Pekerjaan", color_discrete_sequence=px.colors.qualitative.Vivid)
-            fig_pk.update_traces(textposition="outside")
+            fig_pk = px.bar(df_pk, x="Pekerjaan", y="Jumlah", text="Jumlah", title="💼 Distribusi Mata Pencaharian / Pekerjaan Warga", color="Pekerjaan", color_discrete_sequence=px.colors.qualitative.Safe)
+            fig_pk.update_traces(textfont_size=16, textposition="outside")
+            fig_pk.update_layout(font=chart_font, title_font=title_font, xaxis=dict(tickangle=-25, tickfont=dict(size=13)), yaxis=dict(tickfont=dict(size=14)))
             st.plotly_chart(fig_pk, use_container_width=True)
 
+        # 5. Grafik Kelompok Usia
         if col_usia:
             st.markdown("---")
             def kategorikan_usia(u):
@@ -401,7 +413,9 @@ if not df.empty:
             df_usia_count = df_u["KATEGORI_USIA"].value_counts().reset_index()
             df_usia_count.columns = ["Kategori Usia", "Jumlah"]
             
-            fig_usia = px.pie(df_usia_count, names="Kategori Usia", values="Jumlah", hole=0.4, title="Kelompok Rentang Usia Penduduk", color_discrete_sequence=px.colors.qualitative.Safe)
+            fig_usia = px.pie(df_usia_count, names="Kategori Usia", values="Jumlah", hole=0.4, title="👶 Kelompok Rentang Usia Penduduk", color_discrete_sequence=px.colors.qualitative.Set3)
+            fig_usia.update_traces(textfont_size=18, textinfo="percent+label+value")
+            fig_usia.update_layout(font=chart_font, title_font=title_font, legend=dict(font=dict(size=14)))
             st.plotly_chart(fig_usia, use_container_width=True)
 
     elif menu == "🛠️ Kelola Warga":
