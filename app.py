@@ -83,7 +83,22 @@ def load_data_rt06():
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
         
-        # Bersihkan spasi berlebih pada kolom teks penting agar pencocokan data akurat
+        # Identifikasi Kolom Kepala Keluarga & No Rumah
+        col_kk_candi = [c for c in df.columns if "KEPALA" in c or "KK" in c]
+        col_kk = col_kk_candi[0] if col_kk_candi else df.columns[2]
+        
+        col_rumah_candi = [c for c in df.columns if "RUMAH" in c or "ALAMAT" in c]
+        col_rumah = col_rumah_candi[0] if col_rumah_candi else None
+
+        # PENTING: Forward Fill agar sel kosong di bawah nama Kepala Keluarga terisi otomatis oleh Kepala Keluarga di atasnya
+        if col_kk:
+            df[col_kk] = df[col_kk].replace('', pd.NA)
+            df[col_kk] = df[col_kk].ffill()
+            
+        if col_rumah:
+            df[col_rumah] = df[col_rumah].replace('', pd.NA)
+            df[col_rumah] = df[col_rumah].ffill()
+
         for col in df.select_dtypes(include=['object']).columns:
             df[col] = df[col].astype(str).str.strip()
             df.loc[df[col].str.lower() == 'nan', col] = None
@@ -254,14 +269,13 @@ if not df.empty:
             st.rerun()
         st.subheader("🗂️ Cetak Kartu Keluarga (KK)")
         
-        # Ambil daftar Kepala Keluarga secara unik dan bersih
         daftar_kk = df[col_kk].dropna().astype(str).str.strip()
         daftar_kk = sorted(list(set([x for x in daftar_kk if x != "" and x.lower() != "nan" and x.lower() != "none"])))
         
         pilihan_kk = st.selectbox("Pilih Kepala Keluarga:", daftar_kk)
         
         if pilihan_kk:
-            # Filter data berdasarkan Nama Kepala Keluarga secara persis
+            # Filter baris data yang memiliki nama Kepala Keluarga sama
             df_keluarga = df[df[col_kk].astype(str).str.strip().str.lower() == pilihan_kk.strip().lower()].copy()
             no_rmh = str(df_keluarga[col_rumah].dropna().iloc[0]) if col_rumah and not df_keluarga[df_keluarga[col_rumah].notna()].empty else "-"
             
