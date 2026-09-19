@@ -16,7 +16,7 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-# Custom CSS responsif untuk Mobile & Desktop (Background Gradasi, Glassmorphism, Kartu Menu)
+# Custom CSS responsif untuk Mobile & Desktop
 st.markdown("""
 <style>
     .stApp {
@@ -31,7 +31,6 @@ st.markdown("""
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
         margin-bottom: 12px;
     }
-    /* Responsif untuk Tampilan Mobile HP */
     @media (max-width: 768px) {
         .metric-card {
             padding: 15px;
@@ -40,11 +39,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Inisialisasi State Menu Navigasi di Depan Dashboard
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Header Utama Portal RT 06 dengan Logo Responsif
+# Header Utama Portal RT 06
 col_logo, col_title = st.columns([1, 4])
 with col_logo:
     logo_path = "logo_rt06.jpg"
@@ -60,7 +58,7 @@ with col_title:
 
 st.write("---")
 
-@st.cache_data(ttl=60) # Cache otomatis diperbarui setiap 60 detik untuk live data mobile
+@st.cache_data(ttl=60)
 def load_data_rt06():
     file_excel = "data_warga_rt06.xlsx"
     if not os.path.exists(file_excel):
@@ -128,7 +126,6 @@ if not df.empty:
     col_jk = next((c for c in df.columns if "JK" in c or "KELAMIN" in c or "GENDER" in c), None)
     col_usia = next((c for c in df.columns if "USIA" in c or "UMUR" in c), None)
 
-    # Sidebar Navigasi Pendukung untuk Mobile & Desktop
     st.sidebar.markdown("### 🧭 Navigasi Menu")
     selected_sidebar = st.sidebar.selectbox("Pilih Halaman:", [
         "Beranda / Dashboard",
@@ -174,7 +171,6 @@ if not df.empty:
             jml_balita = len(usia_series[(usia_series >= 0) & (usia_series <= 5)])
             jml_lansia = len(usia_series[usia_series > 60])
 
-        # Kartu Statistik Responsif Mobile
         st.markdown(f"""
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 10px; margin-bottom: 20px;">
             <div class="metric-card" style="border-left: 4px solid #2563eb;">
@@ -207,7 +203,6 @@ if not df.empty:
         st.write("---")
         st.markdown("### 🚀 Menu Utama Portal")
         
-        # Tombol Navigasi Menu Interaktif di HP
         c1, c2 = st.columns(2)
         with c1:
             if st.button("📋 Data Warga", use_container_width=True, type="primary"):
@@ -230,7 +225,6 @@ if not df.empty:
                 st.session_state.selected_menu = "🖨️ Cetak Rekap PDF"
                 st.rerun()
 
-        # Fitur Auto-Refresh Loop agar data dan waktu otomatis terupdate real-time di HP
         for _ in range(5):
             waktu_sekarang = datetime.now().strftime("%d %B %Y | %H:%M:%S")
             placeholder_waktu.markdown(f"""
@@ -240,7 +234,7 @@ if not df.empty:
             </div>
             """, unsafe_allow_html=True)
             time.sleep(1)
-        st.rerun() # Refresh otomatis halaman secara berkala agar sinkron dengan file Excel terbaru
+        st.rerun()
 
     elif menu == "📋 Data Seluruh Warga":
         if st.button("⬅️ Kembali ke Beranda"):
@@ -330,12 +324,67 @@ if not df.empty:
         if st.button("⬅️ Kembali ke Beranda"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
-        st.subheader("📈 Grafik Demografi Warga")
+        st.subheader("📈 Analisis & Statistik Grafik Demografi Warga")
+        
+        col_pend = next((c for c in df.columns if "PENDIDIKAN" in c), None)
+        col_pek = next((c for c in df.columns if "PEKERJAAN" in c), None)
+        col_status = next((c for c in df.columns if "STATUS" in c and "KAWIN" in c) or (c for c in df.columns if "STATUS" in c), None)
+        
+        # 1. Grafik Jenis Kelamin
         if col_jk:
             df_jk = df[col_jk].dropna().value_counts().reset_index()
             df_jk.columns = ["Jenis Kelamin", "Jumlah"]
-            fig_jk = px.pie(df_jk, names="Jenis Kelamin", values="Jumlah", hole=0.4, title="Rasio Jenis Kelamin", color_discrete_sequence=px.colors.qualitative.Set2)
+            fig_jk = px.pie(df_jk, names="Jenis Kelamin", values="Jumlah", hole=0.5, title="Rasio Penduduk Berdasarkan Jenis Kelamin", color_discrete_sequence=px.colors.qualitative.Set2)
             st.plotly_chart(fig_jk, use_container_width=True)
+
+        # 2. Grafik Status Pernikahan
+        if col_status:
+            st.markdown("---")
+            df_st = df[col_status].dropna().value_counts().reset_index()
+            df_st.columns = ["Status", "Jumlah"]
+            fig_st = px.bar(df_st, x="Status", y="Jumlah", text="Jumlah", title="Distribusi Status Pernikahan", color="Status", color_discrete_sequence=px.colors.qualitative.Pastel)
+            fig_st.update_traces(textposition="outside")
+            st.plotly_chart(fig_st, use_container_width=True)
+
+        # 3. Grafik Pendidikan Terakhir
+        if col_pend:
+            st.markdown("---")
+            df_pd = df[col_pend].dropna().value_counts().reset_index()
+            df_pd.columns = ["Pendidikan", "Jumlah"]
+            fig_pd = px.bar(df_pd, x="Pendidikan", y="Jumlah", text="Jumlah", title="Tingkat Pendidikan Terakhir Warga", color="Pendidikan", color_discrete_sequence=px.colors.qualitative.Bold)
+            fig_pd.update_traces(textposition="outside")
+            st.plotly_chart(fig_pd, use_container_width=True)
+
+        # 4. Grafik Pekerjaan
+        if col_pek:
+            st.markdown("---")
+            df_pk = df[col_pek].dropna().value_counts().reset_index()
+            df_pk.columns = ["Pekerjaan", "Jumlah"]
+            fig_pk = px.bar(df_pk, x="Pekerjaan", y="Jumlah", text="Jumlah", title="Distribusi Pekerjaan Warga", color="Pekerjaan", color_discrete_sequence=px.colors.qualitative.Vivid)
+            fig_pk.update_traces(textposition="outside")
+            st.plotly_chart(fig_pk, use_container_width=True)
+
+        # 5. Grafik Kelompok Usia
+        if col_usia:
+            st.markdown("---")
+            def kategorikan_usia(u):
+                try:
+                    u = int(u)
+                    if u <= 5: return "Balita (0-5)"
+                    elif u <= 12: return "Anak-anak (6-12)"
+                    elif u <= 25: return "Remaja (13-25)"
+                    elif u <= 50: return "Dewasa (26-50)"
+                    else: return "Lansia (>50)"
+                except:
+                    return "Tidak Diketahui"
+            
+            df_u = df.copy()
+            df_u["KATEGORI_USIA"] = df_u[col_usia].apply(kategorikan_usia)
+            df_usia_count = df_u["KATEGORI_USIA"].value_counts().reset_index()
+            df_usia_count.columns = ["Kategori Usia", "Jumlah"]
+            
+            fig_usia = px.pie(df_usia_count, names="Kategori Usia", values="Jumlah", hole=0.4, title="Kelompok Rentang Usia Penduduk", color_discrete_sequence=px.colors.qualitative.Safe)
+            st.plotly_chart(fig_usia, use_container_width=True)
 
     elif menu == "🛠️ Kelola Warga":
         if st.button("⬅️ Kembali ke Beranda"):
