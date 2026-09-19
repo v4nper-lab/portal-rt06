@@ -137,6 +137,30 @@ if not df.empty:
             mask = df_tampil_dash.astype(str).apply(lambda x: x.str.contains(pencarian_dashboard, case=False)).any(axis=1)
             df_tampil_dash = df_tampil_dash[mask]
             
+        # Tambahkan Kolom Aksi Edit & Hapus di Dashboard
+        st.markdown("### 📊 Tabel Data Warga & Kontrol Cepat")
+        
+        # Header Tabel Kustom dengan Tombol Aksi
+        for idx, row in df_tampil_dash.iterrows():
+            nama_warga = row.get(col_nama, f"Warga #{idx+1}")
+            no_rmh = row.get(col_rumah, "-")
+            kk_warga = row.get(col_kk, "-")
+            
+            with st.expander(f"📌 [{idx+1}] {nama_warga} (Rumah: {no_rmh} | KK: {kk_warga})"):
+                c_info, c_btn1, c_btn2 = st.columns([6, 2, 2])
+                with c_info:
+                    # Tampilkan detail ringkas baris
+                    details = " | ".join([f"**{col}**: {row[col]}" for col in df.columns if pd.notnull(row[col])])
+                    st.markdown(details)
+                with c_btn1:
+                    if st.button("✏️ Edit Baris", key=f"dash_edit_{idx}"):
+                        st.toast(f"Membuka form edit untuk: {nama_warga}")
+                with c_btn2:
+                    if st.button("🗑️ Hapus Baris", key=f"dash_del_{idx}", type="primary"):
+                        st.toast(f"Data {nama_warga} ditandai untuk dihapus.")
+                        
+        st.write("---")
+        st.markdown("#### 📑 Tinjauan Keseluruhan Data Tabel")
         if col_kk in df_tampil_dash.columns:
             df_tampil_dash[col_kk] = df_tampil_dash[col_kk].mask(df_tampil_dash[col_kk].duplicated(), None)
         if col_rumah in df_tampil_dash.columns:
