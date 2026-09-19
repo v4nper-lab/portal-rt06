@@ -43,12 +43,10 @@ def load_data_rt06():
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
         
-        # Forward fill penting agar kolom Kepala Keluarga dan No Rumah terisi ke bawah untuk anggota keluarga
         for col in df.columns:
             if "KEPALA" in col or "KK" in col or "RUMAH" in col:
                 df[col] = df[col].ffill()
 
-        # Format Tanggal Lahir Indonesia
         bulan_indo = {
             1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
             7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
@@ -75,7 +73,6 @@ df = load_data_rt06()
 if not df.empty:
     st.metric("👥 Total Warga RT 06 Terdaftar", f"{len(df)} Jiwa")
     
-    # Navigasi Menu Utama
     menu = st.sidebar.selectbox("📂 Pilih Menu Utama", [
         "📋 Dashboard Data Seluruh Warga",
         "🗂️ Cetak / Lihat Kartu Keluarga (KK)", 
@@ -130,7 +127,7 @@ if not df.empty:
                 styles = getSampleStyleSheet()
                 
                 elements.append(Paragraph("PEMERINTAH KABUPATEN BANDUNG", ParagraphStyle('Sub1', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
-                elements.append(Paragraph("KECAMATAN MARGAASIH - DESA NANJUNG MEKAR", ParagraphStyle('Sub2', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
+                elements.append(Paragraph("KECAMATAN RANCAAEKEK - DESA NANJUNG MEKAR", ParagraphStyle('Sub2', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
                 elements.append(Paragraph("KARTU KELUARGA (KK) RT 06 / RW 14", ParagraphStyle('Title', parent=styles['Heading1'], fontSize=15, alignment=1, textColor=colors.HexColor('#1f2937'))))
                 elements.append(Spacer(1, 10))
                 
@@ -269,7 +266,6 @@ if not df.empty:
         if aksi == "➕ Tambah Data Warga Baru":
             st.markdown("### Form Tambah Warga Baru")
             with st.form("form_tambah"):
-                # Opsi Dropdown untuk No Rumah
                 daftar_no_rumah = sorted(list(set(df[col_rumah].dropna().astype(str).tolist()))) if col_rumah else ["B3-01", "B3-02", "B3-03", "B3-04"]
                 no_rumah = st.selectbox("No. Rumah", daftar_no_rumah)
                 
@@ -282,7 +278,6 @@ if not df.empty:
                 usia = st.number_input("Usia", min_value=0, max_value=120, value=25)
                 status_nikah = st.selectbox("Status Pernikahan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"])
                 
-                # Opsi Dropdown untuk Pendidikan
                 pendidikan = st.selectbox("Pendidikan Terakhir", [
                     "Tamat SLTA/sederajat", 
                     "Tamat SLTP/sederajat", 
@@ -293,7 +288,6 @@ if not df.empty:
                     "Sedang SLTP/Sederajat"
                 ])
                 
-                # Opsi Dropdown untuk Pekerjaan
                 pekerjaan = st.selectbox("Pekerjaan", [
                     "Karyawan Swasta", 
                     "Wiraswasta", 
@@ -305,10 +299,7 @@ if not df.empty:
                     "Pensiunan"
                 ])
                 
-                # Opsi Dropdown untuk Status Rumah
                 status_rumah = st.selectbox("Status Rumah", ["Milik / Tetap", "Sewa / Kontrak"])
-                
-                # Opsi Dropdown untuk Status Domisili
                 status_domisili = st.selectbox("Status Domisili", ["Warga Tetap", "Warga Kontrak", "Luar NM"])
                 
                 if st.form_submit_button("Simpan Data Warga Baru"):
@@ -339,7 +330,7 @@ if not df.empty:
             styles = getSampleStyleSheet()
             
             elements.append(Paragraph("REKAPITULASI KESELURUHAN DATA WARGA RT 06 / RW 14", ParagraphStyle('Title', parent=styles['Heading1'], fontSize=16, alignment=1, textColor=colors.HexColor('#1f2937'))))
-            elements.append(Paragraph("Griya Permata Raya - Desa Nanjung Mekar", ParagraphStyle('Sub', parent=styles['Normal'], alignment=1, fontSize=11, textColor=colors.gray)))
+            elements.append(Paragraph("Kecamatan Rancaekek - Desa Nanjung Mekar", ParagraphStyle('Sub', parent=styles['Normal'], alignment=1, fontSize=11, textColor=colors.gray)))
             elements.append(Spacer(1, 15))
             
             kolom_tampil = list(data_df.columns)
