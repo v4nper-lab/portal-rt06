@@ -43,9 +43,9 @@ def load_data_rt06():
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
         
-        # Forward fill untuk No Rumah agar terbaca rapi per kelompok rumah
+        # Forward fill penting agar kolom Kepala Keluarga dan No Rumah terisi ke bawah untuk anggota keluarga
         for col in df.columns:
-            if "RUMAH" in col or "ALAMAT" in col:
+            if "KEPALA" in col or "KK" in col or "RUMAH" in col:
                 df[col] = df[col].ffill()
 
         # Format Tanggal Lahir Indonesia
@@ -75,7 +75,7 @@ df = load_data_rt06()
 if not df.empty:
     st.metric("👥 Total Warga RT 06 Terdaftar", f"{len(df)} Jiwa")
     
-    # Navigasi Menu Utama dengan tambahan Dashboard Data Seluruh Warga
+    # Navigasi Menu Utama
     menu = st.sidebar.selectbox("📂 Pilih Menu Utama", [
         "📋 Dashboard Data Seluruh Warga",
         "🗂️ Cetak / Lihat Kartu Keluarga (KK)", 
@@ -84,7 +84,6 @@ if not df.empty:
         "🖨️ Cetak Laporan Rekap PDF"
     ])
     
-    # Deteksi kolom secara dinamis
     col_kk_candi = [c for c in df.columns if "KEPALA" in c or "KK" in c]
     col_kk = col_kk_candi[0] if col_kk_candi else df.columns[2]
     
@@ -101,9 +100,9 @@ if not df.empty:
 
     elif menu == "🗂️ Cetak / Lihat Kartu Keluarga (KK)":
         st.subheader("🗂️ Pencarian & Cetak Kartu Keluarga (KK) per Rumah")
-        st.markdown("Pilih Nama Kepala Keluarga untuk melihat rincian anggota keluarga dan mencetaknya ke PDF.")
+        st.markdown("Pilih Nama Kepala Keluarga untuk melihat seluruh anggota keluarga dan mencetaknya ke format PDF A4 Landscape.")
         
-        # Membersihkan duplikat nama Kepala Keluarga agar tampil bersih sekali saja
+        # Ambil daftar unik Kepala Keluarga secara bersih tanpa duplikat
         daftar_kk = df[col_kk].dropna().astype(str).str.strip()
         daftar_kk = sorted(list(set([x for x in daftar_kk if x != "" and x.lower() != "nan"])))
         
@@ -123,25 +122,27 @@ if not df.empty:
             
             st.dataframe(df_keluarga, use_container_width=True, hide_index=True)
             
-            def buat_pdf_kk(keluarga_df, kepala, rumah):
+            # Fungsi Pembuat PDF ukuran A4 Landscape agar seluruh kolom (sampai domisili) tampil penuh
+            def buat_pdf_kk_landscape(keluarga_df, kepala, rumah):
                 buffer = io.BytesIO()
-                doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+                doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=25, leftMargin=25, topMargin=25, bottomMargin=25)
                 elements = []
                 styles = getSampleStyleSheet()
                 
                 elements.append(Paragraph("PEMERINTAH KABUPATEN BANDUNG", ParagraphStyle('Sub1', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
                 elements.append(Paragraph("KECAMATAN MARGAASIH - DESA NANJUNG MEKAR", ParagraphStyle('Sub2', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
-                elements.append(Paragraph("KARTU KELUARGA RT 06 / RW 14", ParagraphStyle('Title', parent=styles['Heading1'], fontSize=15, alignment=1, textColor=colors.HexColor('#1f2937'))))
+                elements.append(Paragraph("KARTU KELUARGA (KK) RT 06 / RW 14", ParagraphStyle('Title', parent=styles['Heading1'], fontSize=15, alignment=1, textColor=colors.HexColor('#1f2937'))))
                 elements.append(Spacer(1, 10))
                 
                 elements.append(Paragraph(f"<b>No. Rumah / Alamat:</b> {rumah}", styles['Normal']))
                 elements.append(Paragraph(f"<b>Kepala Keluarga:</b> {kepala}", styles['Normal']))
                 elements.append(Spacer(1, 10))
                 
-                kolom_tampil = keluarga_df.columns[:min(8, len(keluarga_df.columns))]
-                table_data = [list(kolom_tampil)]
+                # Menggunakan seluruh kolom data tanpa dibatasi agar sampai status domisili tampil semua
+                kolom_tampil = list(keluarga_df.columns)
+                table_data = [kolom_tampil]
                 for _, row in keluarga_df.iterrows():
-                    table_data.append([str(row[col])[:20] for col in kolom_tampil])
+                    table_data.append([str(row[col]) for col in kolom_tampil])
                     
                 t = Table(table_data, repeatRows=1)
                 t.setStyle(TableStyle([
@@ -149,20 +150,20 @@ if not df.empty:
                     ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
                     ('ALIGN', (0,0), (-1,-1), 'CENTER'),
                     ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0,0), (-1,0), 8),
+                    ('FONTSIZE', (0,0), (-1,0), 7),
                     ('BOTTOMPADDING', (0,0), (-1,0), 5),
                     ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f9fafb')),
                     ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d1d5db')),
-                    ('FONTSIZE', (0,1), (-1,-1), 7),
+                    ('FONTSIZE', (0,1), (-1,-1), 6),
                 ]))
                 elements.append(t)
                 doc.build(elements)
                 buffer.seek(0)
                 return buffer.getvalue()
 
-            pdf_kk_bytes = buat_pdf_kk(df_keluarga, pilihan_kk, no_rmh)
+            pdf_kk_bytes = buat_pdf_kk_landscape(df_keluarga, pilihan_kk, no_rmh)
             st.download_button(
-                label=f"📥 Download PDF Kartu Keluarga ({pilihan_kk})",
+                label=f"📥 Download PDF Kartu Keluarga A4 Landscape ({pilihan_kk})",
                 data=pdf_kk_bytes,
                 file_name=f"KK_{pilihan_kk.replace(' ', '_')}.pdf",
                 mime="application/pdf",
@@ -303,7 +304,7 @@ if not df.empty:
         
         def buat_pdf_rekap(data_df):
             buffer = io.BytesIO()
-            doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+            doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=25, leftMargin=25, topMargin=25, bottomMargin=25)
             elements = []
             styles = getSampleStyleSheet()
             
@@ -311,10 +312,10 @@ if not df.empty:
             elements.append(Paragraph("Griya Permata Raya - Desa Nanjung Mekar", ParagraphStyle('Sub', parent=styles['Normal'], alignment=1, fontSize=11, textColor=colors.gray)))
             elements.append(Spacer(1, 15))
             
-            kolom_tampil = data_df.columns[:min(8, len(data_df.columns))]
-            table_data = [list(kolom_tampil)]
+            kolom_tampil = list(data_df.columns)
+            table_data = [kolom_tampil]
             for _, row in data_df.iterrows():
-                table_data.append([str(row[col])[:20] for col in kolom_tampil])
+                table_data.append([str(row[col]) for col in kolom_tampil])
                 
             t = Table(table_data, repeatRows=1)
             t.setStyle(TableStyle([
@@ -322,11 +323,11 @@ if not df.empty:
                 ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
                 ('ALIGN', (0,0), (-1,-1), 'CENTER'),
                 ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0,0), (-1,0), 9),
-                ('BOTTOMPADDING', (0,0), (-1,0), 6),
+                ('FONTSIZE', (0,0), (-1,0), 7),
+                ('BOTTOMPADDING', (0,0), (-1,0), 5),
                 ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f9fafb')),
                 ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d1d5db')),
-                ('FONTSIZE', (0,1), (-1,-1), 8),
+                ('FONTSIZE', (0,1), (-1,-1), 6),
             ]))
             elements.append(t)
             doc.build(elements)
