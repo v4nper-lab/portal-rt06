@@ -78,7 +78,7 @@ def load_data_rt06():
         st.error(f"Gagal memuat data: {e}")
         return pd.DataFrame()
 
-# Gunakan session_state untuk menyimpan data agar penghapusan baris langsung terasa interaktif
+# Simpan data di session_state agar perubahan (hapus/edit baris) langsung tersimpan dinamis
 if 'df_warga' not in st.session_state:
     st.session_state.df_warga = load_data_rt06()
 
@@ -114,7 +114,7 @@ if not df.empty:
         total_kk = df[col_kk].nunique() if col_kk in df.columns else 0
         total_rumah = df[col_rumah].nunique() if col_rumah in df.columns else 0
         
-        # Kartu Statistik Warna-Warni yang Fresh
+        # Kartu Statistik Warna-Warni
         st.markdown(f"""
         <div style="display: flex; gap: 20px; margin-bottom: 25px; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 220px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 20px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -132,32 +132,20 @@ if not df.empty:
         </div>
         """, unsafe_allow_html=True)
         
-        pencarian_dashboard = st.text_input("🔍 Cari Cepat Data Warga (Ketik Nama / No. Rumah):", "")
+        st.markdown("### 📑 Tabel Interaktif Warga (Edit & Hapus Baris Layaknya Excel)")
+        st.info("💡 **Petunjuk:** Anda dapat langsung mengedit teks di dalam tabel atau mencentang kotak di sebelah kiri baris lalu menekan tombol **Delete / Hapus Baris** di pojok kanan atas tabel.")
         
-        df_tampil_dash = df.copy()
-        if pencarian_dashboard:
-            mask = df_tampil_dash.astype(str).apply(lambda x: x.str.contains(pencarian_dashboard, case=False)).any(axis=1)
-            df_tampil_dash = df_tampil_dash[mask]
-            
-        st.markdown("### 📑 Tabel Data Warga (Dilengkapi Tombol Hapus Baris Manual)")
+        # Menggunakan st.data_editor agar interaktif layaknya spreadsheet Excel
+        df_edited = st.data_editor(
+            df, 
+            num_rows="dynamic", 
+            use_container_width=True, 
+            key="editor_warga_grid"
+        )
         
-        # Tabel interaktif dengan opsi hapus baris langsung
-        for idx, row in df_tampil_dash.iterrows():
-            nama_warga = row.get(col_nama, f"Baris #{idx+1}")
-            no_rmh = row.get(col_rumah, "-")
-            
-            cols = st.columns([0.8, 8.2, 1])
-            with cols[0]:
-                st.markdown(f"**{idx+1}**")
-            with cols[1]:
-                info_teks = " | ".join([f"**{c}**: {row[c]}" for c in df.columns if pd.notnull(row[c])])
-                st.markdown(f"<span style='font-size: 13px;'>{info_teks}</span>", unsafe_allow_html=True)
-            with cols[2]:
-                if st.button("🗑️ Hapus", key=f"del_row_{idx}", help="Hapus baris ini"):
-                    st.session_state.df_warga = st.session_state.df_warga.drop(idx).reset_index(drop=True)
-                    st.success(f"Baris data '{nama_warga}' berhasil dihapus!")
-                    st.rerun()
-            st.markdown("<hr style='margin: 4px 0; border: none; border-top: 1px solid #f1f5f9;'>", unsafe_allow_html=True)
+        # Simpan pembaruan jika ada perubahan dari user
+        if not df_edited.equals(df):
+            st.session_state.df_warga = df_edited
             
         # Waktu berjalan interaktif
         for _ in range(3):
@@ -454,12 +442,7 @@ if not df.empty:
         
         st.markdown("---")
         st.markdown("### Preview Data:")
-        df_dash_prev = df.copy()
-        if col_kk in df_dash_prev.columns:
-            df_dash_prev[col_kk] = df_dash_prev[col_kk].mask(df_dash_prev[col_kk].duplicated(), None)
-        if col_rumah in df_dash_prev.columns:
-            df_dash_prev[col_rumah] = df_dash_prev[col_rumah].mask(df_dash_prev[col_rumah].duplicated(), None)
-        st.dataframe(df_dash_prev, use_container_width=True, hide_index=True)
+        st.dataframe(df, use_container_width=True, hide_index=True)
 
 else:
     st.info("Silakan pastikan file Excel data warga RT 06 sudah di-upload dengan benar.")
