@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import os
 import io
-from reportlab.lib.pagesizes import letter, landscape
+from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
@@ -77,10 +77,10 @@ if not df.empty:
     
     # Navigasi Menu Utama
     menu = st.sidebar.selectbox("📂 Pilih Menu Utama", [
-        "🗂️ Kartu Keluarga (KK) Warga", 
         "📊 Grafik Demografi Interaktif", 
+        "🗂️ Cetak / Lihat Kartu Keluarga (KK)", 
         "🛠️ Kelola Data Warga (Tambah/Edit/Hapus)", 
-        "🖨️ Cetak Laporan PDF"
+        "🖨️ Cetak Laporan Rekap PDF"
     ])
     
     # Deteksi kolom secara dinamis
@@ -93,83 +93,77 @@ if not df.empty:
     col_rumah_candi = [c for c in df.columns if "RUMAH" in c or "ALAMAT" in c]
     col_rumah = col_rumah_candi[0] if col_rumah_candi else None
     
-    col_jk = next((c for c in df.columns if "JK" in c or "KELAMIN" in c), None)
-    col_hub = next((c for c in df.columns if "HUBUNGAN" in c), None)
-    col_usia = next((c for c in df.columns if "USIA" in c or "UMUR" in c), None)
-    col_pek = next((c for c in df.columns if "PEKERJAAN" in c), None)
-    col_status_rumah = next((c for c in df.columns if "RUMAH" in c and c != col_rumah), None)
-    col_domisili = next((c for c in df.columns if "DOMISILI" in c), None)
-    
-    if menu == "🗂️ Kartu Keluarga (KK) Warga":
-        st.subheader("🗂️ Lembar Kartu Keluarga (KK) Warga RT 06")
-        st.markdown("Tampilan mobile-friendly per nomor rumah dan kepala keluarga.")
+    if menu == "🗂️ Cetak / Lihat Kartu Keluarga (KK)":
+        st.subheader("🗂️ Pencarian & Cetak Kartu Keluarga (KK) per Rumah")
+        st.markdown("Pilih atau ketik Nomor Rumah / Nama Kepala Keluarga untuk melihat dan mengunduh Kartu Keluarga.")
         
         daftar_kk = [str(x) for x in df[col_kk].dropna().unique() if str(x).strip() != "" and str(x).lower() != "nan"]
         
-        pencarian_kk = st.text_input("🔍 Cari Nama Kepala Keluarga / No Rumah:", "")
-        if pencarian_kk:
-            daftar_kk = [kk for kk in daftar_kk if pencarian_kk.lower() in kk.lower()]
+        # Dropdown atau pilihan pencarian Kepala Keluarga / No Rumah
+        pilihan_kk = st.selectbox("Pilih Kepala Keluarga:", daftar_kk)
         
-        if len(daftar_kk) == 0:
-            st.warning("Data Kepala Keluarga tidak ditemukan.")
-        else:
-            for idx, kk in enumerate(daftar_kk, 1):
-                df_anggota = df[df[col_kk].astype(str).str.strip() == kk.strip()]
-                no_rmh = str(df_anggota[col_rumah].iloc[0]) if col_rumah and not df_anggota.empty else "-"
-                st_rumah = str(df_anggota[col_status_rumah].iloc[0]) if col_status_rumah and not df_anggota.empty else "Milik / Tetap"
-                dom = str(df_anggota[col_domisili].iloc[0]) if col_domisili and not df_anggota.empty else "Nanjung Mekar"
-                
-                # Kartu Utama Per Rumah / Kepala Keluarga
-                with st.container():
-                    st.markdown(f"""
-                    <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                            <span style="background-color: #eff6ff; color: #1d4ed8; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 15px; margin-right: 10px;">{no_rmh}</span>
-                            <span style="font-size: 18px; font-weight: bold; color: #0f172a;">{kk}</span>
-                        </div>
-                        <div style="font-size: 13px; color: #64748b; margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
-                            <strong>{len(df_anggota)} anggota</strong> &nbsp;&bull;&nbsp; {st_rumah} &nbsp;&bull;&nbsp; {dom}
-                        </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # Daftar Anggota Keluarga di dalam Kartu
-                    for i, (_, row) in enumerate(df_anggota.iterrows()):
-                        nama_anggota = row.get(col_nama, "-")
-                        jk_val = row.get(col_jk, "-")
-                        hub_val = row.get(col_hub, "-")
-                        usia_val = row.get(col_usia, "-")
-                        pek_val = row.get(col_pek, "-")
-                        
-                        cols = st.columns([6, 2, 2])
-                        with cols[0]:
-                            badge_color = "#2563eb" if str(jk_val).upper() == "L" else "#db2777"
-                            st.markdown(f"""
-                            <div style="margin-bottom: 10px;">
-                                <span style="font-weight: bold; font-size: 15px; color: #1e293b;">{nama_anggota}</span><br>
-                                <span style="background-color: {badge_color}; color: white; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: bold;">{jk_val}</span> 
-                                <span style="font-size: 13px; color: #475569;">{hub_val} &bull; {pek_val}</span>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        with cols[1]:
-                            st.markdown(f"<div style='font-size: 14px; color: #334155; padding-top: 4px;'><strong>{usia_val} th</strong></div>", unsafe_allow_html=True)
-                        with cols[2]:
-                            sub_cols = st.columns(2)
-                            with sub_cols[0]:
-                                if st.button("Ubah", key=f"edit_{idx}_{i}", help="Edit data"):
-                                    st.toast(f"Edit data: {nama_anggota}")
-                            with sub_cols[1]:
-                                if st.button("Hapus", key=f"del_{idx}_{i}", help="Hapus data"):
-                                    st.toast(f"Hapus data: {nama_anggota}")
-                        
-                        if i < len(df_anggota) - 1:
-                            st.markdown("<hr style='margin: 6px 0; border: none; border-top: 1px dashed #e2e8f0;'>", unsafe_allow_html=True)
-                    
-                    # Tombol tambah anggota di bawah kartu
-                    st.markdown("<div style='margin-top: 12px;'>", unsafe_allow_html=True)
-                    if st.button(f"+ Tambah anggota keluarga ini", key=f"add_member_{idx}", use_container_width=True):
-                        st.info(f"Form tambah anggota untuk keluarga {kk} dibuka.")
-                    st.markdown("</div></div>", unsafe_allow_html=True)
+        if pilihan_kk:
+            df_keluarga = df[df[col_kk].astype(str).str.strip() == pilihan_kk.strip()]
+            no_rmh = str(df_keluarga[col_rumah].iloc[0]) if col_rumah and not df_keluarga.empty else "-"
             
+            st.markdown(f"""
+            <div style="background-color: #f8fafc; border: 2px solid #2563eb; border-radius: 10px; padding: 20px; margin-top: 15px; margin-bottom: 20px;">
+                <h4 style="margin: 0; color: #1e3a8a;">🏠 KARTU KELUARGA - NO. RUMAH: {no_rmh}</h4>
+                <p style="margin: 8px 0 0 0; font-size: 16px;"><strong>Kepala Keluarga:</strong> {pilihan_kk}</p>
+                <p style="margin: 4px 0 0 0; font-size: 14px; color: #64748b;">Jumlah Anggota: {len(df_keluarga)} Jiwa</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Tampilkan tabel anggota keluarga tersebut
+            st.dataframe(df_keluarga, use_container_width=True, hide_index=True)
+            
+            # Fungsi untuk membuat PDF khusus 1 Kartu Keluarga
+            def buat_pdf_kk(keluarga_df, kepala, rumah):
+                buffer = io.BytesIO()
+                doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+                elements = []
+                styles = getSampleStyleSheet()
+                
+                elements.append(Paragraph("PEMERINTAH KABUPATEN BANDUNG", ParagraphStyle('Sub1', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
+                elements.append(Paragraph("KECAMATAN MMARGAASIH - DESA NANJUNG MEKAR", ParagraphStyle('Sub2', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
+                elements.append(Paragraph("KARTU KELUARGA RT 06 / RW 14", ParagraphStyle('Title', parent=styles['Heading1'], fontSize=15, alignment=1, textColor=colors.HexColor('#1f2937'))))
+                elements.append(Spacer(1, 10))
+                
+                elements.append(Paragraph(f"<b>No. Rumah / Alamat:</b> {rumah}", styles['Normal']))
+                elements.append(Paragraph(f"<b>Kepala Keluarga:</b> {kepala}", styles['Normal']))
+                elements.append(Spacer(1, 10))
+                
+                kolom_tampil = keluarga_df.columns[:min(8, len(keluarga_df.columns))]
+                table_data = [list(kolom_tampil)]
+                for _, row in keluarga_df.iterrows():
+                    table_data.append([str(row[col])[:20] for col in kolom_tampil])
+                    
+                t = Table(table_data, repeatRows=1)
+                t.setStyle(TableStyle([
+                    ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#2563eb')),
+                    ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+                    ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                    ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0,0), (-1,0), 8),
+                    ('BOTTOMPADDING', (0,0), (-1,0), 5),
+                    ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f9fafb')),
+                    ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d1d5db')),
+                    ('FONTSIZE', (0,1), (-1,-1), 7),
+                ]))
+                elements.append(t)
+                doc.build(elements)
+                buffer.seek(0)
+                return buffer.getvalue()
+
+            pdf_kk_bytes = buat_pdf_kk(df_keluarga, pilihan_kk, no_rmh)
+            st.download_button(
+                label=f"📥 Download PDF Kartu Keluarga ({pilihan_kk})",
+                data=pdf_kk_bytes,
+                file_name=f"KK_{pilihan_kk.replace(' ', '_')}.pdf",
+                mime="application/pdf",
+                type="primary"
+            )
+
     elif menu == "📊 Grafik Demografi Interaktif":
         st.subheader("📊 Analisis & Statistik Grafik Demografi Warga RT 06")
         
@@ -299,16 +293,16 @@ if not df.empty:
             if st.button("Konfirmasi Hapus Warga Ini", type="primary"):
                 st.success(f"Data warga **{warga_hapus}** berhasil dihapus dari sistem.")
 
-    elif menu == "🖨️ Cetak Laporan PDF":
-        st.subheader("🖨️ Unduh Laporan Rekapitulasi Data Warga (PDF)")
+    elif menu == "🖨️ Cetak Laporan Rekap PDF":
+        st.subheader("🖨️ Unduh Laporan Rekapitulasi Data Warga Keseluruhan (PDF)")
         
-        def buat_pdf(data_df):
+        def buat_pdf_rekap(data_df):
             buffer = io.BytesIO()
             doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
             elements = []
             styles = getSampleStyleSheet()
             
-            elements.append(Paragraph("REKAPITULASI DATA WARGA RT 06 / RW 14", ParagraphStyle('Title', parent=styles['Heading1'], fontSize=16, alignment=1, textColor=colors.HexColor('#1f2937'))))
+            elements.append(Paragraph("REKAPITULASI KESELURUHAN DATA WARGA RT 06 / RW 14", ParagraphStyle('Title', parent=styles['Heading1'], fontSize=16, alignment=1, textColor=colors.HexColor('#1f2937'))))
             elements.append(Paragraph("Griya Permata Raya - Desa Nanjung Mekar", ParagraphStyle('Sub', parent=styles['Normal'], alignment=1, fontSize=11, textColor=colors.gray)))
             elements.append(Spacer(1, 15))
             
@@ -334,11 +328,11 @@ if not df.empty:
             buffer.seek(0)
             return buffer.getvalue()
 
-        pdf_bytes = buat_pdf(df)
+        pdf_rekap = buat_pdf_rekap(df)
         st.download_button(
-            label="📥 Download File PDF Rekapitulasi Warga",
-            data=pdf_bytes,
-            file_name="Laporan_Data_Warga_RT06.pdf",
+            label="📥 Download File PDF Rekapitulasi Keseluruhan",
+            data=pdf_rekap,
+            file_name="Rekap_Warga_RT06.pdf",
             mime="application/pdf",
             type="primary"
         )
