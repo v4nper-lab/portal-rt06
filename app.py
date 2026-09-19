@@ -20,14 +20,22 @@ def load_data_rt06():
         return pd.DataFrame()
     
     try:
-        # Menggunakan header=4 (baris ke-5 di Excel) agar langsung tepat pada judul kolom asli
-        # Jika kolom masih bergeser, Anda bisa mengubah angka 4 menjadi 3 atau 5
-        df = pd.read_excel(file_excel, header=4)
+        # Baca dulu tanpa header untuk mencari letak baris judul kolom yang benar
+        df_raw = pd.read_excel(file_excel, header=None)
         
-        # Bersihkan nama kolom dari spasi atau karakter aneh
+        header_row = 0
+        for idx, row in df_raw.iterrows():
+            row_str = [str(val).strip().upper() for val in row.values]
+            # Mencari baris yang mengandung kata NAMA atau NIK
+            if any("NAMA" in val or "NIK" in val for val in row_str):
+                header_row = idx
+                break
+        
+        # Baca ulang file Excel dengan baris header yang ditemukan secara otomatis
+        df = pd.read_excel(file_excel, header=header_row)
         df.columns = df.columns.astype(str).str.strip().str.upper()
         
-        # Buang kolom yang tidak bernama (Unnamed) atau baris yang kosong total
+        # Buang kolom yang tidak bernama (Unnamed) atau baris kosong
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
         return df
@@ -49,7 +57,6 @@ if not df.empty:
     with tab_grafik:
         st.subheader("📊 Statistik & Grafik Demografi Warga RT 06")
         
-        # Deteksi nama kolom secara fleksibel
         col_jk = next((c for c in df.columns if "JK" in c or "KELAMIN" in c or "GENDER" in c), None)
         col_pend = next((c for c in df.columns if "PENDIDIKAN" in c), None)
         col_pek = next((c for c in df.columns if "PEKERJAAN" in c), None)
