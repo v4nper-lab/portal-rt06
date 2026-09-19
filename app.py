@@ -16,22 +16,34 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-# Custom CSS responsif untuk Mobile & Desktop, Ukuran Teks Menu Besar, dan Warna-Warni Keren
+# Custom CSS responsif untuk Mobile & Desktop, Ukuran Kartu Metrik Lebih Besar & Jelas
 st.markdown("""
 <style>
     .stApp {
         background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%);
     }
     .metric-card {
-        background: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(12px);
         border: 1px solid rgba(226, 232, 240, 0.9);
-        padding: 20px;
-        border-radius: 16px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        padding: 24px;
+        border-radius: 18px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
         margin-bottom: 12px;
     }
-    /* Styling Tombol Menu Utama Menjadi Besar dan Berwarna-Warni Keren */
+    .metric-title {
+        font-size: 13px !important;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: #475569;
+        letter-spacing: 0.5px;
+    }
+    .metric-value {
+        font-size: 32px !important;
+        font-weight: 900 !important;
+        margin-top: 6px;
+    }
+    /* Styling Tombol Menu Utama Ukuran Besar & Berwarna-Warni Keren */
     .stButton button {
         font-size: 18px !important;
         font-weight: 700 !important;
@@ -47,7 +59,6 @@ st.markdown("""
         transform: translateY(-3px) !important;
         box-shadow: 0 12px 20px rgba(0,0,0,0.15) !important;
     }
-    /* Variasi Warna-Warni Tombol Menu */
     div.stButton:nth-of-type(1) button { background: linear-gradient(135deg, #2563eb, #1d4ed8) !important; }
     div.stButton:nth-of-type(2) button { background: linear-gradient(135deg, #059669, #047857) !important; }
     div.stButton:nth-of-type(3) button { background: linear-gradient(135deg, #0284c7, #0369a1) !important; }
@@ -61,7 +72,7 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Header Utama Portal RT 06 (Logo diperbesar 2x lipat tanpa background putih dengan efek CSS mix-blend-mode)
+# Header Utama Portal RT 06 (Logo diperbesar 2x lipat tanpa background putih)
 col_logo, col_title = st.columns([1, 4])
 with col_logo:
     logo_path = "logo_rt06.jpg"
@@ -213,31 +224,32 @@ if not df.empty:
             jml_balita = len(usia_series[(usia_series >= 0) & (usia_series <= 5)])
             jml_lansia = len(usia_series[usia_series > 60])
 
+        # Tampilan Kartu Metrik dengan Ukuran Teks Jauh Lebih Besar & Jelas
         st.markdown(f"""
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 10px; margin-bottom: 25px;">
-            <div class="metric-card" style="border-left: 4px solid #2563eb;">
-                <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: #64748b;">Jumlah KK</div>
-                <div style="font-size: 24px; font-weight: 800; color: #1e3a8a; margin-top: 4px;">{total_kk} <span style="font-size: 13px; font-weight: 500; color: #64748b;">KK</span></div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 10px; margin-bottom: 25px;">
+            <div class="metric-card" style="border-left: 6px solid #2563eb;">
+                <div class="metric-title">Jumlah KK</div>
+                <div class="metric-value" style="color: #1e3a8a;">{total_kk} <span style="font-size: 16px; font-weight: 600; color: #64748b;">KK</span></div>
             </div>
-            <div class="metric-card" style="border-left: 4px solid #059669;">
-                <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: #64748b;">Total Jiwa</div>
-                <div style="font-size: 24px; font-weight: 800; color: #065f46; margin-top: 4px;">{total_jiwa} <span style="font-size: 13px; font-weight: 500; color: #64748b;">Jiwa</span></div>
+            <div class="metric-card" style="border-left: 6px solid #059669;">
+                <div class="metric-title">Total Jiwa</div>
+                <div class="metric-value" style="color: #065f46;">{total_jiwa} <span style="font-size: 16px; font-weight: 600; color: #64748b;">Jiwa</span></div>
             </div>
-            <div class="metric-card" style="border-left: 4px solid #0284c7;">
-                <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: #64748b;">Laki-laki</div>
-                <div style="font-size: 24px; font-weight: 800; color: #0369a1; margin-top: 4px;">{jml_l}</div>
+            <div class="metric-card" style="border-left: 6px solid #0284c7;">
+                <div class="metric-title">Laki-laki</div>
+                <div class="metric-value" style="color: #0369a1;">{jml_l} <span style="font-size: 16px; font-weight: 600; color: #64748b;">Orang</span></div>
             </div>
-            <div class="metric-card" style="border-left: 4px solid #db2777;">
-                <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: #64748b;">Perempuan</div>
-                <div style="font-size: 24px; font-weight: 800; color: #9d174d; margin-top: 4px;">{jml_p}</div>
+            <div class="metric-card" style="border-left: 6px solid #db2777;">
+                <div class="metric-title">Perempuan</div>
+                <div class="metric-value" style="color: #9d174d;">{jml_p} <span style="font-size: 16px; font-weight: 600; color: #64748b;">Orang</span></div>
             </div>
-            <div class="metric-card" style="border-left: 4px solid #d97706;">
-                <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: #64748b;">Balita (0-5 th)</div>
-                <div style="font-size: 24px; font-weight: 800; color: #b45309; margin-top: 4px;">{jml_balita}</div>
+            <div class="metric-card" style="border-left: 6px solid #d97706;">
+                <div class="metric-title">Balita (0-5 th)</div>
+                <div class="metric-value" style="color: #b45309;">{jml_balita} <span style="font-size: 16px; font-weight: 600; color: #64748b;">Jiwa</span></div>
             </div>
-            <div class="metric-card" style="border-left: 4px solid #7c3aed;">
-                <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: #64748b;">Lansia (>60 th)</div>
-                <div style="font-size: 24px; font-weight: 800; color: #5b21b6; margin-top: 4px;">{jml_lansia}</div>
+            <div class="metric-card" style="border-left: 6px solid #7c3aed;">
+                <div class="metric-title">Lansia (>60 th)</div>
+                <div class="metric-value" style="color: #5b21b6;">{jml_lansia} <span style="font-size: 16px; font-weight: 600; color: #64748b;">Jiwa</span></div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -245,7 +257,6 @@ if not df.empty:
         st.write("---")
         st.markdown("### 🚀 Menu Utama Portal RT 06")
         
-        # Tombol Menu Ukuran Besar & Berwarna-Warni di Depan Dashboard
         col_m1, col_m2 = st.columns(2)
         with col_m1:
             if st.button("📋 Data Seluruh Warga", use_container_width=True):
@@ -534,18 +545,62 @@ if not df.empty:
             st.markdown("### Rekapitulasi Keuangan Kas RT 06")
             st.info("💡 Dana Kas RT digunakan untuk keperluan kebersihan lingkungan, keamanan, dan fasilitas umum warga.")
             
-            # Tabel simulasi Kas RT
             data_kas_rt = {
                 "No": [1, 2, 3, 4],
                 "Keterangan Transaksi": ["Saldo Awal Bulan", "Iuran Warga Bulanan (Periode Berjalan)", "Pengeluaran Perbaikan Lampu Jalan", "Saldo Akhir Kas RT"],
                 "Jenis": ["Masuk", "Masuk", "Keluar", "Total Saldo"],
                 "Jumlah (Rp)": ["Rp 1.500.000", "Rp 2.400.000", "Rp 350.000", "Rp 3.550.000"]
             }
-            st.dataframe(pd.DataFrame(data_kas_rt), use_container_width=True, hide_index=True)
+            df_kas_rt = pd.DataFrame(data_kas_rt)
+            st.dataframe(df_kas_rt, use_container_width=True, hide_index=True)
+            
+            # Tombol Cetak PDF Kas RT
+            def buat_pdf_kas(df_transaksi, judul_laporan):
+                buffer = io.BytesIO()
+                doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+                elements = []
+                styles = getSampleStyleSheet()
+                
+                elements.append(Paragraph("PEMERINTAH KABUPATEN BANDUNG", ParagraphStyle('Sub1', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
+                elements.append(Paragraph("RT 06 / RW 14 - KECAMATAN RANCAAEKEK", ParagraphStyle('Sub2', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
+                elements.append(Paragraph(judul_laporan, ParagraphStyle('Title', parent=styles['Heading1'], fontSize=14, alignment=1, textColor=colors.HexColor('#1f2937'))))
+                elements.append(Spacer(1, 15))
+                
+                kolom = list(df_transaksi.columns)
+                cell_s = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=9, leading=11, alignment=1)
+                head_s = ParagraphStyle('Head', parent=styles['Normal'], fontSize=9.5, leading=11, textColor=colors.whitesmoke, fontName='Helvetica-Bold', alignment=1)
+                
+                t_data = [[Paragraph(c, head_s) for c in kolom]]
+                for _, r in df_transaksi.iterrows():
+                    t_data.append([Paragraph(str(r[c]), cell_s) for c in kolom])
+                    
+                t = Table(t_data, colWidths=[40, 220, 100, 140], repeatRows=1)
+                t.setStyle(TableStyle([
+                    ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#2563eb')),
+                    ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                    ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                    ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+                    ('TOPPADDING', (0,0), (-1,-1), 6),
+                    ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f9fafb')),
+                    ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d1d5db')),
+                ]))
+                elements.append(t)
+                doc.build(elements)
+                buffer.seek(0)
+                return buffer.getvalue()
+
+            pdf_kas_rt = buat_pdf_kas(df_kas_rt, "LAPORAN KEUANGAN KAS RT 06 / RW 14")
+            st.download_button(
+                label="📥 Download PDF Laporan Kas RT",
+                data=pdf_kas_rt,
+                file_name="Laporan_Kas_RT06.pdf",
+                mime="application/pdf",
+                type="primary"
+            )
 
         with tab_kas2:
             st.markdown("### Laporan Dana Sosial & Perelek R6 Suayunan")
-            st.info("🌾 Program **Perelek R6 Suayunan** merupakan wujud gotong royong warga RT 06 untuk dana sosial kemasyarakatan (bantuan warga sakit, kedukaan, dll).")
+            st.info("🌾 Program **Perelek R6 Suayunan** merupakan wujud gotong royong warga RT 06 untuk dana sosial kemasyarakatan.")
             
             data_perelek = {
                 "No": [1, 2, 3],
@@ -553,7 +608,17 @@ if not df.empty:
                 "Status": ["Saldo", "Masuk", "Keluar"],
                 "Nominal": ["Rp 750.000", "Rp 600.000", "Rp 250.000 (Saldo Akhir: Rp 1.100.000)"]
             }
-            st.dataframe(pd.DataFrame(data_perelek), use_container_width=True, hide_index=True)
+            df_perelek = pd.DataFrame(data_perelek)
+            st.dataframe(df_perelek, use_container_width=True, hide_index=True)
+            
+            pdf_kas_sosial = buat_pdf_kas(df_perelek, "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
+            st.download_button(
+                label="📥 Download PDF Laporan Kas Sosial (Perelek)",
+                data=pdf_kas_sosial,
+                file_name="Laporan_Kas_Sosial_Perelek.pdf",
+                mime="application/pdf",
+                type="primary"
+            )
 
     elif menu == "🖨️ Cetak Rekap PDF":
         if st.button("⬅️ Kembali ke Beranda"):
