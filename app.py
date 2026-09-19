@@ -5,10 +5,11 @@ import os
 import io
 import time
 from datetime import datetime, date
-from reportlab.lib.pagesizes import letter, landscape
+from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
+from PIL import Image
 
 st.set_page_config(
     page_title="Portal Resmi RT 06 RW 14 Griya Permata Raya",
@@ -16,7 +17,7 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-# Custom CSS responsif untuk Mobile & Desktop, Ukuran Kartu Metrik Lebih Besar & Jelas
+# Custom CSS untuk Background Gradasi, Kartu Metrik, dan Standar Akuntansi Tabel
 st.markdown("""
 <style>
     .stApp {
@@ -43,7 +44,6 @@ st.markdown("""
         font-weight: 900 !important;
         margin-top: 6px;
     }
-    /* Styling Tombol Menu Utama Ukuran Besar & Berwarna-Warni Keren */
     .stButton button {
         font-size: 18px !important;
         font-weight: 700 !important;
@@ -72,16 +72,31 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Header Utama Portal RT 06 (Logo diperbesar 2x lipat tanpa background putih)
+# Header Utama Portal RT 06 (Logo PNG Transparan untuk Menghilangkan Background Putih Total)
 col_logo, col_title = st.columns([1, 4])
 with col_logo:
-    logo_path = "logo_rt06.jpg"
+    logo_path = "logo_rt06.png" # Disarankan menggunakan PNG transparan jika ada, atau konversi otomatis via PIL
+    if not os.path.exists(logo_path):
+        logo_path = "logo_rt06.jpg"
+    
     if os.path.exists(logo_path):
-        st.markdown('<div style="mix-blend-mode: multiply;">', unsafe_allow_html=True)
-        st.image(logo_path, width=400)
-        st.markdown('</div>', unsafe_allow_html=True)
+        try:
+            img = Image.open(logo_path).convert("RGBA")
+            # Ubah pixel putih / mendekati putih menjadi transparan
+            datas = img.getdata()
+            new_data = []
+            for item in datas:
+                # Jika warna pixel mendekati putih (R>240, G>240, B>240), jadikan transparan
+                if item[0] > 240 and item[1] > 240 and item[2] > 240:
+                    new_data.append((255, 255, 255, 0))
+                else:
+                    new_data.append(item)
+            img.putdata(new_data)
+            st.image(img, width=200)
+        except:
+            st.image(logo_path, width=200)
     else:
-        st.image("logo r6.jpg", width=400) if os.path.exists("logo r6.jpg") else st.write("🏠")
+        st.write("🏠")
 
 with col_title:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -224,7 +239,6 @@ if not df.empty:
             jml_balita = len(usia_series[(usia_series >= 0) & (usia_series <= 5)])
             jml_lansia = len(usia_series[usia_series > 60])
 
-        # Tampilan Kartu Metrik dengan Ukuran Teks Jauh Lebih Besar & Jelas
         st.markdown(f"""
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 10px; margin-bottom: 25px;">
             <div class="metric-card" style="border-left: 6px solid #2563eb;">
@@ -536,26 +550,34 @@ if not df.empty:
         if st.button("⬅️ Kembali ke Beranda"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
-        st.subheader("💰 Laporan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("Pusat transparansi keuangan warga RT 06, termasuk iuran kas RT serta pengelolaan dana sosial melalui **Perelek R6 Suayunan**.")
+        st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
+        st.markdown("Transparansi pencatatan keuangan warga RT 06 sesuai standar akuntansi pelaporan kas.")
         
-        tab_kas1, tab_kas2 = st.tabs(["📊 Kas RT 06", "🌾 Kas Sosial (Perelek R6 Suayunan)"])
+        tab_kas1, tab_kas2 = st.tabs(["📊 Buku Kas RT 06", "🌾 Buku Kas Sosial (Perelek R6 Suayunan)"])
         
         with tab_kas1:
-            st.markdown("### Rekapitulasi Keuangan Kas RT 06")
-            st.info("💡 Dana Kas RT digunakan untuk keperluan kebersihan lingkungan, keamanan, dan fasilitas umum warga.")
+            st.markdown("### Laporan Posisi Keuangan & Arus Kas RT 06")
             
-            data_kas_rt = {
-                "No": [1, 2, 3, 4],
-                "Keterangan Transaksi": ["Saldo Awal Bulan", "Iuran Warga Bulanan (Periode Berjalan)", "Pengeluaran Perbaikan Lampu Jalan", "Saldo Akhir Kas RT"],
-                "Jenis": ["Masuk", "Masuk", "Keluar", "Total Saldo"],
-                "Jumlah (Rp)": ["Rp 1.500.000", "Rp 2.400.000", "Rp 350.000", "Rp 3.550.000"]
+            # Tabel Format Standar Akuntansi Kas RT
+            data_akuntansi_rt = {
+                "No": [1, 2, 3, 4, 5],
+                "Tanggal": ["01/06/2026", "05/06/2026", "12/06/2026", "20/06/2026", "30/06/2026"],
+                "Uraian / Keterangan Transaksi": [
+                    "Saldo Awal Periode Lalu", 
+                    "Penerimaan Iuran Warga Bulanan (Periode Juni)", 
+                    "Pengeluaran Perbaikan Lampu Penerangan Jalan RT", 
+                    "Pengeluaran Konsumsi Rapat Koordinasi Warga",
+                    "Saldo Akhir Kas RT (Posisi Per 30 Juni 2026)"
+                ],
+                "Debet (Masuk)": ["Rp 1.500.000", "Rp 2.400.000", "-", "-", "-"],
+                "Kredit (Keluar)": ["-", "-", "Rp 350.000", "Rp 150.000", "-"],
+                "Saldo (Rp)": ["Rp 1.500.000", "Rp 3.900.000", "Rp 3.550.000", "Rp 3.400.000", "Rp 3.400.000"]
             }
-            df_kas_rt = pd.DataFrame(data_kas_rt)
-            st.dataframe(df_kas_rt, use_container_width=True, hide_index=True)
+            df_akuntansi_rt = pd.DataFrame(data_akuntansi_rt)
+            st.dataframe(df_akuntansi_rt, use_container_width=True, hide_index=True)
             
-            # Tombol Cetak PDF Kas RT
-            def buat_pdf_kas(df_transaksi, judul_laporan):
+            # Fungsi PDF Standar Akuntansi Kas
+            def buat_pdf_standar_akuntansi(df_lap, judul):
                 buffer = io.BytesIO()
                 doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
                 elements = []
@@ -563,59 +585,78 @@ if not df.empty:
                 
                 elements.append(Paragraph("PEMERINTAH KABUPATEN BANDUNG", ParagraphStyle('Sub1', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
                 elements.append(Paragraph("RT 06 / RW 14 - KECAMATAN RANCAAEKEK", ParagraphStyle('Sub2', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
-                elements.append(Paragraph(judul_laporan, ParagraphStyle('Title', parent=styles['Heading1'], fontSize=14, alignment=1, textColor=colors.HexColor('#1f2937'))))
+                elements.append(Paragraph(judul, ParagraphStyle('Title', parent=styles['Heading1'], fontSize=13, alignment=1, textColor=colors.HexColor('#1f2937'))))
                 elements.append(Spacer(1, 15))
                 
-                kolom = list(df_transaksi.columns)
-                cell_s = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=9, leading=11, alignment=1)
-                head_s = ParagraphStyle('Head', parent=styles['Normal'], fontSize=9.5, leading=11, textColor=colors.whitesmoke, fontName='Helvetica-Bold', alignment=1)
+                kolom = list(df_lap.columns)
+                cell_s = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=8.5, leading=10, alignment=1)
+                head_s = ParagraphStyle('Head', parent=styles['Normal'], fontSize=9, leading=11, textColor=colors.whitesmoke, fontName='Helvetica-Bold', alignment=1)
                 
                 t_data = [[Paragraph(c, head_s) for c in kolom]]
-                for _, r in df_transaksi.iterrows():
+                for _, r in df_lap.iterrows():
                     t_data.append([Paragraph(str(r[c]), cell_s) for c in kolom])
                     
-                t = Table(t_data, colWidths=[40, 220, 100, 140], repeatRows=1)
+                t = Table(t_data, colWidths=[25, 65, 205, 75, 75, 75], repeatRows=1)
                 t.setStyle(TableStyle([
-                    ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#2563eb')),
+                    ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1e3a8a')),
                     ('ALIGN', (0,0), (-1,-1), 'CENTER'),
                     ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-                    ('BOTTOMPADDING', (0,0), (-1,-1), 6),
-                    ('TOPPADDING', (0,0), (-1,-1), 6),
-                    ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f9fafb')),
-                    ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d1d5db')),
+                    ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+                    ('TOPPADDING', (0,0), (-1,-1), 5),
+                    ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f8fafc')),
+                    ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
                 ]))
                 elements.append(t)
+                elements.append(Spacer(1, 20))
+                
+                # Tanda Tangan Standar Akuntansi Pengurus RT
+                ttd_data = [
+                    [Paragraph("<b>Mengetahui,<br>Ketua RT 06</b>", ParagraphStyle('T1', parent=styles['Normal'], alignment=1, fontSize=9)),
+                     Paragraph("<b>Bendahara RT 06</b>", ParagraphStyle('T2', parent=styles['Normal'], alignment=1, fontSize=9))],
+                    [Spacer(1, 35), Spacer(1, 35)],
+                    [Paragraph("<b>( ......................................... )</b>", ParagraphStyle('T3', parent=styles['Normal'], alignment=1, fontSize=9)),
+                     Paragraph("<b>( ......................................... )</b>", ParagraphStyle('T4', parent=styles['Normal'], alignment=1, fontSize=9))]
+                ]
+                t_ttd = Table(ttd_data, colWidths=[250, 250])
+                elements.append(t_ttd)
+                
                 doc.build(elements)
                 buffer.seek(0)
                 return buffer.getvalue()
 
-            pdf_kas_rt = buat_pdf_kas(df_kas_rt, "LAPORAN KEUANGAN KAS RT 06 / RW 14")
+            pdf_akuntansi_rt = buat_pdf_standar_akuntansi(df_akuntansi_rt, "LAPORAN PERTANGGUNGJAWABAN KEUANGAN KAS RT 06")
             st.download_button(
-                label="📥 Download PDF Laporan Kas RT",
-                data=pdf_kas_rt,
-                file_name="Laporan_Kas_RT06.pdf",
+                label="📥 Download PDF Laporan Standar Akuntansi Kas RT",
+                data=pdf_akuntansi_rt,
+                file_name="Laporan_Akuntansi_Kas_RT06.pdf",
                 mime="application/pdf",
                 type="primary"
             )
 
         with tab_kas2:
-            st.markdown("### Laporan Dana Sosial & Perelek R6 Suayunan")
-            st.info("🌾 Program **Perelek R6 Suayunan** merupakan wujud gotong royong warga RT 06 untuk dana sosial kemasyarakatan.")
+            st.markdown("### Laporan Keuangan Dana Sosial & Perelek R6 Suayunan")
             
-            data_perelek = {
-                "No": [1, 2, 3],
-                "Uraian / Kegiatan Sosial": ["Saldo Kotak Sosial Perelek Sebelumnya", "Pemasukan Hasil Perelek Warga Bulanan", "Penyaluran Santunan Warga Sakit / Kedukaan"],
-                "Status": ["Saldo", "Masuk", "Keluar"],
-                "Nominal": ["Rp 750.000", "Rp 600.000", "Rp 250.000 (Saldo Akhir: Rp 1.100.000)"]
+            data_akuntansi_perelek = {
+                "No": [1, 2, 3, 4],
+                "Tanggal": ["01/06/2026", "10/06/2026", "25/06/2026", "30/06/2026"],
+                "Uraian / Keterangan Transaksi": [
+                    "Saldo Awal Kotak Sosial Perelek",
+                    "Penerimaan Hasil Perelek Warga Bulanan",
+                    "Pengeluaran Santunan Warga Sakit / Kedukaan",
+                    "Saldo Akhir Kas Sosial (Posisi Per 30 Juni 2026)"
+                ],
+                "Debet (Masuk)": ["Rp 750.000", "Rp 600.000", "-", "-"],
+                "Kredit (Keluar)": ["-", "-", "Rp 250.000", "-"],
+                "Saldo (Rp)": ["Rp 750.000", "Rp 1.350.000", "Rp 1.100.000", "Rp 1.100.000"]
             }
-            df_perelek = pd.DataFrame(data_perelek)
-            st.dataframe(df_perelek, use_container_width=True, hide_index=True)
+            df_akuntansi_perelek = pd.DataFrame(data_akuntansi_perelek)
+            st.dataframe(df_akuntansi_perelek, use_container_width=True, hide_index=True)
             
-            pdf_kas_sosial = buat_pdf_kas(df_perelek, "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
+            pdf_akuntansi_perelek = buat_pdf_standar_akuntansi(df_akuntansi_perelek, "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
             st.download_button(
-                label="📥 Download PDF Laporan Kas Sosial (Perelek)",
-                data=pdf_kas_sosial,
-                file_name="Laporan_Kas_Sosial_Perelek.pdf",
+                label="📥 Download PDF Laporan Standar Akuntansi Kas Sosial",
+                data=pdf_akuntansi_perelek,
+                file_name="Laporan_Akuntansi_Kas_Sosial.pdf",
                 mime="application/pdf",
                 type="primary"
             )
