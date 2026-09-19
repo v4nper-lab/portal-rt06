@@ -42,6 +42,25 @@ def load_data_rt06():
             
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
+        
+        # Konversi Format Tanggal Lahir ke Format Indonesia (Contoh: 02 Agustus 1991)
+        bulan_indo = {
+            1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
+            7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
+        }
+        
+        col_tgl = next((c for c in df.columns if "TANGGAL" in c or "LAHIR" in c and "TGL" not in c), None)
+        if col_tgl:
+            def format_tgl_indo(val):
+                try:
+                    dt = pd.to_datetime(val)
+                    if pd.notnull(dt):
+                        return f"{dt.day:02d} {bulan_indo.get(dt.month, '')} {dt.year}"
+                except:
+                    pass
+                return str(val)
+            df[col_tgl] = df[col_tgl].apply(format_tgl_indo)
+
         return df
     except Exception as e:
         st.error(f"Gagal memuat data: {e}")
@@ -56,11 +75,26 @@ if not df.empty:
     menu = st.sidebar.selectbox("📂 Navigasi Menu", ["Dashboard & Data Warga", "Kelola Data Warga (Tambah/Edit/Hapus)", "Cetak Laporan PDF"])
     
     if menu == "Dashboard & Data Warga":
-        tab_data, tab_grafik = st.tabs(["📋 Data Warga", "📈 Grafik Demografi Interaktif"])
+        tab_data, tab_grafik = st.tabs(["📋 Data Warga (Format KK)", "📈 Grafik Demografi Interaktif"])
         
         with tab_data:
-            st.subheader("📋 Daftar Warga RT 06")
-            st.dataframe(df, use_container_width=True, hide_index=True)
+            st.subheader("📋 Daftar Warga Berdasarkan Kartu Keluarga (Kepala Keluarga)")
+            
+            # Deteksi kolom Kepala Keluarga dan Anggota Keluarga
+            col_kk = next((c for c in df.columns if "KEPALA KELUARGA" in c or "KK" in c), None)
+            col_nama = next((c for c in df.columns if "ANGGOTA" in c or "NAMA" in c), None)
+            
+            if col_kk and col_nama:
+                # Mengelompokkan warga berdasarkan Kepala Keluarga
+                daftar_kk = df[col_kk].dropna().unique()
+                
+                for idx, kk in enumerate(daftar_kk, 1):
+                    with st.expander(f"🏠 Keluarga: {kk} (No. {idx})", expanded=(idx == 1)):
+                        df_anggota = df[df[col_kk] == kk]
+                        st.dataframe(df_anggota, use_container_width=True, hide_index=True)
+            else:
+                # Fallback jika nama kolom berbeda
+                st.dataframe(df, use_container_width=True, hide_index=True)
             
         with tab_grafik:
             st.subheader("📊 Statistik & Grafik Demografi Warga RT 06")
@@ -82,8 +116,6 @@ if not df.empty:
                     fig_jk.update_traces(textfont_size=16, textinfo="percent+label+value")
                     fig_jk.update_layout(font=dict(size=14))
                     st.plotly_chart(fig_jk, use_container_width=True)
-                else:
-                    st.info("Kolom Jenis Kelamin tidak terdeteksi.")
                     
             with c2:
                 if col_status:
@@ -94,8 +126,6 @@ if not df.empty:
                     fig_st.update_traces(textfont_size=16, textposition="outside")
                     fig_st.update_layout(font=dict(size=14), xaxis=dict(tickfont=dict(size=14)), yaxis=dict(tickfont=dict(size=14)))
                     st.plotly_chart(fig_st, use_container_width=True)
-                else:
-                    st.info("Kolom Status Pernikahan tidak terdeteksi.")
                     
             c3, c4 = st.columns(2)
             
@@ -108,8 +138,6 @@ if not df.empty:
                     fig_pd.update_traces(textfont_size=16, textposition="outside")
                     fig_pd.update_layout(font=dict(size=14), xaxis=dict(tickangle=-30, tickfont=dict(size=13)), yaxis=dict(tickfont=dict(size=14)))
                     st.plotly_chart(fig_pd, use_container_width=True)
-                else:
-                    st.info("Kolom Pendidikan tidak terdeteksi.")
                     
             with c4:
                 if col_pek:
@@ -120,8 +148,6 @@ if not df.empty:
                     fig_pk.update_traces(textfont_size=16, textposition="outside")
                     fig_pk.update_layout(font=dict(size=14), xaxis=dict(tickangle=-30, tickfont=dict(size=13)), yaxis=dict(tickfont=dict(size=14)))
                     st.plotly_chart(fig_pk, use_container_width=True)
-                else:
-                    st.info("Kolom Pekerjaan tidak terdeteksi.")
 
             if col_usia:
                 st.markdown("#### 👶 Berdasarkan Kategori Usia")
@@ -148,66 +174,54 @@ if not df.empty:
 
     elif menu == "Kelola Data Warga (Tambah/Edit/Hapus)":
         st.subheader("🛠️ Panel Pengelolaan Data Warga RT 06")
-        
         aksi = st.selectbox("Pilih Aksi Pengelolaan:", ["➕ Tambah Data Warga Baru", "✏️ Edit Data Warga", "🗑️ Hapus Data Warga"])
         
         if aksi == "➕ Tambah Data Warga Baru":
             st.markdown("### Form Tambah Warga")
             with st.form("form_tambah"):
-                no_rumah = st.text_input("No. Rumah")
-                nama = st.text_input("Nama Lengkap")
-                jk = st.selectbox("Jenis Kelamin", ["L", "P"])
-                hubungan = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"])
-                usia = st.number_input("Usia", min_value=0, max_value=120, value=25)
-                status = st.selectbox("Status Pernikahan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"])
-                pendidikan = st.text_input("Pendidikan Terakhir", "Tamat SLTA/sederajat")
-                pekerjaan = st.text_input("Pekerjaan", "Karyawan Swasta")
+                st.text_input("No. Rumah")
+                st.text_input("Nama Kepala Keluarga")
+                st.text_input("Nama Anggota Keluarga")
+                st.selectbox("Jenis Kelamin", ["L", "P"])
+                st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"])
+                st.text_input("Tempat Lahir")
+                st.text_input("Tanggal Lahir (Contoh: 17 Agustus 1995)")
+                st.number_input("Usia", min_value=0, max_value=120, value=25)
+                st.selectbox("Status Pernikahan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"])
+                st.text_input("Pendidikan Terakhir", "Tamat SLTA/sederajat")
+                st.text_input("Pekerjaan", "Karyawan Swasta")
                 
-                submit_tambah = st.form_submit_button("Simpan Data Warga Baru")
-                if submit_tambah:
-                    st.success(f"Data warga atas nama **{nama}** berhasil disiapkan untuk ditambahkan!")
+                if st.form_submit_button("Simpan Data Warga Baru"):
+                    st.success("Data warga baru berhasil disiapkan!")
 
         elif aksi == "✏️ Edit Data Warga":
             st.markdown("### Edit Data Warga")
-            nama_pilih = st.selectbox("Pilih Warga yang Ingin Diedit:", df.iloc[:, 2] if len(df.columns) > 2 else df.iloc[:, 0])
-            st.info(f"Fitur edit untuk **{nama_pilih}** aktif.")
+            st.selectbox("Pilih Warga yang Ingin Diedit:", df.iloc[:, 2] if len(df.columns) > 2 else df.iloc[:, 0])
             with st.form("form_edit"):
-                st.text_input("Perbarui Nama", value=str(nama_pilih))
+                st.text_input("Perbarui Data")
                 st.form_submit_button("Simpan Perubahan")
 
         elif aksi == "🗑️ Hapus Data Warga":
             st.markdown("### Hapus Data Warga")
             nama_hapus = st.selectbox("Pilih Warga yang Ingin Dihapus:", df.iloc[:, 2] if len(df.columns) > 2 else df.iloc[:, 0])
             if st.button("Konfirmasi Hapus Warga Ini"):
-                st.success(f"Data warga **{nama_hapus}** berhasil dihapus dari tampilan.")
+                st.success(f"Data **{nama_hapus}** berhasil dihapus.")
 
     elif menu == "Cetak Laporan PDF":
         st.subheader("🖨️ Unduh Laporan Rekapitulasi Data Warga (PDF)")
-        st.write("Klik tombol di bawah ini untuk mengunduh laporan resmi data warga RT 06 dalam bentuk file PDF berformat tabel:")
         
-        # Fungsi Pembuat PDF dengan ReportLab
         def buat_pdf(data_df):
             buffer = io.BytesIO()
             doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
             elements = []
-            
             styles = getSampleStyleSheet()
-            title_style = ParagraphStyle(
-                'TitleStyle',
-                parent=styles['Heading1'],
-                fontSize=16,
-                alignment=1,
-                textColor=colors.HexColor('#1f2937')
-            )
             
-            elements.append(Paragraph("REKAPITULASI DATA WARGA RT 06 / RW 14", title_style))
+            elements.append(Paragraph("REKAPITULASI DATA WARGA RT 06 / RW 14", ParagraphStyle('Title', parent=styles['Heading1'], fontSize=16, alignment=1, textColor=colors.HexColor('#1f2937'))))
             elements.append(Paragraph("Griya Permata Raya - Desa Nanjung Mekar", ParagraphStyle('Sub', parent=styles['Normal'], alignment=1, fontSize=11, textColor=colors.gray)))
             elements.append(Spacer(1, 15))
             
-            # Ambil kolom utama agar muat di PDF
             kolom_tampil = data_df.columns[:min(8, len(data_df.columns))]
             table_data = [list(kolom_tampil)]
-            
             for _, row in data_df.iterrows():
                 table_data.append([str(row[col])[:20] for col in kolom_tampil])
                 
@@ -222,16 +236,13 @@ if not df.empty:
                 ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f9fafb')),
                 ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d1d5db')),
                 ('FONTSIZE', (0,1), (-1,-1), 8),
-                ('TOPPADDING', (0,1), (-1,-1), 4),
             ]))
-            
             elements.append(t)
             doc.build(elements)
             buffer.seek(0)
             return buffer.getvalue()
 
         pdf_bytes = buat_pdf(df)
-        
         st.download_button(
             label="📥 Download File PDF Rekapitulasi Warga",
             data=pdf_bytes,
