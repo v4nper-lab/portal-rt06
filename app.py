@@ -72,21 +72,19 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Header Utama Portal RT 06 (Logo PNG Transparan untuk Menghilangkan Background Putih Total)
+# Header Utama Portal RT 06 (Logo PNG Transparan)
 col_logo, col_title = st.columns([1, 4])
 with col_logo:
-    logo_path = "logo_rt06.png" # Disarankan menggunakan PNG transparan jika ada, atau konversi otomatis via PIL
+    logo_path = "logo_rt06.png"
     if not os.path.exists(logo_path):
         logo_path = "logo_rt06.jpg"
     
     if os.path.exists(logo_path):
         try:
             img = Image.open(logo_path).convert("RGBA")
-            # Ubah pixel putih / mendekati putih menjadi transparan
             datas = img.getdata()
             new_data = []
             for item in datas:
-                # Jika warna pixel mendekati putih (R>240, G>240, B>240), jadikan transparan
                 if item[0] > 240 and item[1] > 240 and item[2] > 240:
                     new_data.append((255, 255, 255, 0))
                 else:
@@ -558,7 +556,6 @@ if not df.empty:
         with tab_kas1:
             st.markdown("### Laporan Posisi Keuangan & Arus Kas RT 06")
             
-            # Tabel Format Standar Akuntansi Kas RT
             data_akuntansi_rt = {
                 "No": [1, 2, 3, 4, 5],
                 "Tanggal": ["01/06/2026", "05/06/2026", "12/06/2026", "20/06/2026", "30/06/2026"],
@@ -576,7 +573,6 @@ if not df.empty:
             df_akuntansi_rt = pd.DataFrame(data_akuntansi_rt)
             st.dataframe(df_akuntansi_rt, use_container_width=True, hide_index=True)
             
-            # Fungsi PDF Standar Akuntansi Kas
             def buat_pdf_standar_akuntansi(df_lap, judul):
                 buffer = io.BytesIO()
                 doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
@@ -609,9 +605,9 @@ if not df.empty:
                 elements.append(t)
                 elements.append(Spacer(1, 20))
                 
-                # Tanda Tangan Standar Akuntansi Pengurus RT
+                # Menggunakan tag <br/> dengan benar untuk menghindari error paraparser
                 ttd_data = [
-                    [Paragraph("<b>Mengetahui,<br>Ketua RT 06</b>", ParagraphStyle('T1', parent=styles['Normal'], alignment=1, fontSize=9)),
+                    [Paragraph("<b>Mengetahui,<br/>Ketua RT 06</b>", ParagraphStyle('T1', parent=styles['Normal'], alignment=1, fontSize=9)),
                      Paragraph("<b>Bendahara RT 06</b>", ParagraphStyle('T2', parent=styles['Normal'], alignment=1, fontSize=9))],
                     [Spacer(1, 35), Spacer(1, 35)],
                     [Paragraph("<b>( ......................................... )</b>", ParagraphStyle('T3', parent=styles['Normal'], alignment=1, fontSize=9)),
