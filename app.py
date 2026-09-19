@@ -14,16 +14,17 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-# Header dengan Logo RT 06
-col_logo, col_title = st.columns([1, 6])
+# Header dengan Logo RT 06 (Ukuran diperbesar 3x lipat, lebar 330 piksel)
+col_logo, col_title = st.columns([1, 5])
 with col_logo:
     logo_path = "logo_rt06.jpg"  # Sesuaikan jika nama file gambarnya berbeda di GitHub
     if os.path.exists(logo_path):
-        st.image(logo_path, width=110)
+        st.image(logo_path, width=330)
     else:
-        st.image("logo r6.jpg", width=110) if os.path.exists("logo r6.jpg") else st.write("🏠")
+        st.image("logo r6.jpg", width=330) if os.path.exists("logo r6.jpg") else st.write("🏠")
 
 with col_title:
+    st.markdown("<br>", unsafe_allow_html=True) # Penyelaras posisi vertikal
     st.title("🏠 Portal Resmi RT 06 / RW 14")
     st.markdown("### Griya Permata Raya - Desa Nanjung Mekar")
 
