@@ -83,6 +83,11 @@ def load_data_rt06():
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
         
+        # Bersihkan spasi berlebih pada kolom teks penting agar pencocokan data akurat
+        for col in df.select_dtypes(include=['object']).columns:
+            df[col] = df[col].astype(str).str.strip()
+            df.loc[df[col].str.lower() == 'nan', col] = None
+        
         bulan_indo = {
             1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
             7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
@@ -248,13 +253,16 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("🗂️ Cetak Kartu Keluarga (KK)")
+        
+        # Ambil daftar Kepala Keluarga secara unik dan bersih
         daftar_kk = df[col_kk].dropna().astype(str).str.strip()
-        daftar_kk = sorted(list(set([x for x in daftar_kk if x != "" and x.lower() != "nan"])))
+        daftar_kk = sorted(list(set([x for x in daftar_kk if x != "" and x.lower() != "nan" and x.lower() != "none"])))
         
         pilihan_kk = st.selectbox("Pilih Kepala Keluarga:", daftar_kk)
         
         if pilihan_kk:
-            df_keluarga = df[df[col_kk].astype(str).str.strip() == pilihan_kk.strip()].copy()
+            # Filter data berdasarkan Nama Kepala Keluarga secara persis
+            df_keluarga = df[df[col_kk].astype(str).str.strip().str.lower() == pilihan_kk.strip().lower()].copy()
             no_rmh = str(df_keluarga[col_rumah].dropna().iloc[0]) if col_rumah and not df_keluarga[df_keluarga[col_rumah].notna()].empty else "-"
             
             cols_tampilan_web = [c for c in df_keluarga.columns if c != col_kk and "URUT" not in c and c != "NO"]
@@ -262,6 +270,7 @@ if not df.empty:
             st.markdown(f"""
             <div style="background: #ffffff; border: 2px solid #2563eb; border-radius: 12px; padding: 12px; margin-bottom: 12px;">
                 <h4 style="margin: 0; color: #1e3a8a; font-size: 15px;">🏠 No. Rumah: {no_rmh} | KK: {pilihan_kk}</h4>
+                <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">Jumlah Anggota Keluarga Terdata: <b>{len(df_keluarga)} Jiwa</b></p>
             </div>
             """, unsafe_allow_html=True)
             
@@ -330,14 +339,12 @@ if not df.empty:
         col_pek = next((c for c in df.columns if "PEKERJAAN" in c), None)
         col_status = next((c for c in df.columns if "STATUS" in c and "KAWIN" in c) or (c for c in df.columns if "STATUS" in c), None)
         
-        # 1. Grafik Jenis Kelamin
         if col_jk:
             df_jk = df[col_jk].dropna().value_counts().reset_index()
             df_jk.columns = ["Jenis Kelamin", "Jumlah"]
             fig_jk = px.pie(df_jk, names="Jenis Kelamin", values="Jumlah", hole=0.5, title="Rasio Penduduk Berdasarkan Jenis Kelamin", color_discrete_sequence=px.colors.qualitative.Set2)
             st.plotly_chart(fig_jk, use_container_width=True)
 
-        # 2. Grafik Status Pernikahan
         if col_status:
             st.markdown("---")
             df_st = df[col_status].dropna().value_counts().reset_index()
@@ -346,7 +353,6 @@ if not df.empty:
             fig_st.update_traces(textposition="outside")
             st.plotly_chart(fig_st, use_container_width=True)
 
-        # 3. Grafik Pendidikan Terakhir
         if col_pend:
             st.markdown("---")
             df_pd = df[col_pend].dropna().value_counts().reset_index()
@@ -355,7 +361,6 @@ if not df.empty:
             fig_pd.update_traces(textposition="outside")
             st.plotly_chart(fig_pd, use_container_width=True)
 
-        # 4. Grafik Pekerjaan
         if col_pek:
             st.markdown("---")
             df_pk = df[col_pek].dropna().value_counts().reset_index()
@@ -364,7 +369,6 @@ if not df.empty:
             fig_pk.update_traces(textposition="outside")
             st.plotly_chart(fig_pk, use_container_width=True)
 
-        # 5. Grafik Kelompok Usia
         if col_usia:
             st.markdown("---")
             def kategorikan_usia(u):
