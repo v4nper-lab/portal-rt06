@@ -16,7 +16,7 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-# Header dengan Logo RT 06 (Ukuran diperbesar 3x lipat)
+# Header dengan Logo RT 06
 col_logo, col_title = st.columns([1, 5])
 with col_logo:
     logo_path = "logo_rt06.jpg"
@@ -100,29 +100,34 @@ if not df.empty:
     col_rumah = col_rumah_candi[0] if col_rumah_candi else None
     
     if menu == "📋 Dashboard Data Seluruh Warga":
-        # Bagian Waktu & Tanggal Berjalan Interaktif di atas Dashboard
         col_jam1, col_jam2 = st.columns([3, 1])
         with col_jam1:
             st.subheader("📋 Dashboard Modern & Interaktif Warga RT 06")
             st.markdown("Pusat informasi data kependudukan real-time Griya Permata Raya.")
         with col_jam2:
-            # Placeholder untuk waktu interaktif berjalan
             placeholder_waktu = st.empty()
             
-        # Kartu Statistik Utama (Metric Cards Modern)
+        # Statistik Utama dengan Desain Kartu Warna-Warni
         total_warga = len(df)
         total_kk = df[col_kk].nunique() if col_kk in df.columns else 0
         total_rumah = df[col_rumah].nunique() if col_rumah in df.columns else 0
         
-        m1, m2, m3 = st.columns(3)
-        with m1:
-            st.metric("👥 Total Jiwa Warga", f"{total_warga} Orang")
-        with m2:
-            st.metric("🏠 Total Kepala Keluarga (KK)", f"{total_kk} KK")
-        with m3:
-            st.metric("🏡 Total Rumah Terdata", f"{total_rumah} Rumah")
-            
-        st.write("---")
+        st.markdown(f"""
+        <div style="display: flex; gap: 20px; margin-bottom: 25px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 220px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 20px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="font-size: 14px; opacity: 0.9;">👥 Total Jiwa Warga</div>
+                <div style="font-size: 28px; font-weight: bold; margin-top: 5px;">{total_warga} Orang</div>
+            </div>
+            <div style="flex: 1; min-width: 220px; background: linear-gradient(135deg, #10b981, #047857); color: white; padding: 20px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="font-size: 14px; opacity: 0.9;">🏠 Total Kepala Keluarga</div>
+                <div style="font-size: 28px; font-weight: bold; margin-top: 5px;">{total_kk} KK</div>
+            </div>
+            <div style="flex: 1; min-width: 220px; background: linear-gradient(135deg, #f59e0b, #b45309); color: white; padding: 20px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="font-size: 14px; opacity: 0.9;">🏡 Total Rumah Terdata</div>
+                <div style="font-size: 28px; font-weight: bold; margin-top: 5px;">{total_rumah} Rumah</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
         # Fitur Pencarian Cepat Warga di Dashboard
         pencarian_dashboard = st.text_input("🔍 Cari Cepat Data Warga (Ketik Nama / No. Rumah):", "")
@@ -132,7 +137,6 @@ if not df.empty:
             mask = df_tampil_dash.astype(str).apply(lambda x: x.str.contains(pencarian_dashboard, case=False)).any(axis=1)
             df_tampil_dash = df_tampil_dash[mask]
             
-        # Rapikan duplikat Kepala Keluarga & No Rumah agar bersih dipandang
         if col_kk in df_tampil_dash.columns:
             df_tampil_dash[col_kk] = df_tampil_dash[col_kk].mask(df_tampil_dash[col_kk].duplicated(), None)
         if col_rumah in df_tampil_dash.columns:
@@ -140,13 +144,13 @@ if not df.empty:
             
         st.dataframe(df_tampil_dash, use_container_width=True, hide_index=True)
         
-        # Script kecil agar waktu berjalan secara interaktif
+        # Script interaktif waktu berjalan
         for _ in range(3):
             waktu_sekarang = datetime.now().strftime("%d %B %Y | %H:%M:%S")
             placeholder_waktu.markdown(f"""
-            <div style="background-color: #f1f5f9; padding: 10px 15px; border-radius: 8px; text-align: right; border: 1px solid #cbd5e1;">
-                <span style="font-size: 12px; color: #64748b;">🕒 Waktu Sistem:</span><br>
-                <strong style="font-size: 14px; color: #1e3a8a;">{waktu_sekarang}</strong>
+            <div style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; padding: 12px 18px; border-radius: 12px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <span style="font-size: 11px; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px;">🕒 Waktu Sistem Real-Time</span><br>
+                <strong style="font-size: 15px;">{waktu_sekarang}</strong>
             </div>
             """, unsafe_allow_html=True)
             time.sleep(1)
@@ -167,10 +171,10 @@ if not df.empty:
             cols_tampilan_web = [c for c in df_keluarga.columns if c != col_kk and "URUT" not in c and c != "NO"]
             
             st.markdown(f"""
-            <div style="background-color: #f8fafc; border: 2px solid #2563eb; border-radius: 10px; padding: 20px; margin-top: 15px; margin-bottom: 20px;">
+            <div style="background: linear-gradient(135deg, #eff6ff, #dbeafe); border: 2px solid #3b82f6; border-radius: 12px; padding: 20px; margin-top: 15px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
                 <h4 style="margin: 0; color: #1e3a8a;">🏠 KARTU KELUARGA - NO. RUMAH: {no_rmh}</h4>
-                <p style="margin: 8px 0 0 0; font-size: 16px;"><b>Kepala Keluarga:</b> {pilihan_kk}</p>
-                <p style="margin: 4px 0 0 0; font-size: 14px; color: #64748b;">Jumlah Anggota: {len(df_keluarga)} Jiwa</p>
+                <p style="margin: 8px 0 0 0; font-size: 16px; color: #1f2937;"><b>Kepala Keluarga:</b> {pilihan_kk}</p>
+                <p style="margin: 4px 0 0 0; font-size: 14px; color: #4b5563;">Jumlah Anggota: {len(df_keluarga)} Jiwa</p>
             </div>
             """, unsafe_allow_html=True)
             
