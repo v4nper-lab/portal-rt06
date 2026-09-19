@@ -20,16 +20,27 @@ def load_data_rt06():
         return pd.DataFrame()
     
     try:
-        # Membaca Excel dengan header di baris ke-4 (indeks 3)
+        # Membaca file dengan header di baris ke-4 (indeks 3)
         df = pd.read_excel(file_excel, header=3)
-        
         df.columns = df.columns.astype(str).str.strip().str.upper()
         
-        # Membuang baris pertama data secara mutlak karena berisi angka nomor kolom (1, 2, 5, dst)
+        # Fungsi otomatis untuk mendeteksi dan membuang baris yang isinya hanya angka-angka nomor kolom
+        def adalah_baris_nomor(row):
+            count_angka = 0
+            total_kolom = len(row)
+            for val in row.values:
+                val_str = str(val).strip()
+                # Jika sel berisi angka kecil (nomor urut kolom formulir)
+                if val_str.isdigit() and int(val_str) < 50:
+                    count_angka += 1
+            # Jika lebih dari separuh kolom berisi angka nomor, buang baris tersebut
+            return count_angka > (total_kolom / 3)
+        
+        # Buang baris nomor kolom secara otomatis
         if len(df) > 0:
-            df = df.iloc[1:].reset_index(drop=True)
+            df = df[~df.apply(adalah_baris_nomor, axis=1)].reset_index(drop=True)
             
-        # Buang kolom Unnamed jika ada
+        # Bersihkan kolom Unnamed
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
         return df
