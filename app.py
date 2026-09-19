@@ -20,22 +20,22 @@ def load_data_rt06():
         return pd.DataFrame()
     
     try:
-        # Baca dulu tanpa header untuk mencari letak baris judul kolom yang benar
         df_raw = pd.read_excel(file_excel, header=None)
         
         header_row = 0
         for idx, row in df_raw.iterrows():
             row_str = [str(val).strip().upper() for val in row.values]
-            # Mencari baris yang mengandung kata NAMA atau NIK
             if any("NAMA" in val or "NIK" in val for val in row_str):
                 header_row = idx
                 break
         
-        # Baca ulang file Excel dengan baris header yang ditemukan secara otomatis
         df = pd.read_excel(file_excel, header=header_row)
         df.columns = df.columns.astype(str).str.strip().str.upper()
         
-        # Buang kolom yang tidak bernama (Unnamed) atau baris kosong
+        # Menghapus baris pertama data yang berisi angka penomoran kolom (1, 2, 5, dst)
+        if len(df) > 0:
+            df = df.iloc[1:].reset_index(drop=True)
+            
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
         return df
