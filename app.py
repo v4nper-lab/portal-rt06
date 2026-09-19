@@ -17,7 +17,7 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-# Custom CSS untuk Background Gradasi, Kartu Metrik, dan Standar Akuntansi Tabel
+# Custom CSS responsif untuk Mobile & Desktop, Judul & Logo Jumbo 2x Lipat
 st.markdown("""
 <style>
     .stApp {
@@ -43,6 +43,19 @@ st.markdown("""
         font-size: 32px !important;
         font-weight: 900 !important;
         margin-top: 6px;
+    }
+    /* Judul Utama Jumbo 2x Lipat */
+    .jumbo-title {
+        font-size: 44px !important;
+        font-weight: 900 !important;
+        color: #1e3a8a !important;
+        line-height: 1.1 !important;
+        margin-bottom: 5px !important;
+    }
+    .jumbo-subtitle {
+        font-size: 20px !important;
+        font-weight: 700 !important;
+        color: #475569 !important;
     }
     .stButton button {
         font-size: 18px !important;
@@ -72,8 +85,8 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Header Utama Portal RT 06 (Logo PNG Transparan)
-col_logo, col_title = st.columns([1, 4])
+# Header Utama Portal RT 06 (Logo & Judul Diperbesar 2x Lipat Tanpa Background Putih)
+col_logo, col_title = st.columns([1, 3.5])
 with col_logo:
     logo_path = "logo_rt06.png"
     if not os.path.exists(logo_path):
@@ -90,16 +103,16 @@ with col_logo:
                 else:
                     new_data.append(item)
             img.putdata(new_data)
-            st.image(img, width=200)
+            st.image(img, width=380) # Logo diperbesar hampir 2x lipat
         except:
-            st.image(logo_path, width=200)
+            st.image(logo_path, width=380)
     else:
         st.write("🏠")
 
 with col_title:
     st.markdown("<br>", unsafe_allow_html=True)
-    st.title("🏠 PORTAL RT 06 / RW 14")
-    st.markdown("**Griya Permata Raya** • Desa Nanjung Mekar, Rancaekek")
+    st.markdown('<div class="jumbo-title">🏠 PORTAL RT 06 / RW 14</div>', unsafe_allow_html=True)
+    st.markdown('<div class="jumbo-subtitle">Griya Permata Raya • Desa Nanjung Mekar, Rancaekek</div>', unsafe_allow_html=True)
 
 st.write("---")
 
@@ -605,7 +618,6 @@ if not df.empty:
                 elements.append(t)
                 elements.append(Spacer(1, 20))
                 
-                # Menggunakan tag <br/> dengan benar untuk menghindari error paraparser
                 ttd_data = [
                     [Paragraph("<b>Mengetahui,<br/>Ketua RT 06</b>", ParagraphStyle('T1', parent=styles['Normal'], alignment=1, fontSize=9)),
                      Paragraph("<b>Bendahara RT 06</b>", ParagraphStyle('T2', parent=styles['Normal'], alignment=1, fontSize=9))],
