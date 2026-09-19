@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.express as px
 import os
 import io
+import time
+from datetime import datetime
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -14,19 +16,19 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-# Header dengan Logo RT 06 (Ukuran diperbesar 3x lipat, lebar 330 piksel)
+# Header dengan Logo RT 06 (Ukuran diperbesar 3x lipat)
 col_logo, col_title = st.columns([1, 5])
 with col_logo:
-    logo_path = "logo_rt06.jpg"  # Sesuaikan jika nama file gambarnya berbeda di GitHub
+    logo_path = "logo_rt06.jpg"
     if os.path.exists(logo_path):
         st.image(logo_path, width=330)
     else:
         st.image("logo r6.jpg", width=330) if os.path.exists("logo r6.jpg") else st.write("🏠")
 
 with col_title:
-    st.markdown("<br>", unsafe_allow_html=True) # Penyelaras posisi vertikal
+    st.markdown("<br>", unsafe_allow_html=True)
     st.title("🏠 Portal Resmi RT 06 / RW 14")
-    st.markdown("### Griya Permata Raya - Desa Nanjung Mekar")
+    st.markdown("### Griya Permata Raya - Desa Nanjung Mekar, Kec. Rancaekek")
 
 st.write("---")
 
@@ -79,8 +81,7 @@ def load_data_rt06():
 df = load_data_rt06()
 
 if not df.empty:
-    st.metric("👥 Total Warga RT 06 Terdaftar", f"{len(df)} Jiwa")
-    
+    # Navigasi Menu Utama
     menu = st.sidebar.selectbox("📂 Pilih Menu Utama", [
         "📋 Dashboard Data Seluruh Warga",
         "🗂️ Cetak / Lihat Kartu Keluarga (KK)", 
@@ -99,16 +100,56 @@ if not df.empty:
     col_rumah = col_rumah_candi[0] if col_rumah_candi else None
     
     if menu == "📋 Dashboard Data Seluruh Warga":
-        st.subheader("📋 Dashboard Seluruh Data Warga RT 06")
-        st.markdown("Berikut adalah tabel lengkap rekapitulasi data penduduk dengan duplikat nama Kepala Keluarga yang diringkas.")
-        
-        df_dash = df.copy()
-        if col_kk in df_dash.columns:
-            df_dash[col_kk] = df_dash[col_kk].mask(df_dash[col_kk].duplicated(), None)
-        if col_rumah in df_dash.columns:
-            df_dash[col_rumah] = df_dash[col_rumah].mask(df_dash[col_rumah].duplicated(), None)
+        # Bagian Waktu & Tanggal Berjalan Interaktif di atas Dashboard
+        col_jam1, col_jam2 = st.columns([3, 1])
+        with col_jam1:
+            st.subheader("📋 Dashboard Modern & Interaktif Warga RT 06")
+            st.markdown("Pusat informasi data kependudukan real-time Griya Permata Raya.")
+        with col_jam2:
+            # Placeholder untuk waktu interaktif berjalan
+            placeholder_waktu = st.empty()
             
-        st.dataframe(df_dash, use_container_width=True, hide_index=True)
+        # Kartu Statistik Utama (Metric Cards Modern)
+        total_warga = len(df)
+        total_kk = df[col_kk].nunique() if col_kk in df.columns else 0
+        total_rumah = df[col_rumah].nunique() if col_rumah in df.columns else 0
+        
+        m1, m2, m3 = st.columns(3)
+        with m1:
+            st.metric("👥 Total Jiwa Warga", f"{total_warga} Orang")
+        with m2:
+            st.metric("🏠 Total Kepala Keluarga (KK)", f"{total_kk} KK")
+        with m3:
+            st.metric("🏡 Total Rumah Terdata", f"{total_rumah} Rumah")
+            
+        st.write("---")
+        
+        # Fitur Pencarian Cepat Warga di Dashboard
+        pencarian_dashboard = st.text_input("🔍 Cari Cepat Data Warga (Ketik Nama / No. Rumah):", "")
+        
+        df_tampil_dash = df.copy()
+        if pencarian_dashboard:
+            mask = df_tampil_dash.astype(str).apply(lambda x: x.str.contains(pencarian_dashboard, case=False)).any(axis=1)
+            df_tampil_dash = df_tampil_dash[mask]
+            
+        # Rapikan duplikat Kepala Keluarga & No Rumah agar bersih dipandang
+        if col_kk in df_tampil_dash.columns:
+            df_tampil_dash[col_kk] = df_tampil_dash[col_kk].mask(df_tampil_dash[col_kk].duplicated(), None)
+        if col_rumah in df_tampil_dash.columns:
+            df_tampil_dash[col_rumah] = df_tampil_dash[col_rumah].mask(df_tampil_dash[col_rumah].duplicated(), None)
+            
+        st.dataframe(df_tampil_dash, use_container_width=True, hide_index=True)
+        
+        # Script kecil agar waktu berjalan secara interaktif
+        for _ in range(3):
+            waktu_sekarang = datetime.now().strftime("%d %B %Y | %H:%M:%S")
+            placeholder_waktu.markdown(f"""
+            <div style="background-color: #f1f5f9; padding: 10px 15px; border-radius: 8px; text-align: right; border: 1px solid #cbd5e1;">
+                <span style="font-size: 12px; color: #64748b;">🕒 Waktu Sistem:</span><br>
+                <strong style="font-size: 14px; color: #1e3a8a;">{waktu_sekarang}</strong>
+            </div>
+            """, unsafe_allow_html=True)
+            time.sleep(1)
 
     elif menu == "🗂️ Cetak / Lihat Kartu Keluarga (KK)":
         st.subheader("🗂️ Pencarian & Cetak Kartu Keluarga (KK) per Rumah")
