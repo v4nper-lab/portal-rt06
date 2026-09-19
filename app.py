@@ -43,6 +43,11 @@ def load_data_rt06():
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
         
+        # Mengisi ke bawah kolom Kepala Keluarga & No Rumah jika dalam format merged cell Excel
+        for col in df.columns:
+            if "KEPALA" in col or "KK" in col or "RUMAH" in col:
+                df[col] = df[col].ffill()
+
         # Format Tanggal Lahir Indonesia
         bulan_indo = {
             1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
@@ -70,7 +75,6 @@ df = load_data_rt06()
 if not df.empty:
     st.metric("👥 Total Warga RT 06 Terdaftar", f"{len(df)} Jiwa")
     
-    # Navigasi Menu Utama
     menu = st.sidebar.selectbox("📂 Pilih Menu Utama", [
         "🗂️ Kartu Keluarga (KK) Warga", 
         "📊 Grafik Demografi Interaktif", 
@@ -78,17 +82,21 @@ if not df.empty:
         "🖨️ Cetak Laporan PDF"
     ])
     
-    # Deteksi kolom Kepala Keluarga dan No Rumah
-    col_kk_candi = [c for c in df.columns if "KEPALA" in c or "KK" in c or "KELUARGA" in c]
-    col_kk = col_kk_candi[0] if col_kk_candi else df.columns[2] if len(df.columns) > 2 else df.columns[0]
+    # Deteksi kolom Kepala Keluarga, Anggota, Hubungan, dan Rumah secara fleksibel
+    col_kk_candi = [c for c in df.columns if "KEPALA" in c or "KK" in c]
+    col_kk = col_kk_candi[0] if col_kk_candi else df.columns[2]
+    
+    col_hub_candi = [c for c in df.columns if "HUBUNGAN" in c]
+    col_hub = col_hub_candi[0] if col_hub_candi else None
     
     col_rumah_candi = [c for c in df.columns if "RUMAH" in c or "ALAMAT" in c]
     col_rumah = col_rumah_candi[0] if col_rumah_candi else None
     
     if menu == "🗂️ Kartu Keluarga (KK) Warga":
-        st.subheader("🗂️ Daftar Seluruh Kartu Keluarga (KK) RT 06")
-        st.markdown("Berikut adalah seluruh lembar Kartu Keluarga beserta daftar anggota keluarganya yang dimunculkan secara lengkap.")
+        st.subheader("🗂️ Daftar Lembar Kartu Keluarga (KK) Berdasarkan Hubungan Keluarga")
+        st.markdown("Setiap kartu keluarga dikelompokkan berdasarkan Kepala Keluarga dan menyertakan seluruh anggota keluarga serta hubungan keluarganya.")
         
+        # Ambil daftar unik kepala keluarga
         daftar_kk = [str(x) for x in df[col_kk].dropna().unique() if str(x).strip() != "" and str(x).lower() != "nan"]
         
         pencarian_kk = st.text_input("🔍 Cari Nama Kepala Keluarga:", "")
@@ -100,10 +108,11 @@ if not df.empty:
             st.dataframe(df, use_container_width=True)
         else:
             for idx, kk in enumerate(daftar_kk, 1):
+                # Ambil baris yang memiliki kepala keluarga tersebut
                 df_anggota = df[df[col_kk].astype(str).str.strip() == kk.strip()]
                 no_rmh = str(df_anggota[col_rumah].iloc[0]) if col_rumah and not df_anggota.empty else "-"
                 
-                # Tampilan kotak kartu keluarga resmi (semua langsung muncul terbuka)
+                # Kotak Kartu Keluarga Resmi
                 st.markdown(f"""
                 <div style="background-color: #f8fafc; border: 2px solid #cbd5e1; border-radius: 10px; padding: 20px; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
                     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 15px;">
@@ -111,10 +120,11 @@ if not df.empty:
                         <span style="background-color: #2563eb; color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 14px;">No. Rumah: {no_rmh}</span>
                     </div>
                     <p style="margin: 5px 0; font-size: 16px;"><strong>Kepala Keluarga:</strong> {kk}</p>
-                    <p style="margin: 5px 0; font-size: 14px; color: #64748b;">Jumlah Anggota Keluarga: <strong>{len(df_anggota)} Jiwa</strong></p>
+                    <p style="margin: 5px 0; font-size: 14px; color: #64748b;">Total Anggota & Hubungan Keluarga Terdaftar: <strong>{len(df_anggota)} Jiwa</strong></p>
                 </div>
                 """, unsafe_allow_html=True)
                 
+                # Tampilkan tabel anggota beserta hubungan keluarganya
                 st.dataframe(df_anggota, use_container_width=True, hide_index=True)
                 st.markdown("<br>", unsafe_allow_html=True)
             
@@ -212,8 +222,6 @@ if not df.empty:
 
     elif menu == "🛠️ Kelola Data Warga (Tambah/Edit/Hapus)":
         st.subheader("🛠️ Panel Pengelolaan Data Warga RT 06")
-        
-        # Menu Dropdown pengelolaan awal
         aksi = st.selectbox("Pilih Aksi Pengelolaan:", ["➕ Tambah Data Warga Baru", "✏️ Edit Data Warga", "🗑️ Hapus Data Warga"])
         
         kol_nama_warga = [c for c in df.columns if "NAMA" in c or "ANGGOTA" in c]
