@@ -84,7 +84,7 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Inisialisasi State Data Kas Awal dalam format angka murni
+# Inisialisasi State Data Kas Awal dalam format angka murni (bisa langsung diedit pada 1 tabel utama)
 if 'df_kas_rt_state' not in st.session_state:
     st.session_state.df_kas_rt_state = pd.DataFrame({
         "No": [1, 2, 3, 4],
@@ -129,7 +129,7 @@ def format_Rp(num):
     if num == 0: return "-"
     return f"Rp {int(num):,}".replace(",", ".")
 
-def siapkan_tabel_hasil_akhir(df_input):
+def hitung_dan_format_tabel_kas(df_input):
     df = df_input.copy()
     saldo_list = []
     current_saldo = 0.0
@@ -650,25 +650,24 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Info:** Cukup gunakan **satu tabel interaktif di bawah ini** untuk mengedit atau *copy-paste* data dari Excel. Kolom Saldo dan format Rupiah akan otomatis terhitung langsung pada tabel tersebut.")
+        st.markdown("💡 **Info:** Anda bisa langsung mengedit atau melakukan *copy-paste* data dari Excel pada **satu tabel tunggal interaktif di bawah ini**. Kolom Saldo dan format Rupiah akan otomatis dihitung secara *real-time*.")
         
         tab_kas1, tab_kas2 = st.tabs(["📊 Buku Kas RT 06", "🌾 Buku Kas Sosial (Perelek)"])
         
         with tab_kas1:
             st.markdown("### Buku Kas RT 06")
             
-            # Editor interaktif tunggal untuk Kas RT dengan kolom Saldo Otomatis di dalamnya
+            # Satu tabel tunggal interaktif (st.data_editor di-render dan langsung diproses hitung saldo akhirnya)
             edited_rt = st.data_editor(
                 st.session_state.df_kas_rt_state, 
                 num_rows="dynamic", 
                 use_container_width=True, 
-                key="editor_kas_rt_single"
+                key="editor_kas_rt_single_only"
             )
             st.session_state.df_kas_rt_state = edited_rt
             
-            # Tampilkan langsung hasil akhir dalam satu tabel terpadu yang interaktif
-            df_rt_final = siapkan_tabel_hasil_akhir(edited_rt)
-            st.markdown("#### Tabel Buku Kas RT (Hasil Akhir & Saldo Otomatis):")
+            # Render langsung satu tabel hasil akhir lengkap dengan saldo otomatis di layar
+            df_rt_final = hitung_dan_format_tabel_kas(edited_rt)
             st.dataframe(df_rt_final, use_container_width=True, hide_index=True)
             
             def buat_pdf_standar_akuntansi(df_lap, judul):
@@ -682,7 +681,7 @@ if not df.empty:
                 elements.append(Paragraph(judul, ParagraphStyle('Title', parent=styles['Heading1'], fontSize=13, alignment=1, textColor=colors.HexColor('#1f2937'))))
                 elements.append(Spacer(1, 15))
                 
-                df_pdf_clean = siapkan_tabel_hasil_akhir(df_lap)
+                df_pdf_clean = hitung_dan_format_tabel_kas(df_lap)
                 
                 kolom = list(df_pdf_clean.columns)
                 cell_s = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=8.5, leading=10, alignment=1)
@@ -735,12 +734,11 @@ if not df.empty:
                 st.session_state.df_kas_sosial_state, 
                 num_rows="dynamic", 
                 use_container_width=True, 
-                key="editor_kas_sosial_single"
+                key="editor_kas_sosial_single_only"
             )
             st.session_state.df_kas_sosial_state = edited_sosial
             
-            df_sosial_final = siapkan_tabel_hasil_akhir(edited_sosial)
-            st.markdown("#### Tabel Buku Kas Sosial (Hasil Akhir & Saldo Otomatis):")
+            df_sosial_final = hitung_dan_format_tabel_kas(edited_sosial)
             st.dataframe(df_sosial_final, use_container_width=True, hide_index=True)
             
             pdf_akuntansi_perelek = buat_pdf_standar_akuntansi(edited_sosial, "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
