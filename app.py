@@ -188,6 +188,21 @@ def hitung_dan_tampilkan_tabel_tunggal(df_input):
     })
     return df_hasil
 
+def handle_editor_change(state_key):
+    widget_key = f"editor_{state_key}_tunggal_v3"
+    if widget_key in st.session_state:
+        raw_data = st.session_state[widget_key]
+        if isinstance(raw_data, pd.DataFrame) and not raw_data.empty:
+            cleaned_rows = []
+            for _, r in raw_data.iterrows():
+                cleaned_rows.append({
+                    "Tanggal": str(r.get("Tanggal", "")),
+                    "Uraian / Keterangan Transaksi": str(r.get("Uraian / Keterangan Transaksi", "")),
+                    "Debet (Masuk)": parsing_angka_aman(r.get("Debet (Masuk)", 0)),
+                    "Kredit (Keluar)": parsing_angka_aman(r.get("Kredit (Keluar)", 0))
+                })
+            st.session_state[state_key] = pd.DataFrame(cleaned_rows)
+
 # Header Utama Portal RT 06
 col_logo, col_title = st.columns([1, 3.5])
 with col_logo:
@@ -675,12 +690,11 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Stabil seperti Excel:** Cukup gunakan **1 tabel saja** di bawah ini. Sekali ketik atau *copy-paste* data dari Excel, hasilnya langsung benar tanpa perlu diulang. Kolom saldo otomatis menghitung dengan akurat.")
+        st.markdown("💡 **Stabil seperti Excel:** Cukup gunakan **1 tabel saja** di bawah ini. Sekali ketik atau *copy-paste* data dari Excel, hasilnya langsung benar pada ketikan pertama. Kolom saldo otomatis menghitung dengan akurat.")
         
         def render_buku_kas_instan(state_key, judul_buku, file_pdf_name, judul_pdf):
             st.markdown(f"### {judul_buku}")
             
-            # Siapkan data live dengan saldo berjalan
             df_sumber = st.session_state[state_key].copy()
             df_tampil_live = hitung_dan_tampilkan_tabel_tunggal(df_sumber)
             
@@ -701,7 +715,6 @@ if not df.empty:
                 }
             )
             
-            # Sinkronisasi instan jika terjadi perubahan data
             if not edited_df.empty:
                 st.session_state[state_key] = pd.DataFrame({
                     "Tanggal": edited_df.get("Tanggal", "").astype(str),
