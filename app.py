@@ -84,7 +84,7 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Inisialisasi State Data Kas Awal
+# Inisialisasi State Data Kas Awal dalam format angka murni agar tidak terpotong
 if 'df_kas_rt_state' not in st.session_state:
     st.session_state.df_kas_rt_state = pd.DataFrame({
         "No": [1, 2, 3, 4],
@@ -112,46 +112,53 @@ if 'df_kas_sosial_state' not in st.session_state:
         "Kredit (Keluar)": [0, 0, 250000]
     })
 
-# Fungsi helper untuk membersihkan dan menghitung saldo otomatis secara akuntansi
+# Fungsi helper presisi tinggi untuk membersihkan dan menghitung angka keuangan secara akuntansi
+def parsing_angka_aman(val):
+    if pd.isna(val) or val == "" or val == "-":
+        return 0.0
+    if isinstance(val, (int, float)):
+        return float(val)
+    # Hapus semua karakter kecuali angka, tanda minus, dan titik/koma desimal
+    val_str = str(val).strip()
+    # Jika format mengandung pemisah ribuan titik atau koma, konversi secara bersih
+    clean_str = "".join([c for c in val_str if c.isdigit() or c == '-'])
+    try:
+        return float(clean_str) if clean_str != "" else 0.0
+    except:
+        return 0.0
+
 def hitung_saldo_akuntansi(df_input):
     df = df_input.copy()
     saldo_list = []
-    current_saldo = 0
+    current_saldo = 0.0
+    
+    debet_formatted = []
+    kredit_formatted = []
+    saldo_formatted = []
     
     for idx, row in df.iterrows():
-        # Parsing nilai debet & kredit (bisa berupa angka mentah atau string berformat Rupiah)
-        def parse_angka(val):
-            try:
-                if pd.isna(val): return 0
-                val_str = str(val).replace("Rp", "").replace(".", "").replace(",", "").strip()
-                if val_str == "" or val_str == "-": return 0
-                return float(val_str)
-            except:
-                return 0
-                
-        debet = parse_angka(row.get("Debet (Masuk)", 0))
-        kredit = parse_angka(row.get("Kredit (Keluar)", 0))
+        deb = parsing_angka_aman(row.get("Debet (Masuk)", 0))
+        kre = parsing_angka_aman(row.get("Kredit (Keluar)", 0))
         
         if idx == 0:
-            current_saldo = debet - kredit
+            current_saldo = deb - kre
         else:
-            current_saldo = current_saldo + debet - kredit
+            current_saldo = current_saldo + deb - kre
             
         saldo_list.append(current_saldo)
         
-    df["Saldo (Rp)"] = saldo_list
-    
-    # Format angka menjadi format Rupiah yang rapi untuk ditampilkan
-    def format_rupiah(val):
-        try:
-            return f"Rp {int(val):,}".replace(",", ".")
-        except:
-            return "Rp 0"
+        # Format ke Rupiah
+        def format_Rp(num):
+            if num == 0: return "-"
+            return f"Rp {int(num):,}".replace(",", ".")
             
-    df["Debet (Masuk)"] = df["Debet (Masuk)"].apply(lambda x: format_rupiah(parse_angka(x)) if parse_angka(x) > 0 else "-")
-    df["Kredit (Keluar)"] = df["Kredit (Keluar)"].apply(lambda x: format_rupiah(parse_angka(x)) if parse_angka(x) > 0 else "-")
-    df["Saldo (Rp)"] = df["Saldo (Rp)"].apply(format_rupiah)
-    
+        debet_formatted.append(format_Rp(deb))
+        kredit_formatted.append(format_Rp(kre))
+        saldo_formatted.append(format_Rp(current_saldo))
+        
+    df["Debet (Masuk) Tampil"] = debet_formatted
+    df["Kredit (Keluar) Tampil"] = kredit_formatted
+    df["Saldo (Rp)"] = saldo_formatted
     return df
 
 # Header Utama Portal RT 06
@@ -641,14 +648,13 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Info Akuntansi:** Kolom **Saldo (Rp)** dihitung secara otomatis berdasarkan rumus: `Saldo Sebelumnya + Debet - Kredit`. Anda bisa melakukan *copy-paste* data dari Excel pada kolom Debet/Kredit.")
+        st.markdown("💡 **Info Akuntansi:** Kolom **Debet (Masuk)** dan **Kredit (Keluar)** mendukung nominal ribuan hingga jutaan rupiah secara utuh. Kolom **Saldo (Rp)** dihitung otomatis secara *real-time*.")
         
         tab_kas1, tab_kas2 = st.tabs(["📊 Buku Kas RT 06", "🌾 Buku Kas Sosial (Perelek)"])
         
         with tab_kas1:
             st.markdown("### Edit & Salin Data Keuangan Kas RT 06")
             
-            # Editor Tabel Interaktif untuk Kas RT
             edited_rt = st.data_editor(
                 st.session_state.df_kas_rt_state, 
                 num_rows="dynamic", 
@@ -657,8 +663,7 @@ if not df.empty:
             )
             st.session_state.df_kas_rt_state = edited_rt
             
-            # Tampilkan tabel preview dengan hasil hitung saldo otomatis
-            df_rt_tampil = hitung_kalkulasi_saldo = hitung_saldo_akuntansi(edited_rt)
+            df_rt_tampil = hitung_saldo_akuntansi(edited_rt)
             st.markdown("#### Preview Perhitungan Saldo Otomatis:")
             st.dataframe(df_rt_tampil, use_container_width=True, hide_index=True)
             
@@ -674,12 +679,15 @@ if not df.empty:
                 elements.append(Spacer(1, 15))
                 
                 df_pdf_data = hitung_saldo_akuntansi(df_lap)
-                kolom = list(df_pdf_data.columns)
+                df_pdf_clean = df_pdf_data[["No", "Tanggal", "Uraian / Keterangan Transaksi", "Debet (Masuk) Tampil", "Kredit (Keluar) Tampil", "Saldo (Rp)"]].copy()
+                df_pdf_clean.columns = ["No", "Tanggal", "Uraian / Keterangan Transaksi", "Debet (Masuk)", "Kredit (Keluar)", "Saldo (Rp)"]
+                
+                kolom = list(df_pdf_clean.columns)
                 cell_s = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=8.5, leading=10, alignment=1)
                 head_s = ParagraphStyle('Head', parent=styles['Normal'], fontSize=9, leading=11, textColor=colors.whitesmoke, fontName='Helvetica-Bold', alignment=1)
                 
                 t_data = [[Paragraph(c, head_s) for c in kolom]]
-                for _, r in df_pdf_data.iterrows():
+                for _, r in df_pdf_clean.iterrows():
                     t_data.append([Paragraph(str(r[c]), cell_s) for c in kolom])
                     
                 t = Table(t_data, colWidths=[25, 65, 205, 75, 75, 75], repeatRows=1)
