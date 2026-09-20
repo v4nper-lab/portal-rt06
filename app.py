@@ -91,9 +91,29 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Inisialisasi State Kas RT Murni (Tanpa kolom No, langsung Tanggal)
+# Fungsi Penyimpanan Permanen ke File Lokal (Agar tidak hilang saat refresh)
+FILE_KAS_RT = "penyimpanan_kas_rt.csv"
+FILE_KAS_SOSIAL = "penyimpanan_kas_sosial.csv"
+
+def muat_data_kas(file_path, default_df):
+    if os.path.exists(file_path):
+        try:
+            df_disk = pd.read_csv(file_path)
+            if not df_disk.empty:
+                return df_disk
+        except:
+            pass
+    return default_df
+
+def simpan_data_kas(file_path, df):
+    try:
+        df.to_csv(file_path, index=False)
+    except:
+        pass
+
+# Inisialisasi Data Kas RT
 if 'df_kas_rt_state' not in st.session_state:
-    st.session_state.df_kas_rt_state = pd.DataFrame({
+    default_rt = pd.DataFrame({
         "Tanggal": ["01/06/2026", "05/06/2026", "12/06/2026", "20/06/2026"],
         "Uraian / Keterangan Transaksi": [
             "Saldo Awal Periode Lalu", 
@@ -104,10 +124,11 @@ if 'df_kas_rt_state' not in st.session_state:
         "Debet (Masuk)": [1500000.0, 2400000.0, 0.0, 0.0],
         "Kredit (Keluar)": [0.0, 0.0, 350000.0, 150000.0]
     })
+    st.session_state.df_kas_rt_state = muat_data_kas(FILE_KAS_RT, default_rt)
 
-# Inisialisasi State Kas Sosial Murni (Tanpa kolom No, langsung Tanggal)
+# Inisialisasi Data Kas Sosial
 if 'df_kas_sosial_state' not in st.session_state:
-    st.session_state.df_kas_sosial_state = pd.DataFrame({
+    default_sosial = pd.DataFrame({
         "Tanggal": ["01/06/2026", "05/06/2026", "10/06/2026", "15/06/2026", "20/06/2026", "25/06/2026", "28/06/2026", "30/06/2026"],
         "Uraian / Keterangan Transaksi": [
             "Saldo Awal Kotak Sosial Perelek",
@@ -122,6 +143,7 @@ if 'df_kas_sosial_state' not in st.session_state:
         "Debet (Masuk)": [750000.0, 150000.0, 150000.0, 0.0, 150000.0, 0.0, 150000.0, 0.0],
         "Kredit (Keluar)": [0.0, 0.0, 0.0, 200000.0, 0.0, 250000.0, 0.0, 0.0]
     })
+    st.session_state.df_kas_sosial_state = muat_data_kas(FILE_KAS_SOSIAL, default_sosial)
 
 def parsing_angka_aman(val):
     if pd.isna(val) or val == "" or val == "-":
@@ -188,7 +210,7 @@ def hitung_dan_tampilkan_tabel_tunggal(df_input):
     })
     return df_hasil
 
-def handle_editor_change(state_key):
+def handle_editor_change(state_key, file_path):
     widget_key = f"editor_{state_key}_tunggal_v3"
     if widget_key in st.session_state:
         raw_data = st.session_state[widget_key]
@@ -201,7 +223,9 @@ def handle_editor_change(state_key):
                     "Debet (Masuk)": parsing_angka_aman(r.get("Debet (Masuk)", 0)),
                     "Kredit (Keluar)": parsing_angka_aman(r.get("Kredit (Keluar)", 0))
                 })
-            st.session_state[state_key] = pd.DataFrame(cleaned_rows)
+            new_df = pd.DataFrame(cleaned_rows)
+            st.session_state[state_key] = new_df
+            simpan_data_kas(file_path, new_df)
 
 # Header Utama Portal RT 06
 col_logo, col_title = st.columns([1, 3.5])
@@ -690,9 +714,17 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Stabil seperti Excel:** Cukup gunakan **1 tabel saja** di bawah ini. Sekali ketik atau *copy-paste* data dari Excel, hasilnya langsung benar pada ketikan pertama. Kolom saldo otomatis menghitung dengan akurat.")
+        st.markdown("💡 **Penyimpanan Permanen Aktif:** Data kas yang Anda input atau *copy-paste* akan otomatis tersimpan permanen ke file sistem, sehingga **tidak akan hilang meskipun halaman direfresh (*refresh*)**. Cukup gunakan 1 tabel tunggal di bawah ini.")
         
-        def render_buku_kas_instan(state_key, judul_buku, file_pdf_name, judul_pdf):
+        def format_rupiah_pdf(num):
+            try:
+                n = float(num)
+                if n == 0: return "-"
+                return f"Rp {int(n):,}".replace(",", ".")
+            except:
+                return "-"
+
+        def render_buku_kas_instan(state_key, file_path, judul_buku, file_pdf_name, judul_pdf):
             st.markdown(f"### {judul_buku}")
             
             df_sumber = st.session_state[state_key].copy()
@@ -705,7 +737,7 @@ if not df.empty:
                 num_rows="dynamic",
                 use_container_width=True,
                 key=widget_key,
-                on_change=lambda: handle_editor_change(state_key),
+                on_change=lambda: handle_editor_change(state_key, file_path),
                 column_config={
                     "Tanggal": st.column_config.TextColumn("Tanggal"),
                     "Uraian / Keterangan Transaksi": st.column_config.TextColumn("Uraian / Keterangan Transaksi"),
@@ -716,12 +748,14 @@ if not df.empty:
             )
             
             if not edited_df.empty:
-                st.session_state[state_key] = pd.DataFrame({
+                new_df_state = pd.DataFrame({
                     "Tanggal": edited_df.get("Tanggal", "").astype(str),
                     "Uraian / Keterangan Transaksi": edited_df.get("Uraian / Keterangan Transaksi", "").astype(str),
                     "Debet (Masuk)": edited_df.get("Debet (Masuk)", 0).apply(parsing_angka_aman),
                     "Kredit (Keluar)": edited_df.get("Kredit (Keluar)", 0).apply(parsing_angka_aman)
                 })
+                st.session_state[state_key] = new_df_state
+                simpan_data_kas(file_path, new_df_state)
 
             def buat_pdf_standar_akuntansi(df_lap, judul):
                 buffer = io.BytesIO()
@@ -785,10 +819,10 @@ if not df.empty:
         tab_kas1, tab_kas2 = st.tabs(["📊 Buku Kas RT 06", "🌾 Buku Kas Sosial (Perelek)"])
         
         with tab_kas1:
-            render_buku_kas_instan('df_kas_rt_state', "Buku Kas RT 06", "Laporan_Kas_RT06.pdf", "LAPORAN PERTANGGUNGJAWABAN KEUANGAN KAS RT 06")
+            render_buku_kas_instan('df_kas_rt_state', FILE_KAS_RT, "Buku Kas RT 06", "Laporan_Kas_RT06.pdf", "LAPORAN PERTANGGUNGJAWABAN KEUANGAN KAS RT 06")
 
         with tab_kas2:
-            render_buku_kas_instan('df_kas_sosial_state', "Buku Kas Sosial / Perelek", "Laporan_Kas_Sosial.pdf", "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
+            render_buku_kas_instan('df_kas_sosial_state', FILE_KAS_SOSIAL, "Buku Kas Sosial / Perelek", "Laporan_Kas_Sosial.pdf", "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
 
     elif menu == "🖨️ Cetak Rekap PDF":
         if st.button("⬅️ Kembali ke Beranda"):
