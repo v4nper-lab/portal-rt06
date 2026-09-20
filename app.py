@@ -17,7 +17,7 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-# Custom CSS Profesional - Menjamin Background Gradasi Tetap Stabil & Tidak Putih Polos
+# Custom CSS Profesional - Menjamin Background Stabil & Teks Tombol Menu Terlihat Jelas
 st.markdown("""
 <style>
     .stApp {
@@ -62,11 +62,12 @@ st.markdown("""
     .stButton button {
         font-size: 17px !important;
         font-weight: 800 !important;
-        padding: 15px 22px !important;
+        padding: 18px 22px !important;
         border-radius: 14px !important;
         border: none !important;
         color: #ffffff !important;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        -webkit-text-fill-color: #ffffff !important;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
         box-shadow: 0 8px 15px rgba(0,0,0,0.1) !important;
         transition: all 0.3s ease !important;
         width: 100% !important;
@@ -75,7 +76,15 @@ st.markdown("""
         transform: translateY(-3px) !important;
         box-shadow: 0 12px 20px rgba(0,0,0,0.15) !important;
         color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
     }
+    div.stButton:nth-of-type(1) button { background: linear-gradient(135deg, #2563eb, #1d4ed8) !important; }
+    div.stButton:nth-of-type(2) button { background: linear-gradient(135deg, #059669, #047857) !important; }
+    div.stButton:nth-of-type(3) button { background: linear-gradient(135deg, #0284c7, #0369a1) !important; }
+    div.stButton:nth-of-type(4) button { background: linear-gradient(135deg, #db2777, #be185d) !important; }
+    div.stButton:nth-of-type(5) button { background: linear-gradient(135deg, #d97706, #b45309) !important; }
+    div.stButton:nth-of-type(6) button { background: linear-gradient(135deg, #7c3aed, #6d28d9) !important; }
+    div.stButton:nth-of-type(7) button { background: linear-gradient(135deg, #ea580c, #c2410c) !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -143,7 +152,6 @@ def format_Rupiah(num):
     except:
         return "-"
 
-# Fungsi kalkulasi saldo berjalan akurat tanpa merusak data asli
 def hitung_dan_tampilkan_tabel(df_input):
     df = df_input.copy()
     curr = 0.0
@@ -667,7 +675,7 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Super Mudah & Stabil:** Cukup gunakan **1 tabel saja** di bawah ini. Ketik, hapus baris, atau *copy-paste* data dari Excel dengan bebas. Kolom Saldo langsung menghitung otomatis dengan benar.")
+        st.markdown("💡 **Sangat Mudah & Stabil:** Cukup gunakan **1 tabel saja** di bawah ini. Anda bebas mengetik, menghapus baris, atau menyalin-menempel (*copy-paste*) data dari Excel. Saldo langsung menghitung otomatis dengan benar.")
         
         def format_rupiah_pdf(num):
             try:
@@ -680,11 +688,11 @@ if not df.empty:
         def render_buku_kas_tunggal(state_key, judul_buku, file_pdf_name, judul_pdf):
             st.markdown(f"### {judul_buku}")
             
-            # Ambil data murni dari session state
+            # Ambil data murni dari state tanpa mengubah format aslinya
             df_sumber = st.session_state[state_key].copy()
             df_tampil_live = hitung_dan_tampilkan_tabel(df_sumber)
             
-            # Tampilkan 1 tabel tunggal interaktif yang stabil
+            # Tampilkan 1 tabel interaktif tunggal
             edited_df = st.data_editor(
                 df_tampil_live,
                 num_rows="dynamic",
