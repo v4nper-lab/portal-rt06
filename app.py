@@ -7,7 +7,7 @@ import time
 from datetime import datetime, date
 from zoneinfo import ZoneInfo
 from reportlab.lib.pagesizes import letter, landscape
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from PIL import Image
@@ -719,7 +719,7 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Penyimpanan Permanen Aktif:** Data kas yang Anda input atau *copy-paste* tersimpan aman dan tidak akan hilang saat direfresh. Pada cetak PDF, judul instansi dihapus bersih dan diganti judul tunggal, serta keterangan Tempat & Tanggal hanya tercantum di atas tanda tangan Bendahara.")
+        st.markdown("💡 **Penyimpanan Permanen Aktif:** Data kas yang Anda input atau *copy-paste* tersimpan aman dan tidak akan hilang saat direfresh. Pada cetak PDF Kas Sosial, logo Perelek otomatis disematkan di sebelah judul laporan.")
         
         def format_rupiah_pdf(num):
             try:
@@ -729,7 +729,7 @@ if not df.empty:
             except:
                 return "-"
 
-        def render_buku_kas_instan(state_key, file_path, judul_buku, file_pdf_name, judul_pdf):
+        def render_buku_kas_instan(state_key, file_path, judul_buku, file_pdf_name, judul_pdf, pakai_logo=False):
             st.markdown(f"### {judul_buku}")
             
             df_sumber = st.session_state[state_key].copy()
@@ -768,8 +768,32 @@ if not df.empty:
                 elements = []
                 styles = getSampleStyleSheet()
                 
-                # Judul PDF disederhanakan tanpa instansi pemerintah atas
-                elements.append(Paragraph(judul, ParagraphStyle('Title', parent=styles['Heading1'], fontSize=14, alignment=1, textColor=colors.HexColor('#1f2937'), fontName='Helvetica-Bold')))
+                # Jika pakai logo (Kas Sosial), buat header berdampingan antara logo dan judul
+                if pakai_logo:
+                    logo_file = "logo_perelek.png"
+                    if not os.path.exists(logo_file):
+                        logo_file = "logo_perelek.jpg"
+                    
+                    style_judul_kanan = ParagraphStyle('JudulKanan', parent=styles['Heading1'], fontSize=13, alignment=0, textColor=colors.HexColor('#1f2937'), fontName='Helvetica-Bold')
+                    p_judul = Paragraph(judul, style_judul_kanan)
+                    
+                    if os.path.exists(logo_file):
+                        try:
+                            img_logo = RLImage(logo_file, width=45, height=45)
+                            t_header = Table([[img_logo, p_judul]], colWidths=[55, 445])
+                            t_header.setStyle(TableStyle([
+                                ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                                ('ALIGN', (0,0), (0,0), 'CENTER'),
+                                ('ALIGN', (1,0), (1,0), 'LEFT'),
+                            ]))
+                            elements.append(t_header)
+                        except:
+                            elements.append(Paragraph(judul, ParagraphStyle('TitleCenter', parent=styles['Heading1'], fontSize=14, alignment=1, textColor=colors.HexColor('#1f2937'), fontName='Helvetica-Bold')))
+                    else:
+                        elements.append(Paragraph(judul, ParagraphStyle('TitleCenter', parent=styles['Heading1'], fontSize=14, alignment=1, textColor=colors.HexColor('#1f2937'), fontName='Helvetica-Bold')))
+                else:
+                    elements.append(Paragraph(judul, ParagraphStyle('TitleCenter', parent=styles['Heading1'], fontSize=14, alignment=1, textColor=colors.HexColor('#1f2937'), fontName='Helvetica-Bold')))
+                
                 elements.append(Spacer(1, 15))
                 
                 df_pdf_clean = hitung_dan_tampilkan_tabel_tunggal(df_lap)
@@ -805,7 +829,6 @@ if not df.empty:
                 elements.append(t)
                 elements.append(Spacer(1, 15))
                 
-                # Tanggal & Tempat Update Otomatis hanya di atas tanda tangan Bendahara (sebelah kanan)
                 waktu_pdf = datetime.now(ZoneInfo("Asia/Jakarta"))
                 bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
                 tgl_cetak_pdf = f"Bandung, {waktu_pdf.day} {bulan_indo_nama.get(waktu_pdf.month, '')} {waktu_pdf.year}"
@@ -836,10 +859,10 @@ if not df.empty:
         tab_kas1, tab_kas2 = st.tabs(["📊 Buku Kas RT 06", "🌾 Buku Kas Sosial (Perelek)"])
         
         with tab_kas1:
-            render_buku_kas_instan('df_kas_rt_state', FILE_KAS_RT, "Buku Kas RT 06", "Laporan_Kas_RT06.pdf", "LAPORAN PERTANGGUNGJAWABAN KEUANGAN KAS RT 06")
+            render_buku_kas_instan('df_kas_rt_state', FILE_KAS_RT, "Buku Kas RT 06", "Laporan_Kas_RT06.pdf", "LAPORAN PERTANGGUNGJAWABAN KEUANGAN KAS RT 06", pakai_logo=False)
 
         with tab_kas2:
-            render_buku_kas_instan('df_kas_sosial_state', FILE_KAS_SOSIAL, "Buku Kas Sosial / Perelek", "Laporan_Kas_Sosial.pdf", "LAPORAN KAS PERELEK R6 SAUYUNAN")
+            render_buku_kas_instan('df_kas_sosial_state', FILE_KAS_SOSIAL, "Buku Kas Sosial / Perelek", "Laporan_Kas_Sosial.pdf", "LAPORAN KAS PERELEK R6 SAUYUNAN", pakai_logo=True)
 
     elif menu == "🖨️ Cetak Rekap PDF":
         if st.button("⬅️ Kembali ke Beranda"):
