@@ -17,7 +17,7 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-# Custom CSS Estetik Profesional & Mencegah Layar Putih
+# Custom CSS Profesional - Menjamin Background Gradasi Tetap Stabil & Tidak Putih Polos
 st.markdown("""
 <style>
     .stApp {
@@ -82,7 +82,7 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Inisialisasi State Data Kas RT Awal (Murni 4 Kolom: Tanggal, Uraian, Debet, Kredit)
+# Inisialisasi State Kas RT Murni Tanpa Kolom No Urut
 if 'df_kas_rt_state' not in st.session_state:
     st.session_state.df_kas_rt_state = pd.DataFrame({
         "Tanggal": ["01/06/2026", "05/06/2026", "12/06/2026", "20/06/2026"],
@@ -96,7 +96,7 @@ if 'df_kas_rt_state' not in st.session_state:
         "Kredit (Keluar)": [0.0, 0.0, 350000.0, 150000.0]
     })
 
-# Inisialisasi State Data Kas Sosial Awal (Murni 4 Kolom: Tanggal, Uraian, Debet, Kredit)
+# Inisialisasi State Kas Sosial Murni Tanpa Kolom No Urut
 if 'df_kas_sosial_state' not in st.session_state:
     st.session_state.df_kas_sosial_state = pd.DataFrame({
         "Tanggal": ["01/06/2026", "05/06/2026", "10/06/2026", "15/06/2026", "20/06/2026", "25/06/2026", "28/06/2026", "30/06/2026"],
@@ -143,7 +143,7 @@ def format_Rupiah(num):
     except:
         return "-"
 
-# Fungsi untuk menghitung saldo berjalan dan menyatukannya langsung ke tampilan tabel
+# Fungsi kalkulasi saldo berjalan akurat tanpa merusak data asli
 def hitung_dan_tampilkan_tabel(df_input):
     df = df_input.copy()
     curr = 0.0
@@ -667,7 +667,7 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Super Mudah:** Cukup gunakan **1 tabel saja** di bawah ini. Anda bisa langsung mengetik, menghapus baris, atau menyalin-menempel (*copy-paste*) data dari Excel. Kolom saldo akan otomatis menghitung secara benar.")
+        st.markdown("💡 **Super Mudah & Stabil:** Cukup gunakan **1 tabel saja** di bawah ini. Ketik, hapus baris, atau *copy-paste* data dari Excel dengan bebas. Kolom Saldo langsung menghitung otomatis dengan benar.")
         
         def format_rupiah_pdf(num):
             try:
@@ -677,18 +677,19 @@ if not df.empty:
             except:
                 return "-"
 
-        def render_buku_kas_super_simpel(state_key, judul_buku, file_pdf_name, judul_pdf):
+        def render_buku_kas_tunggal(state_key, judul_buku, file_pdf_name, judul_pdf):
             st.markdown(f"### {judul_buku}")
             
-            # Gabungkan input dan kalkulasi saldo langsung ke dalam 1 tabel tunggal yang bersih
+            # Ambil data murni dari session state
             df_sumber = st.session_state[state_key].copy()
             df_tampil_live = hitung_dan_tampilkan_tabel(df_sumber)
             
+            # Tampilkan 1 tabel tunggal interaktif yang stabil
             edited_df = st.data_editor(
                 df_tampil_live,
                 num_rows="dynamic",
                 use_container_width=True,
-                key=f"editor_{state_key}_singkat",
+                key=f"editor_{state_key}_tunggal_fix",
                 column_config={
                     "Tanggal": st.column_config.TextColumn("Tanggal"),
                     "Uraian / Keterangan Transaksi": st.column_config.TextColumn("Uraian / Keterangan Transaksi"),
@@ -768,10 +769,10 @@ if not df.empty:
         tab_kas1, tab_kas2 = st.tabs(["📊 Buku Kas RT 06", "🌾 Buku Kas Sosial (Perelek)"])
         
         with tab_kas1:
-            render_buku_kas_super_simpel('df_kas_rt_state', "Buku Kas RT 06", "Laporan_Kas_RT06.pdf", "LAPORAN PERTANGGUNGJAWABAN KEUANGAN KAS RT 06")
+            render_buku_kas_tunggal('df_kas_rt_state', "Buku Kas RT 06", "Laporan_Kas_RT06.pdf", "LAPORAN PERTANGGUNGJAWABAN KEUANGAN KAS RT 06")
 
         with tab_kas2:
-            render_buku_kas_super_simpel('df_kas_sosial_state', "Buku Kas Sosial / Perelek", "Laporan_Kas_Sosial.pdf", "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
+            render_buku_kas_tunggal('df_kas_sosial_state', "Buku Kas Sosial / Perelek", "Laporan_Kas_Sosial.pdf", "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
 
     elif menu == "🖨️ Cetak Rekap PDF":
         if st.button("⬅️ Kembali ke Beranda"):
