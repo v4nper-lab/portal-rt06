@@ -5,7 +5,7 @@ import os
 import io
 import time
 from datetime import datetime, date
-from reportlab.lib.pagesizes import letter
+from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
@@ -44,7 +44,6 @@ st.markdown("""
         font-weight: 900 !important;
         margin-top: 6px;
     }
-    /* Judul Utama Jumbo 2x Lipat */
     .jumbo-title {
         font-size: 44px !important;
         font-weight: 900 !important;
@@ -85,7 +84,7 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Header Utama Portal RT 06 (Logo & Judul Diperbesar 2x Lipat Tanpa Background Putih)
+# Header Utama Portal RT 06
 col_logo, col_title = st.columns([1, 3.5])
 with col_logo:
     logo_path = "logo_rt06.png"
@@ -103,7 +102,7 @@ with col_logo:
                 else:
                     new_data.append(item)
             img.putdata(new_data)
-            st.image(img, width=380) # Logo diperbesar hampir 2x lipat
+            st.image(img, width=380)
         except:
             st.image(logo_path, width=380)
     else:
