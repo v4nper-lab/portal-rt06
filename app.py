@@ -84,7 +84,7 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Inisialisasi State Data Kas Awal dengan format Float (Angka murni agar tidak bentrok saat copy-paste)
+# Inisialisasi State Data Kas Awal (Tanpa kolom No)
 if 'df_kas_rt_state' not in st.session_state:
     st.session_state.df_kas_rt_state = pd.DataFrame({
         "Tanggal": ["01/06/2026", "05/06/2026", "12/06/2026", "20/06/2026"],
@@ -110,10 +110,8 @@ if 'df_kas_sosial_state' not in st.session_state:
         "Kredit (Keluar)": [0.0, 0.0, 250000.0]
     })
 
-# Menghitung Saldo Otomatis secara Numerik Murni
 def hitung_saldo_numerik(df_input):
     df = df_input.copy()
-    # Pastikan data berupa angka numerik sebelum dihitung
     df["Debet (Masuk)"] = pd.to_numeric(df["Debet (Masuk)"], errors="coerce").fillna(0.0)
     df["Kredit (Keluar)"] = pd.to_numeric(df["Kredit (Keluar)"], errors="coerce").fillna(0.0)
     
@@ -618,9 +616,8 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Info Input Stabil:** Anda bisa menyalin-tempel (copy-paste) data angka mentah dari Excel. Saldo terhitung otomatis dan stabil di 1 tabel yang sama tanpa berubah-ubah sendiri.")
+        st.markdown("💡 **Info Stabil:** Gunakan satu tabel interaktif di bawah ini untuk input atau *copy-paste* data dari Excel. Kolom saldo otomatis terhitung akurat sesuai standar akuntansi.")
         
-        # Fungsi khusus format Rupiah untuk di PDF agar tetap rapi
         def format_rupiah_pdf(num):
             try:
                 n = float(num)
@@ -634,14 +631,13 @@ if not df.empty:
         with tab_kas1:
             st.markdown("### Buku Kas RT 06")
             
-            # Persiapkan tabel dalam wujud float/numeric agar stabil tanpa jitter
             df_rt_ready = hitung_saldo_numerik(st.session_state.df_kas_rt_state)
             
             edited_rt = st.data_editor(
                 df_rt_ready, 
                 num_rows="dynamic", 
                 use_container_width=True, 
-                key="editor_kas_rt_numerik_fixed",
+                key="editor_kas_rt_nono",
                 column_config={
                     "Debet (Masuk)": st.column_config.NumberColumn("Debet (Masuk)", default=0.0),
                     "Kredit (Keluar)": st.column_config.NumberColumn("Kredit (Keluar)", default=0.0),
@@ -663,7 +659,6 @@ if not df.empty:
                 elements.append(Paragraph(judul, ParagraphStyle('Title', parent=styles['Heading1'], fontSize=13, alignment=1, textColor=colors.HexColor('#1f2937'))))
                 elements.append(Spacer(1, 15))
                 
-                # Format ke tampilan uang khusus untuk PDF
                 df_pdf_clean = hitung_saldo_numerik(df_lap)
                 df_pdf_clean["Debet (Masuk)"] = df_pdf_clean["Debet (Masuk)"].apply(format_rupiah_pdf)
                 df_pdf_clean["Kredit (Keluar)"] = df_pdf_clean["Kredit (Keluar)"].apply(format_rupiah_pdf)
@@ -722,7 +717,7 @@ if not df.empty:
                 df_sosial_ready, 
                 num_rows="dynamic", 
                 use_container_width=True, 
-                key="editor_kas_sosial_numerik_fixed",
+                key="editor_kas_sosial_nono",
                 column_config={
                     "Debet (Masuk)": st.column_config.NumberColumn("Debet (Masuk)", default=0.0),
                     "Kredit (Keluar)": st.column_config.NumberColumn("Kredit (Keluar)", default=0.0),
