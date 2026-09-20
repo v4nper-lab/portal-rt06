@@ -125,7 +125,11 @@ def parsing_angka_aman(val):
     except:
         return 0.0
 
-def hitung_saldo_akuntansi(df_input):
+def format_Rp(num):
+    if num == 0: return "-"
+    return f"Rp {int(num):,}".replace(",", ".")
+
+def siapkan_tabel_hasil_akhir(df_input):
     df = df_input.copy()
     saldo_list = []
     current_saldo = 0.0
@@ -145,18 +149,19 @@ def hitung_saldo_akuntansi(df_input):
             
         saldo_list.append(current_saldo)
         
-        def format_Rp(num):
-            if num == 0: return "-"
-            return f"Rp {int(num):,}".replace(",", ".")
-            
         debet_formatted.append(format_Rp(deb))
         kredit_formatted.append(format_Rp(kre))
         saldo_formatted.append(format_Rp(current_saldo))
         
-    df["Debet (Masuk) Tampil"] = debet_formatted
-    df["Kredit (Keluar) Tampil"] = kredit_formatted
-    df["Saldo (Rp)"] = saldo_formatted
-    return df
+    df_hasil = pd.DataFrame({
+        "No": df.get("No", range(1, len(df)+1)),
+        "Tanggal": df.get("Tanggal", ""),
+        "Uraian / Keterangan Transaksi": df.get("Uraian / Keterangan Transaksi", ""),
+        "Debet (Masuk)": debet_formatted,
+        "Kredit (Keluar)": kredit_formatted,
+        "Saldo (Rp)": saldo_formatted
+    })
+    return df_hasil
 
 # Header Utama Portal RT 06
 col_logo, col_title = st.columns([1, 3.5])
@@ -645,14 +650,14 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Info Akuntansi:** Anda cukup mengedit atau melakukan *copy-paste* data dari Excel pada **satu tabel interaktif** di bawah ini. Kolom Saldo dan format Rupiah akan otomatis dihitung secara *real-time*.")
+        st.markdown("💡 **Info:** Cukup gunakan **satu tabel interaktif di bawah ini** untuk mengedit atau *copy-paste* data dari Excel. Kolom Saldo dan format Rupiah akan otomatis terhitung langsung pada tabel tersebut.")
         
         tab_kas1, tab_kas2 = st.tabs(["📊 Buku Kas RT 06", "🌾 Buku Kas Sosial (Perelek)"])
         
         with tab_kas1:
-            st.markdown("### Buku Kas RT 06 (Live Editor & Hitung Otomatis)")
+            st.markdown("### Buku Kas RT 06")
             
-            # Satu tabel interaktif lengkap untuk Kas RT (sudah mencakup input, salin-tempel, dan saldo otomatis)
+            # Editor interaktif tunggal untuk Kas RT dengan kolom Saldo Otomatis di dalamnya
             edited_rt = st.data_editor(
                 st.session_state.df_kas_rt_state, 
                 num_rows="dynamic", 
@@ -661,9 +666,9 @@ if not df.empty:
             )
             st.session_state.df_kas_rt_state = edited_rt
             
-            # Tampilkan hasil kalkulasi dalam satu tabel utuh
-            df_rt_final = hitung_saldo_akuntansi(edited_rt)
-            st.markdown("#### Hasil Akhir Buku Kas RT:")
+            # Tampilkan langsung hasil akhir dalam satu tabel terpadu yang interaktif
+            df_rt_final = siapkan_tabel_hasil_akhir(edited_rt)
+            st.markdown("#### Tabel Buku Kas RT (Hasil Akhir & Saldo Otomatis):")
             st.dataframe(df_rt_final, use_container_width=True, hide_index=True)
             
             def buat_pdf_standar_akuntansi(df_lap, judul):
@@ -677,9 +682,7 @@ if not df.empty:
                 elements.append(Paragraph(judul, ParagraphStyle('Title', parent=styles['Heading1'], fontSize=13, alignment=1, textColor=colors.HexColor('#1f2937'))))
                 elements.append(Spacer(1, 15))
                 
-                df_pdf_data = hitung_saldo_akuntansi(df_lap)
-                df_pdf_clean = df_pdf_data[["No", "Tanggal", "Uraian / Keterangan Transaksi", "Debet (Masuk) Tampil", "Kredit (Keluar) Tampil", "Saldo (Rp)"]].copy()
-                df_pdf_clean.columns = ["No", "Tanggal", "Uraian / Keterangan Transaksi", "Debet (Masuk)", "Kredit (Keluar)", "Saldo (Rp)"]
+                df_pdf_clean = siapkan_tabel_hasil_akhir(df_lap)
                 
                 kolom = list(df_pdf_clean.columns)
                 cell_s = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=8.5, leading=10, alignment=1)
@@ -726,7 +729,7 @@ if not df.empty:
             )
 
         with tab_kas2:
-            st.markdown("### Buku Kas Sosial / Perelek (Live Editor & Hitung Otomatis)")
+            st.markdown("### Buku Kas Sosial / Perelek")
             
             edited_sosial = st.data_editor(
                 st.session_state.df_kas_sosial_state, 
@@ -736,8 +739,8 @@ if not df.empty:
             )
             st.session_state.df_kas_sosial_state = edited_sosial
             
-            df_sosial_final = hitung_saldo_akuntansi(edited_sosial)
-            st.markdown("#### Hasil Akhir Buku Kas Sosial:")
+            df_sosial_final = siapkan_tabel_hasil_akhir(edited_sosial)
+            st.markdown("#### Tabel Buku Kas Sosial (Hasil Akhir & Saldo Otomatis):")
             st.dataframe(df_sosial_final, use_container_width=True, hide_index=True)
             
             pdf_akuntansi_perelek = buat_pdf_standar_akuntansi(edited_sosial, "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
