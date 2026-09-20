@@ -5,7 +5,7 @@ import os
 import io
 import time
 from datetime import datetime, date
-from reportlab.lib.pagesizes import letter
+from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
@@ -84,7 +84,7 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Inisialisasi State Data Kas Awal dalam format angka murni
+# Inisialisasi State Data Kas Awal dengan format Float (Angka murni agar tidak bentrok saat copy-paste)
 if 'df_kas_rt_state' not in st.session_state:
     st.session_state.df_kas_rt_state = pd.DataFrame({
         "Tanggal": ["01/06/2026", "05/06/2026", "12/06/2026", "20/06/2026"],
@@ -110,54 +110,26 @@ if 'df_kas_sosial_state' not in st.session_state:
         "Kredit (Keluar)": [0.0, 0.0, 250000.0]
     })
 
-def parsing_angka_aman(val):
-    if pd.isna(val) or val == "" or val == "-":
-        return 0.0
-    if isinstance(val, (int, float)):
-        return float(val)
-    val_str = str(val).strip()
-    clean_str = "".join([c for c in val_str if c.isdigit() or c == '-'])
-    try:
-        return float(clean_str) if clean_str != "" else 0.0
-    except:
-        return 0.0
-
-def format_Rp(num):
-    if num == 0: return "-"
-    return f"Rp {int(num):,}".replace(",", ".")
-
-def hitung_dan_tampilkan_tabel_kas(df_input):
+# Menghitung Saldo Otomatis secara Numerik Murni
+def hitung_saldo_numerik(df_input):
     df = df_input.copy()
+    # Pastikan data berupa angka numerik sebelum dihitung
+    df["Debet (Masuk)"] = pd.to_numeric(df["Debet (Masuk)"], errors="coerce").fillna(0.0)
+    df["Kredit (Keluar)"] = pd.to_numeric(df["Kredit (Keluar)"], errors="coerce").fillna(0.0)
+    
     saldo_list = []
-    current_saldo = 0.0
-    
-    debet_formatted = []
-    kredit_formatted = []
-    saldo_formatted = []
-    
+    curr = 0.0
     for idx, row in df.iterrows():
-        deb = parsing_angka_aman(row.get("Debet (Masuk)", 0))
-        kre = parsing_angka_aman(row.get("Kredit (Keluar)", 0))
-        
+        deb = row["Debet (Masuk)"]
+        kre = row["Kredit (Keluar)"]
         if idx == 0:
-            current_saldo = deb - kre
+            curr = deb - kre
         else:
-            current_saldo = current_saldo + deb - kre
-            
-        saldo_list.append(current_saldo)
+            curr = curr + deb - kre
+        saldo_list.append(curr)
         
-        debet_formatted.append(format_Rp(deb))
-        kredit_formatted.append(format_Rp(kre))
-        saldo_formatted.append(format_Rp(current_saldo))
-        
-    df_hasil = pd.DataFrame({
-        "Tanggal": df.get("Tanggal", ""),
-        "Uraian / Keterangan Transaksi": df.get("Uraian / Keterangan Transaksi", ""),
-        "Debet (Masuk)": debet_formatted,
-        "Kredit (Keluar)": kredit_formatted,
-        "Saldo (Rp)": saldo_formatted
-    })
-    return df_hasil
+    df["Saldo (Rp)"] = saldo_list
+    return df
 
 # Header Utama Portal RT 06
 col_logo, col_title = st.columns([1, 3.5])
@@ -646,31 +618,39 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Info:** Cukup gunakan **satu tabel interaktif tunggal** di bawah ini (dimulai dari kolom Tanggal). Kolom Saldo akan otomatis terhitung dan tampil secara akurat sesuai standar akuntansi.")
+        st.markdown("💡 **Info Input Stabil:** Anda bisa menyalin-tempel (copy-paste) data angka mentah dari Excel. Saldo terhitung otomatis dan stabil di 1 tabel yang sama tanpa berubah-ubah sendiri.")
         
+        # Fungsi khusus format Rupiah untuk di PDF agar tetap rapi
+        def format_rupiah_pdf(num):
+            try:
+                n = float(num)
+                if n == 0: return "-"
+                return f"Rp {int(n):,}".replace(",", ".")
+            except:
+                return "-"
+
         tab_kas1, tab_kas2 = st.tabs(["📊 Buku Kas RT 06", "🌾 Buku Kas Sosial (Perelek)"])
         
         with tab_kas1:
             st.markdown("### Buku Kas RT 06")
             
-            df_rt_gabungan = hitung_dan_tampilkan_tabel_kas(st.session_state.df_kas_rt_state)
+            # Persiapkan tabel dalam wujud float/numeric agar stabil tanpa jitter
+            df_rt_ready = hitung_saldo_numerik(st.session_state.df_kas_rt_state)
             
             edited_rt = st.data_editor(
-                df_rt_gabungan, 
+                df_rt_ready, 
                 num_rows="dynamic", 
                 use_container_width=True, 
-                key="editor_kas_rt_single_correct"
+                key="editor_kas_rt_numerik_fixed",
+                column_config={
+                    "Debet (Masuk)": st.column_config.NumberColumn("Debet (Masuk)", default=0.0),
+                    "Kredit (Keluar)": st.column_config.NumberColumn("Kredit (Keluar)", default=0.0),
+                    "Saldo (Rp)": st.column_config.NumberColumn("Saldo (Rp)", disabled=True)
+                }
             )
             
             if not edited_rt.empty:
-                def unformat_angka(val):
-                    return parsing_angka_aman(val)
-                st.session_state.df_kas_rt_state = pd.DataFrame({
-                    "Tanggal": edited_rt.get("Tanggal", ""),
-                    "Uraian / Keterangan Transaksi": edited_rt.get("Uraian / Keterangan Transaksi", ""),
-                    "Debet (Masuk)": edited_rt.get("Debet (Masuk)", 0).apply(unformat_angka),
-                    "Kredit (Keluar)": edited_rt.get("Kredit (Keluar)", 0).apply(unformat_angka)
-                })
+                st.session_state.df_kas_rt_state = edited_rt[["Tanggal", "Uraian / Keterangan Transaksi", "Debet (Masuk)", "Kredit (Keluar)"]].copy()
 
             def buat_pdf_standar_akuntansi(df_lap, judul):
                 buffer = io.BytesIO()
@@ -683,7 +663,11 @@ if not df.empty:
                 elements.append(Paragraph(judul, ParagraphStyle('Title', parent=styles['Heading1'], fontSize=13, alignment=1, textColor=colors.HexColor('#1f2937'))))
                 elements.append(Spacer(1, 15))
                 
-                df_pdf_clean = hitung_dan_tampilkan_tabel_kas(df_lap)
+                # Format ke tampilan uang khusus untuk PDF
+                df_pdf_clean = hitung_saldo_numerik(df_lap)
+                df_pdf_clean["Debet (Masuk)"] = df_pdf_clean["Debet (Masuk)"].apply(format_rupiah_pdf)
+                df_pdf_clean["Kredit (Keluar)"] = df_pdf_clean["Kredit (Keluar)"].apply(format_rupiah_pdf)
+                df_pdf_clean["Saldo (Rp)"] = df_pdf_clean["Saldo (Rp)"].apply(format_rupiah_pdf)
                 
                 kolom = list(df_pdf_clean.columns)
                 cell_s = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=8.5, leading=10, alignment=1)
@@ -732,22 +716,22 @@ if not df.empty:
         with tab_kas2:
             st.markdown("### Buku Kas Sosial / Perelek")
             
-            df_sosial_gabungan = hitung_dan_tampilkan_tabel_kas(st.session_state.df_kas_sosial_state)
+            df_sosial_ready = hitung_saldo_numerik(st.session_state.df_kas_sosial_state)
             
             edited_sosial = st.data_editor(
-                df_sosial_gabungan, 
+                df_sosial_ready, 
                 num_rows="dynamic", 
                 use_container_width=True, 
-                key="editor_kas_sosial_single_correct"
+                key="editor_kas_sosial_numerik_fixed",
+                column_config={
+                    "Debet (Masuk)": st.column_config.NumberColumn("Debet (Masuk)", default=0.0),
+                    "Kredit (Keluar)": st.column_config.NumberColumn("Kredit (Keluar)", default=0.0),
+                    "Saldo (Rp)": st.column_config.NumberColumn("Saldo (Rp)", disabled=True)
+                }
             )
             
             if not edited_sosial.empty:
-                st.session_state.df_kas_sosial_state = pd.DataFrame({
-                    "Tanggal": edited_sosial.get("Tanggal", ""),
-                    "Uraian / Keterangan Transaksi": edited_sosial.get("Uraian / Keterangan Transaksi", ""),
-                    "Debet (Masuk)": edited_sosial.get("Debet (Masuk)", 0).apply(unformat_angka),
-                    "Kredit (Keluar)": edited_sosial.get("Kredit (Keluar)", 0).apply(unformat_angka)
-                })
+                st.session_state.df_kas_sosial_state = edited_sosial[["Tanggal", "Uraian / Keterangan Transaksi", "Debet (Masuk)", "Kredit (Keluar)"]].copy()
             
             pdf_akuntansi_perelek = buat_pdf_standar_akuntansi(st.session_state.df_kas_sosial_state, "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
             st.download_button(
