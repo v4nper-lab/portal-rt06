@@ -84,7 +84,7 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Inisialisasi State Data Kas Awal (Tanpa kolom No)
+# Inisialisasi State Data Kas RT Awal
 if 'df_kas_rt_state' not in st.session_state:
     st.session_state.df_kas_rt_state = pd.DataFrame({
         "Tanggal": ["01/06/2026", "05/06/2026", "12/06/2026", "20/06/2026"],
@@ -98,16 +98,22 @@ if 'df_kas_rt_state' not in st.session_state:
         "Kredit (Keluar)": [0.0, 0.0, 350000.0, 150000.0]
     })
 
+# Inisialisasi State Data Kas Sosial yang memuat data lebih lengkap / banyak
 if 'df_kas_sosial_state' not in st.session_state:
     st.session_state.df_kas_sosial_state = pd.DataFrame({
-        "Tanggal": ["01/06/2026", "10/06/2026", "25/06/2026"],
+        "Tanggal": ["01/06/2026", "05/06/2026", "10/06/2026", "15/06/2026", "20/06/2026", "25/06/2026", "28/06/2026", "30/06/2026"],
         "Uraian / Keterangan Transaksi": [
             "Saldo Awal Kotak Sosial Perelek",
-            "Penerimaan Hasil Perelek Warga Bulanan",
-            "Pengeluaran Santunan Warga Sakit / Kedukaan"
+            "Penerimaan Perelek Warga Minggu ke-1",
+            "Penerimaan Perelek Warga Minggu ke-2",
+            "Pengeluaran Bantuan Warga Sakit",
+            "Penerimaan Perelek Warga Minggu ke-3",
+            "Pengeluaran Santunan Kedukaan",
+            "Penerimaan Perelek Warga Minggu ke-4",
+            "Saldo Akhir Kas Sosial"
         ],
-        "Debet (Masuk)": [750000.0, 600000.0, 0.0],
-        "Kredit (Keluar)": [0.0, 0.0, 250000.0]
+        "Debet (Masuk)": [750000.0, 150000.0, 150000.0, 0.0, 150000.0, 0.0, 150000.0, 0.0],
+        "Kredit (Keluar)": [0.0, 0.0, 0.0, 200000.0, 0.0, 250000.0, 0.0, 0.0]
     })
 
 def hitung_saldo_numerik(df_input):
@@ -616,7 +622,7 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Info Stabil:** Gunakan satu tabel interaktif di bawah ini untuk input atau *copy-paste* data dari Excel. Kolom saldo otomatis terhitung akurat sesuai standar akuntansi.")
+        st.markdown("💡 **Info Stabil:** Gunakan satu tabel interaktif di bawah ini untuk input atau *copy-paste* data dari Excel secara masif. Kolom saldo otomatis terhitung akurat sesuai standar akuntansi.")
         
         def format_rupiah_pdf(num):
             try:
@@ -637,7 +643,7 @@ if not df.empty:
                 df_rt_ready, 
                 num_rows="dynamic", 
                 use_container_width=True, 
-                key="editor_kas_rt_nono",
+                key="editor_kas_rt_final_stable",
                 column_config={
                     "Debet (Masuk)": st.column_config.NumberColumn("Debet (Masuk)", default=0.0),
                     "Kredit (Keluar)": st.column_config.NumberColumn("Kredit (Keluar)", default=0.0),
@@ -717,7 +723,7 @@ if not df.empty:
                 df_sosial_ready, 
                 num_rows="dynamic", 
                 use_container_width=True, 
-                key="editor_kas_sosial_nono",
+                key="editor_kas_sosial_final_stable",
                 column_config={
                     "Debet (Masuk)": st.column_config.NumberColumn("Debet (Masuk)", default=0.0),
                     "Kredit (Keluar)": st.column_config.NumberColumn("Kredit (Keluar)", default=0.0),
