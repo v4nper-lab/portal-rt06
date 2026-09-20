@@ -443,7 +443,6 @@ if not df.empty:
                 st.rerun()
 
         for _ in range(5):
-            # Menggunakan Zona Waktu WIB (Asia/Jakarta)
             waktu_sekarang = datetime.now(ZoneInfo("Asia/Jakarta"))
             bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
             tgl_str = f"{waktu_sekarang.day:02d} {bulan_indo_nama.get(waktu_sekarang.month, '')} {waktu_sekarang.year}"
@@ -770,7 +769,7 @@ if not df.empty:
                 styles = getSampleStyleSheet()
                 
                 elements.append(Paragraph("PEMERINTAH KABUPATEN BANDUNG", ParagraphStyle('Sub1', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
-                elements.append(Paragraph("RT 06 / RW 14 - KECAMATAN RANCAAEKEK", ParagraphStyle('Sub2', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
+                elements.append(Paragraph("KECAMATAN RANCAAEKEK - DESA NANJUNG MEKAR", ParagraphStyle('Sub2', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
                 elements.append(Paragraph(judul, ParagraphStyle('Title', parent=styles['Heading1'], fontSize=13, alignment=1, textColor=colors.HexColor('#1f2937'))))
                 elements.append(Spacer(1, 15))
                 
@@ -807,14 +806,14 @@ if not df.empty:
                 elements.append(t)
                 elements.append(Spacer(1, 15))
                 
-                # Tanggal & Tempat Update Otomatis untuk Tanda Tangan PDF
+                # Tanggal & Tempat Update Otomatis untuk Tanda Tangan PDF (Diperbaiki tag HTML-nya)
                 waktu_pdf = datetime.now(ZoneInfo("Asia/Jakarta"))
                 bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
                 tgl_cetak_pdf = f"Bandung, {waktu_pdf.day} {bulan_indo_nama.get(waktu_pdf.month, '')} {waktu_pdf.year}"
                 
                 ttd_data = [
-                    [Paragraph(f"<b>{tgl_cetak_pdf}</b><br/>Mengetahui,<br/>Ketua RT 06</b>", ParagraphStyle('T1', parent=styles['Normal'], alignment=1, fontSize=9)),
-                     Paragraph(f"<b>{tgl_cetak_pdf}</b><br/>Bendahara RT 06</b>", ParagraphStyle('T2', parent=styles['Normal'], alignment=1, fontSize=9))],
+                    [Paragraph(f"<b>{tgl_cetak_pdf}</b><br/>Mengetahui,<br/>Ketua RT 06", ParagraphStyle('T1', parent=styles['Normal'], alignment=1, fontSize=9)),
+                     Paragraph(f"<b>{tgl_cetak_pdf}</b><br/>Bendahara RT 06", ParagraphStyle('T2', parent=styles['Normal'], alignment=1, fontSize=9))],
                     [Spacer(1, 35), Spacer(1, 35)],
                     [Paragraph("<b>( ......................................... )</b>", ParagraphStyle('T3', parent=styles['Normal'], alignment=1, fontSize=9)),
                      Paragraph("<b>( ......................................... )</b>", ParagraphStyle('T4', parent=styles['Normal'], alignment=1, fontSize=9))]
