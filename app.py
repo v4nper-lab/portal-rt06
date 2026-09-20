@@ -146,14 +146,6 @@ def load_data_rt06():
         col_rumah_candi = [c for c in df.columns if "RUMAH" in c or "ALAMAT" in c]
         col_rumah = col_rumah_candi[0] if col_rumah_candi else None
 
-        if col_kk:
-            df[col_kk] = df[col_kk].replace('', pd.NA)
-            df[col_kk] = df[col_kk].ffill()
-            
-        if col_rumah:
-            df[col_rumah] = df[col_rumah].replace('', pd.NA)
-            df[col_rumah] = df[col_rumah].ffill()
-
         for col in df.select_dtypes(include=['object']).columns:
             df[col] = df[col].astype(str).str.strip()
             df.loc[df[col].str.lower() == 'nan', col] = None
@@ -228,8 +220,15 @@ if not df.empty:
         with col_jam2:
             placeholder_waktu = st.empty()
 
+        # Untuk keperluan perhitungan metrik dan pencarian KK, buat salinan data dengan ffill agar akurat
+        df_ffill = df.copy()
+        if col_kk:
+            df_ffill[col_kk] = df_ffill[col_kk].replace('', pd.NA).ffill()
+        if col_rumah:
+            df_ffill[col_rumah] = df_ffill[col_rumah].replace('', pd.NA).ffill()
+
         total_jiwa = len(df)
-        total_kk = df[col_kk].nunique() if col_kk in df.columns else 0
+        total_kk = df_ffill[col_kk].nunique() if col_kk in df_ffill.columns else 0
         
         jml_l = 0
         jml_p = 0
@@ -322,6 +321,7 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("📋 Data Keseluruhan Warga")
+        st.info("💡 Kolom Kepala Keluarga tampil bersih (nama hanya muncul pada baris pertama setiap kepala keluarga).")
         st.data_editor(df, num_rows="dynamic", use_container_width=True, key="editor_warga_grid")
 
     elif menu == "🗂️ Cetak Kartu Keluarga (KK)":
@@ -330,13 +330,20 @@ if not df.empty:
             st.rerun()
         st.subheader("🗂️ Cetak Kartu Keluarga (KK)")
         
-        daftar_kk = df[col_kk].dropna().astype(str).str.strip()
+        # Buat salinan ffill khusus untuk mengambil daftar Kepala Keluarga secara akurat
+        df_ffill = df.copy()
+        if col_kk:
+            df_ffill[col_kk] = df_ffill[col_kk].replace('', pd.NA).ffill()
+        if col_rumah:
+            df_ffill[col_rumah] = df_ffill[col_rumah].replace('', pd.NA).ffill()
+
+        daftar_kk = df_ffill[col_kk].dropna().astype(str).str.strip()
         daftar_kk = sorted(list(set([x for x in daftar_kk if x != "" and x.lower() != "nan" and x.lower() != "none"])))
         
         pilihan_kk = st.selectbox("Pilih Kepala Keluarga:", daftar_kk)
         
         if pilihan_kk:
-            df_keluarga = df[df[col_kk].astype(str).str.strip().str.lower() == pilihan_kk.strip().lower()].copy()
+            df_keluarga = df_ffill[df_ffill[col_kk].astype(str).str.strip().str.lower() == pilihan_kk.strip().lower()].copy()
             no_rmh = str(df_keluarga[col_rumah].dropna().iloc[0]) if col_rumah and not df_keluarga[df_keluarga[col_rumah].notna()].empty else "-"
             
             cols_tampilan_web = [c for c in df_keluarga.columns if c != col_kk and "URUT" not in c and c != "NO"]
@@ -483,10 +490,16 @@ if not df.empty:
         
         if aksi == "➕ Tambah Warga Baru":
             with st.form("form_tambah"):
-                daftar_no_rumah = sorted(list(set(df[col_rumah].dropna().astype(str).tolist()))) if col_rumah else ["B3-01", "B3-02"]
+                df_ffill_kelola = df.copy()
+                if col_kk:
+                    df_ffill_kelola[col_kk] = df_ffill_kelola[col_kk].replace('', pd.NA).ffill()
+                if col_rumah:
+                    df_ffill_kelola[col_rumah] = df_ffill_kelola[col_rumah].replace('', pd.NA).ffill()
+
+                daftar_no_rumah = sorted(list(set(df_ffill_kelola[col_rumah].dropna().astype(str).tolist()))) if col_rumah else ["B3-01", "B3-02"]
                 no_rumah = st.selectbox("No. Rumah", daftar_no_rumah)
                 
-                nama_kk = st.selectbox("Nama Kepala Keluarga", sorted(list(set(df[col_kk].dropna().astype(str).tolist()))))
+                nama_kk = st.selectbox("Nama Kepala Keluarga", sorted(list(set(df_ffill_kelola[col_kk].dropna().astype(str).tolist()))))
                 nama_anggota = st.text_input("Nama Lengkap Anggota Keluarga")
                 jk = st.selectbox("Jenis Kelamin", ["L", "P"])
                 hubungan = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"])
@@ -521,7 +534,13 @@ if not df.empty:
             st.rerun()
         st.subheader("📊 Rekapitulasi Administrasi RW")
         
-        total_kk_rw = df[col_kk].nunique() if col_kk in df.columns else 0
+        df_ffill_rw = df.copy()
+        if col_kk:
+            df_ffill_rw[col_kk] = df_ffill_rw[col_kk].replace('', pd.NA).ffill()
+        if col_rumah:
+            df_ffill_rw[col_rumah] = df_ffill_rw[col_rumah].replace('', pd.NA).ffill()
+
+        total_kk_rw = df_ffill_rw[col_kk].nunique() if col_kk in df_ffill_rw.columns else 0
         total_jiwa_rw = len(df)
         jml_l_rw = len(df[df[col_jk].astype(str).str.upper().str.contains("L")]) if col_jk else 0
         jml_p_rw = len(df[df[col_jk].astype(str).str.upper().str.contains("P")]) if col_jk else 0
@@ -550,7 +569,7 @@ if not df.empty:
                 f"{jml_p_rw} Orang",
                 f"{balita_rw} Jiwa",
                 f"{lansia_rw} Jiwa",
-                f"{df[col_rumah].nunique() if col_rumah in df.columns else 0} Rumah"
+                f"{df_ffill_rw[col_rumah].nunique() if col_rumah in df_ffill_rw.columns else 0} Rumah"
             ]
         }
         df_rekap_rw = pd.DataFrame(data_rekap_rw)
