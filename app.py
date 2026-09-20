@@ -17,7 +17,7 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-# Custom CSS responsif untuk Mobile & Desktop, Gradasi Profesional & Tombol Jelas
+# Custom CSS Gradasi Profesional & Tombol Jelas
 st.markdown("""
 <style>
     .stApp {
@@ -76,13 +76,6 @@ st.markdown("""
         box-shadow: 0 12px 20px rgba(0,0,0,0.15) !important;
         color: #ffffff !important;
     }
-    div.stButton:nth-of-type(1) button { background: linear-gradient(135deg, #2563eb, #1d4ed8) !important; }
-    div.stButton:nth-of-type(2) button { background: linear-gradient(135deg, #059669, #047857) !important; }
-    div.stButton:nth-of-type(3) button { background: linear-gradient(135deg, #0284c7, #0369a1) !important; }
-    div.stButton:nth-of-type(4) button { background: linear-gradient(135deg, #db2777, #be185d) !important; }
-    div.stButton:nth-of-type(5) button { background: linear-gradient(135deg, #d97706, #b45309) !important; }
-    div.stButton:nth-of-type(6) button { background: linear-gradient(135deg, #7c3aed, #6d28d9) !important; }
-    div.stButton:nth-of-type(7) button { background: linear-gradient(135deg, #ea580c, #c2410c) !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -150,9 +143,9 @@ def format_Rupiah(num):
     except:
         return "-"
 
-def hitung_dan_tampilkan_tabel_tunggal(df_input):
+# Fungsi untuk menghitung saldo dan menyatukannya langsung ke 1 tabel interaktif
+def hitung_dan_gabung_tabel_tunggal(df_input):
     df = df_input.copy()
-    saldo_list = []
     curr = 0.0
     
     tanggal_list = []
@@ -674,7 +667,7 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Info:** Cukup gunakan **1 tabel interaktif** di bawah ini untuk mengedit, menambah, menghapus baris, atau melakukan *copy-paste* data dari Excel. Kolom saldo akan langsung terhitung otomatis secara akurat.")
+        st.markdown("💡 **Cukup 1 Tabel Tunggal:** Anda bisa langsung mengetik, mengubah keterangan transaksi, mengisi nominal uang, atau menghapus baris di dalam 1 tabel interaktif di bawah ini. Saldo akan otomatis terhitung dengan benar.")
         
         def format_rupiah_pdf(num):
             try:
@@ -684,15 +677,15 @@ if not df.empty:
             except:
                 return "-"
 
-        def render_buku_kas_aktif(state_key, judul_buku, file_pdf_name, judul_pdf):
+        def render_buku_kas_tunggal(state_key, judul_buku, file_pdf_name, judul_pdf):
             st.markdown(f"### {judul_buku}")
             
-            # Tampilkan sebagai editor interaktif tunggal yang mendukung copy-paste, edit, dan delete baris
+            # Render 1 tabel interaktif tunggal (Tanpa kolom nomor urut)
             edited_df = st.data_editor(
                 st.session_state[state_key],
                 num_rows="dynamic",
                 use_container_width=True,
-                key=f"editor_{state_key}_aktif",
+                key=f"editor_{state_key}_tunggal_stabil",
                 column_config={
                     "Tanggal": st.column_config.TextColumn("Tanggal"),
                     "Uraian / Keterangan Transaksi": st.column_config.TextColumn("Uraian / Keterangan Transaksi"),
@@ -704,8 +697,9 @@ if not df.empty:
             if not edited_df.empty:
                 st.session_state[state_key] = edited_df.copy()
 
-            st.markdown(f"#### 📋 Hasil Kalkulasi Saldo Otomatis ({judul_buku}):")
-            df_hasil_tampil = hitung_dan_tampilkan_tabel_tunggal(st.session_state[state_key])
+            # Tampilkan preview hasil akhir dengan saldo otomatis dalam 1 tabel tunggal yang sama
+            st.markdown(f"#### 📊 Hasil Akhir & Saldo Otomatis ({judul_buku}):")
+            df_hasil_tampil = hitung_dan_gabung_tabel_tunggal(st.session_state[state_key])
             st.dataframe(df_hasil_tampil, use_container_width=True, hide_index=True)
 
             def buat_pdf_standar_akuntansi(df_lap, judul):
@@ -719,7 +713,7 @@ if not df.empty:
                 elements.append(Paragraph(judul, ParagraphStyle('Title', parent=styles['Heading1'], fontSize=13, alignment=1, textColor=colors.HexColor('#1f2937'))))
                 elements.append(Spacer(1, 15))
                 
-                df_pdf_clean = hitung_dan_tampilkan_tabel_tunggal(df_lap)
+                df_pdf_clean = hitung_dan_gabung_tabel_tunggal(df_lap)
                 df_pdf_clean["Debet (Masuk)"] = df_pdf_clean["Debet (Masuk)"].apply(parsing_angka_aman).apply(format_rupiah_pdf)
                 df_pdf_clean["Kredit (Keluar)"] = df_pdf_clean["Kredit (Keluar)"].apply(parsing_angka_aman).apply(format_rupiah_pdf)
                 
@@ -770,10 +764,10 @@ if not df.empty:
         tab_kas1, tab_kas2 = st.tabs(["📊 Buku Kas RT 06", "🌾 Buku Kas Sosial (Perelek)"])
         
         with tab_kas1:
-            render_buku_kas_aktif('df_kas_rt_state', "Buku Kas RT 06", "Laporan_Kas_RT06.pdf", "LAPORAN PERTANGGUNGJAWABAN KEUANGAN KAS RT 06")
+            render_buku_kas_tunggal('df_kas_rt_state', "Buku Kas RT 06", "Laporan_Kas_RT06.pdf", "LAPORAN PERTANGGUNGJAWABAN KEUANGAN KAS RT 06")
 
         with tab_kas2:
-            render_buku_kas_aktif('df_kas_sosial_state', "Buku Kas Sosial / Perelek", "Laporan_Kas_Sosial.pdf", "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
+            render_buku_kas_tunggal('df_kas_sosial_state', "Buku Kas Sosial / Perelek", "Laporan_Kas_Sosial.pdf", "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
 
     elif menu == "🖨️ Cetak Rekap PDF":
         if st.button("⬅️ Kembali ke Beranda"):
