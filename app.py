@@ -84,7 +84,7 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Inisialisasi State Data Kas Awal dalam format angka murni (bisa langsung diedit pada 1 tabel utama)
+# Inisialisasi State Data Kas Awal dalam format angka murni
 if 'df_kas_rt_state' not in st.session_state:
     st.session_state.df_kas_rt_state = pd.DataFrame({
         "No": [1, 2, 3, 4],
@@ -112,7 +112,6 @@ if 'df_kas_sosial_state' not in st.session_state:
         "Kredit (Keluar)": [0, 0, 250000]
     })
 
-# Fungsi helper presisi tinggi untuk membersihkan dan menghitung angka keuangan
 def parsing_angka_aman(val):
     if pd.isna(val) or val == "" or val == "-":
         return 0.0
@@ -650,14 +649,14 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Info:** Anda bisa langsung mengedit atau melakukan *copy-paste* data dari Excel pada **satu tabel tunggal interaktif di bawah ini**. Kolom Saldo dan format Rupiah akan otomatis dihitung secara *real-time*.")
+        st.markdown("💡 **Info:** Anda bisa langsung mengedit atau melakukan *copy-paste* data dari Excel pada **satu tabel tunggal interaktif** di bawah ini. Kolom Saldo dan format Rupiah akan otomatis dihitung secara *real-time*.")
         
         tab_kas1, tab_kas2 = st.tabs(["📊 Buku Kas RT 06", "🌾 Buku Kas Sosial (Perelek)"])
         
         with tab_kas1:
             st.markdown("### Buku Kas RT 06")
             
-            # Satu tabel tunggal interaktif (st.data_editor di-render dan langsung diproses hitung saldo akhirnya)
+            # Satu tabel tunggal interaktif (st.data_editor)
             edited_rt = st.data_editor(
                 st.session_state.df_kas_rt_state, 
                 num_rows="dynamic", 
@@ -665,10 +664,6 @@ if not df.empty:
                 key="editor_kas_rt_single_only"
             )
             st.session_state.df_kas_rt_state = edited_rt
-            
-            # Render langsung satu tabel hasil akhir lengkap dengan saldo otomatis di layar
-            df_rt_final = hitung_dan_format_tabel_kas(edited_rt)
-            st.dataframe(df_rt_final, use_container_width=True, hide_index=True)
             
             def buat_pdf_standar_akuntansi(df_lap, judul):
                 buffer = io.BytesIO()
@@ -737,9 +732,6 @@ if not df.empty:
                 key="editor_kas_sosial_single_only"
             )
             st.session_state.df_kas_sosial_state = edited_sosial
-            
-            df_sosial_final = hitung_dan_format_tabel_kas(edited_sosial)
-            st.dataframe(df_sosial_final, use_container_width=True, hide_index=True)
             
             pdf_akuntansi_perelek = buat_pdf_standar_akuntansi(edited_sosial, "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
             st.download_button(
