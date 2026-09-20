@@ -84,7 +84,7 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Inisialisasi State Data Kas Awal dalam format angka murni
+# Inisialisasi State Data Kas Awal
 if 'df_kas_rt_state' not in st.session_state:
     st.session_state.df_kas_rt_state = pd.DataFrame({
         "No": [1, 2, 3, 4],
@@ -128,13 +128,11 @@ def format_Rp(num):
     if num == 0: return "-"
     return f"Rp {int(num):,}".replace(",", ".")
 
-def hitung_dan_format_tabel_kas(df_input):
+def hitung_dan_tampilkan_tabel_kas(df_input):
     df = df_input.copy()
     saldo_list = []
     current_saldo = 0.0
     
-    debet_formatted = []
-    kredit_formatted = []
     saldo_formatted = []
     
     for idx, row in df.iterrows():
@@ -147,20 +145,10 @@ def hitung_dan_format_tabel_kas(df_input):
             current_saldo = current_saldo + deb - kre
             
         saldo_list.append(current_saldo)
-        
-        debet_formatted.append(format_Rp(deb))
-        kredit_formatted.append(format_Rp(kre))
         saldo_formatted.append(format_Rp(current_saldo))
         
-    df_hasil = pd.DataFrame({
-        "No": df.get("No", range(1, len(df)+1)),
-        "Tanggal": df.get("Tanggal", ""),
-        "Uraian / Keterangan Transaksi": df.get("Uraian / Keterangan Transaksi", ""),
-        "Debet (Masuk)": debet_formatted,
-        "Kredit (Keluar)": kredit_formatted,
-        "Saldo (Rp)": saldo_formatted
-    })
-    return df_hasil
+    df["Saldo (Rp)"] = saldo_formatted
+    return df
 
 # Header Utama Portal RT 06
 col_logo, col_title = st.columns([1, 3.5])
@@ -649,19 +637,21 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Info:** Cukup gunakan **satu tabel interaktif** di bawah ini untuk mengedit atau *copy-paste* data dari Excel. Kolom Saldo dan format Rupiah akan otomatis terhitung secara *real-time*.")
+        st.markdown("💡 **Info:** Kolom **Saldo (Rp)** kini tampil otomatis di dalam satu tabel interaktif. Anda bebas melakukan edit, *copy-paste* data dari Excel, maupun menggunakan tombol **Undo / Redo** (atau tekan `Ctrl + Z` di keyboard) jika ada kesalahan input.")
         
         tab_kas1, tab_kas2 = st.tabs(["📊 Buku Kas RT 06", "🌾 Buku Kas Sosial (Perelek)"])
         
         with tab_kas1:
             st.markdown("### Buku Kas RT 06")
             
-            # Satu tabel interaktif tunggal berbasis st.data_editor untuk Kas RT
+            # Gabungkan state dasar ke dalam fungsi hitung saldo agar kolom Saldo ikut dirender langsung di editor
+            df_rt_gabungan = hitung_dan_tampilkan_tabel_kas(st.session_state.df_kas_rt_state)
+            
             edited_rt = st.data_editor(
-                st.session_state.df_kas_rt_state, 
+                df_rt_gabungan, 
                 num_rows="dynamic", 
                 use_container_width=True, 
-                key="editor_kas_rt_clean"
+                key="editor_kas_rt_with_saldo"
             )
             
             if not edited_rt.empty:
@@ -686,7 +676,7 @@ if not df.empty:
                 elements.append(Paragraph(judul, ParagraphStyle('Title', parent=styles['Heading1'], fontSize=13, alignment=1, textColor=colors.HexColor('#1f2937'))))
                 elements.append(Spacer(1, 15))
                 
-                df_pdf_clean = hitung_dan_format_tabel_kas(df_lap)
+                df_pdf_clean = hitung_dan_tampilkan_tabel_kas(df_lap)
                 
                 kolom = list(df_pdf_clean.columns)
                 cell_s = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=8.5, leading=10, alignment=1)
@@ -735,12 +725,13 @@ if not df.empty:
         with tab_kas2:
             st.markdown("### Buku Kas Sosial / Perelek")
             
-            # Satu tabel interaktif tunggal berbasis st.data_editor untuk Kas Sosial
+            df_sosial_gabungan = hitung_dan_tampilkan_tabel_kas(st.session_state.df_kas_sosial_state)
+            
             edited_sosial = st.data_editor(
-                st.session_state.df_kas_sosial_state, 
+                df_sosial_gabungan, 
                 num_rows="dynamic", 
                 use_container_width=True, 
-                key="editor_kas_sosial_clean"
+                key="editor_kas_sosial_with_saldo"
             )
             
             if not edited_sosial.empty:
