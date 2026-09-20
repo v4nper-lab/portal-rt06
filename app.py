@@ -84,10 +84,9 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Inisialisasi State Data Kas Awal dalam format angka murni
+# Inisialisasi State Data Kas Awal (Tanpa kolom No)
 if 'df_kas_rt_state' not in st.session_state:
     st.session_state.df_kas_rt_state = pd.DataFrame({
-        "No": [1, 2, 3, 4],
         "Tanggal": ["01/06/2026", "05/06/2026", "12/06/2026", "20/06/2026"],
         "Uraian / Keterangan Transaksi": [
             "Saldo Awal Periode Lalu", 
@@ -101,7 +100,6 @@ if 'df_kas_rt_state' not in st.session_state:
 
 if 'df_kas_sosial_state' not in st.session_state:
     st.session_state.df_kas_sosial_state = pd.DataFrame({
-        "No": [1, 2, 3],
         "Tanggal": ["01/06/2026", "10/06/2026", "25/06/2026"],
         "Uraian / Keterangan Transaksi": [
             "Saldo Awal Kotak Sosial Perelek",
@@ -153,7 +151,6 @@ def hitung_dan_tampilkan_tabel_kas(df_input):
         saldo_formatted.append(format_Rp(current_saldo))
         
     df_hasil = pd.DataFrame({
-        "No": df.get("No", range(1, len(df)+1)),
         "Tanggal": df.get("Tanggal", ""),
         "Uraian / Keterangan Transaksi": df.get("Uraian / Keterangan Transaksi", ""),
         "Debet (Masuk)": debet_formatted,
@@ -649,28 +646,26 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Info:** Cukup gunakan **satu tabel interaktif tunggal** di bawah ini. Anda dapat mengedit atau melakukan *copy-paste* data dari Excel, dan **kolom Saldo akan langsung terhitung dan tampil secara otomatis** di dalam tabel tersebut secara *real-time*.")
+        st.markdown("💡 **Info:** Cukup gunakan **satu tabel interaktif tunggal** di bawah ini (dimulai dari kolom Tanggal). Kolom Saldo akan otomatis terhitung secara *real-time*.")
         
         tab_kas1, tab_kas2 = st.tabs(["📊 Buku Kas RT 06", "🌾 Buku Kas Sosial (Perelek)"])
         
         with tab_kas1:
             st.markdown("### Buku Kas RT 06")
             
-            # Gabungkan state dasar ke dalam fungsi hitung saldo agar kolom Saldo ikut dirender langsung di editor
             df_rt_gabungan = hitung_dan_tampilkan_tabel_kas(st.session_state.df_kas_rt_state)
             
             edited_rt = st.data_editor(
                 df_rt_gabungan, 
                 num_rows="dynamic", 
                 use_container_width=True, 
-                key="editor_kas_rt_single_unified"
+                key="editor_kas_rt_nonum"
             )
             
             if not edited_rt.empty:
                 def unformat_angka(val):
                     return parsing_angka_aman(val)
                 st.session_state.df_kas_rt_state = pd.DataFrame({
-                    "No": edited_rt.get("No", range(1, len(edited_rt)+1)),
                     "Tanggal": edited_rt.get("Tanggal", ""),
                     "Uraian / Keterangan Transaksi": edited_rt.get("Uraian / Keterangan Transaksi", ""),
                     "Debet (Masuk)": edited_rt.get("Debet (Masuk)", 0).apply(unformat_angka),
@@ -698,7 +693,7 @@ if not df.empty:
                 for _, r in df_pdf_clean.iterrows():
                     t_data.append([Paragraph(str(r[c]), cell_s) for c in kolom])
                     
-                t = Table(t_data, colWidths=[25, 65, 205, 75, 75, 75], repeatRows=1)
+                t = Table(t_data, colWidths=[70, 230, 75, 75, 75], repeatRows=1)
                 t.setStyle(TableStyle([
                     ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1e3a8a')),
                     ('ALIGN', (0,0), (-1,-1), 'CENTER'),
@@ -743,12 +738,11 @@ if not df.empty:
                 df_sosial_gabungan, 
                 num_rows="dynamic", 
                 use_container_width=True, 
-                key="editor_kas_sosial_single_unified"
+                key="editor_kas_sosial_nonum"
             )
             
             if not edited_sosial.empty:
                 st.session_state.df_kas_sosial_state = pd.DataFrame({
-                    "No": edited_sosial.get("No", range(1, len(edited_sosial)+1)),
                     "Tanggal": edited_sosial.get("Tanggal", ""),
                     "Uraian / Keterangan Transaksi": edited_sosial.get("Uraian / Keterangan Transaksi", ""),
                     "Debet (Masuk)": edited_sosial.get("Debet (Masuk)", 0).apply(unformat_angka),
