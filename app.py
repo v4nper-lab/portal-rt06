@@ -17,7 +17,7 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-# Custom CSS Profesional - Menjamin Background Stabil & Teks Tombol Menu Terlihat Jelas
+# Custom CSS Estetik Profesional - 100% Mencegah Layar Putih & Teks Tombol Jelas
 st.markdown("""
 <style>
     .stApp {
@@ -62,7 +62,7 @@ st.markdown("""
     .stButton button {
         font-size: 17px !important;
         font-weight: 800 !important;
-        padding: 15px 22px !important;
+        padding: 18px 22px !important;
         border-radius: 14px !important;
         border: none !important;
         color: #ffffff !important;
@@ -91,7 +91,7 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Inisialisasi State Kas RT Murni Tanpa Kolom No Urut
+# Inisialisasi State Kas RT Murni (Tanggal, Uraian, Debet, Kredit)
 if 'df_kas_rt_state' not in st.session_state:
     st.session_state.df_kas_rt_state = pd.DataFrame({
         "Tanggal": ["01/06/2026", "05/06/2026", "12/06/2026", "20/06/2026"],
@@ -105,7 +105,7 @@ if 'df_kas_rt_state' not in st.session_state:
         "Kredit (Keluar)": [0.0, 0.0, 350000.0, 150000.0]
     })
 
-# Inisialisasi State Kas Sosial Murni Tanpa Kolom No Urut
+# Inisialisasi State Kas Sosial Murni (Tanggal, Uraian, Debet, Kredit)
 if 'df_kas_sosial_state' not in st.session_state:
     st.session_state.df_kas_sosial_state = pd.DataFrame({
         "Tanggal": ["01/06/2026", "05/06/2026", "10/06/2026", "15/06/2026", "20/06/2026", "25/06/2026", "28/06/2026", "30/06/2026"],
@@ -152,14 +152,15 @@ def format_Rupiah(num):
     except:
         return "-"
 
-def hitung_dan_tampilkan_tabel(df_input):
+# Fungsi untuk memproses 1 tabel tunggal yang mencakup Saldo otomatis
+def hitung_dan_tampilkan_tabel_tunggal(df_input):
     df = df_input.copy()
     curr = 0.0
     
     tanggal_list = []
     uraian_list = []
-    debet_formatted = []
-    kredit_formatted = []
+    debet_val = []
+    kredit_val = []
     saldo_formatted = []
     
     for idx, row in df.iterrows():
@@ -175,15 +176,15 @@ def hitung_dan_tampilkan_tabel(df_input):
             
         tanggal_list.append(tgl)
         uraian_list.append(uraian)
-        debet_formatted.append(format_Rupiah(deb))
-        kredit_formatted.append(format_Rupiah(kre))
+        debet_val.append(deb)
+        kredit_val.append(kre)
         saldo_formatted.append(format_Rupiah(curr))
         
     df_hasil = pd.DataFrame({
         "Tanggal": tanggal_list,
         "Uraian / Keterangan Transaksi": uraian_list,
-        "Debet (Masuk)": debet_formatted,
-        "Kredit (Keluar)": kredit_formatted,
+        "Debet (Masuk)": debet_val,
+        "Kredit (Keluar)": kredit_val,
         "Saldo (Rp)": saldo_formatted
     })
     return df_hasil
@@ -675,7 +676,7 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Sangat Mudah & Stabil:** Gunakan **1 tabel tunggal** di bawah ini. Anda bisa langsung mengetik, menghapus baris, atau menyalin-menempel (*copy-paste*) data tanggal dan uraian dari Excel tanpa takut berubah sendiri. Saldo otomatis menghitung dengan benar.")
+        st.markdown("💡 **Cukup 1 Tabel Tunggal:** Anda bebas mengetik, menghapus baris, atau menyalin-menempel (*copy-paste*) data dari Excel langsung ke 1 tabel di bawah ini. Saldo langsung menghitung otomatis dengan benar.")
         
         def format_rupiah_pdf(num):
             try:
@@ -685,23 +686,25 @@ if not df.empty:
             except:
                 return "-"
 
-        def render_buku_kas_aman(state_key, judul_buku, file_pdf_name, judul_pdf):
+        def render_buku_kas_tunggal(state_key, judul_buku, file_pdf_name, judul_pdf):
             st.markdown(f"### {judul_buku}")
             
-            # Ambil data mentah langsung dari session state agar teks tanggal & uraian 100% aman
+            # Ambil data murni dari state
             df_sumber = st.session_state[state_key].copy()
+            df_tampil_live = hitung_dan_tampilkan_tabel_tunggal(df_sumber)
             
-            # Konfigurasi kolom teks murni agar copy-paste dari Excel tidak pernah berubah format
+            # Tampilkan 1 tabel tunggal interaktif yang stabil tanpa terpecah
             edited_df = st.data_editor(
-                df_sumber,
+                df_tampil_live,
                 num_rows="dynamic",
                 use_container_width=True,
-                key=f"editor_{state_key}_aman_total",
+                key=f"editor_{state_key}_tunggal_fix_v2",
                 column_config={
                     "Tanggal": st.column_config.TextColumn("Tanggal"),
                     "Uraian / Keterangan Transaksi": st.column_config.TextColumn("Uraian / Keterangan Transaksi"),
                     "Debet (Masuk)": st.column_config.NumberColumn("Debet (Masuk)", format="%d"),
-                    "Kredit (Keluar)": st.column_config.NumberColumn("Kredit (Keluar)", format="%d")
+                    "Kredit (Keluar)": st.column_config.NumberColumn("Kredit (Keluar)", format="%d"),
+                    "Saldo (Rp)": st.column_config.TextColumn("Saldo (Rp)", disabled=True)
                 }
             )
             
@@ -712,11 +715,6 @@ if not df.empty:
                     "Debet (Masuk)": edited_df.get("Debet (Masuk)", 0).apply(parsing_angka_aman),
                     "Kredit (Keluar)": edited_df.get("Kredit (Keluar)", 0).apply(parsing_angka_aman)
                 })
-
-            # Tampilkan hasil akhir dengan saldo berjalan otomatis persis di tabel yang sama
-            st.markdown(f"#### 📊 Hasil Perhitungan Saldo Otomatis ({judul_buku}):")
-            df_hasil_tampil = hitung_dan_tampilkan_tabel(st.session_state[state_key])
-            st.dataframe(df_hasil_tampil, use_container_width=True, hide_index=True)
 
             def buat_pdf_standar_akuntansi(df_lap, judul):
                 buffer = io.BytesIO()
@@ -729,7 +727,7 @@ if not df.empty:
                 elements.append(Paragraph(judul, ParagraphStyle('Title', parent=styles['Heading1'], fontSize=13, alignment=1, textColor=colors.HexColor('#1f2937'))))
                 elements.append(Spacer(1, 15))
                 
-                df_pdf_clean = hitung_dan_tampilkan_tabel(df_lap)
+                df_pdf_clean = hitung_dan_tampilkan_tabel_tunggal(df_lap)
                 df_pdf_clean["Debet (Masuk)"] = df_pdf_clean["Debet (Masuk)"].apply(parsing_angka_aman).apply(format_rupiah_pdf)
                 df_pdf_clean["Kredit (Keluar)"] = df_pdf_clean["Kredit (Keluar)"].apply(parsing_angka_aman).apply(format_rupiah_pdf)
                 
@@ -780,10 +778,10 @@ if not df.empty:
         tab_kas1, tab_kas2 = st.tabs(["📊 Buku Kas RT 06", "🌾 Buku Kas Sosial (Perelek)"])
         
         with tab_kas1:
-            render_buku_kas_aman('df_kas_rt_state', "Buku Kas RT 06", "Laporan_Kas_RT06.pdf", "LAPORAN PERTANGGUNGJAWABAN KEUANGAN KAS RT 06")
+            render_buku_kas_tunggal('df_kas_rt_state', "Buku Kas RT 06", "Laporan_Kas_RT06.pdf", "LAPORAN PERTANGGUNGJAWABAN KEUANGAN KAS RT 06")
 
         with tab_kas2:
-            render_buku_kas_aman('df_kas_sosial_state', "Buku Kas Sosial / Perelek", "Laporan_Kas_Sosial.pdf", "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
+            render_buku_kas_tunggal('df_kas_sosial_state', "Buku Kas Sosial / Perelek", "Laporan_Kas_Sosial.pdf", "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
 
     elif menu == "🖨️ Cetak Rekap PDF":
         if st.button("⬅️ Kembali ke Beranda"):
