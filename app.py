@@ -152,7 +152,6 @@ def format_Rupiah(num):
     except:
         return "-"
 
-# Fungsi untuk memproses 1 tabel tunggal yang mencakup Saldo otomatis secara real-time
 def hitung_dan_tampilkan_tabel_tunggal(df_input):
     df = df_input.copy()
     curr = 0.0
@@ -676,32 +675,8 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Stabil seperti Excel:** Cukup 1 tabel tunggal di bawah ini. Sekali ketik atau *copy-paste* data dari Excel, hasilnya langsung benar tanpa perlu diulang. Kolom saldo otomatis menghitung dengan akurat.")
+        st.markdown("💡 **Stabil seperti Excel:** Cukup gunakan **1 tabel saja** di bawah ini. Sekali ketik atau *copy-paste* data dari Excel, hasilnya langsung benar tanpa perlu diulang. Kolom saldo otomatis menghitung dengan akurat.")
         
-        def format_rupiah_pdf(num):
-            try:
-                n = float(num)
-                if n == 0: return "-"
-                return f"Rp {int(n):,}".replace(",", ".")
-            def format_rupiah_pdf(num):
-                return "-"
-        
-        def handle_editor_change(state_key):
-            # Callback instan untuk memastikan state tersimpan langsung pada input pertama
-            session_key_widget = f"editor_{state_key}_tunggal_v3"
-            if session_key_widget in st.session_state:
-                raw_data = st.session_state[session_key_widget]
-                if isinstance(raw_data, pd.DataFrame) and not raw_data.empty:
-                    cleaned_rows = []
-                    for _, r in raw_data.iterrows():
-                        cleaned_rows.append({
-                            "Tanggal": str(r.get("Tanggal", "")),
-                            "Uraian / Keterangan Transaksi": str(r.get("Uraian / Keterangan Transaksi", "")),
-                            "Debet (Masuk)": parsing_angka_aman(r.get("Debet (Masuk)", 0)),
-                            "Kredit (Keluar)": parsing_angka_aman(r.get("Kredit (Keluar)", 0))
-                        })
-                    st.session_state[state_key] = pd.DataFrame(cleaned_rows)
-
         def render_buku_kas_instan(state_key, judul_buku, file_pdf_name, judul_pdf):
             st.markdown(f"### {judul_buku}")
             
