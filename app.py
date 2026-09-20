@@ -5,6 +5,7 @@ import os
 import io
 import time
 from datetime import datetime, date
+from zoneinfo import ZoneInfo
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -442,11 +443,16 @@ if not df.empty:
                 st.rerun()
 
         for _ in range(5):
-            waktu_sekarang = datetime.now().strftime("%d %B %Y | %H:%M:%S")
+            # Menggunakan Zona Waktu WIB (Asia/Jakarta)
+            waktu_sekarang = datetime.now(ZoneInfo("Asia/Jakarta"))
+            bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
+            tgl_str = f"{waktu_sekarang.day:02d} {bulan_indo_nama.get(waktu_sekarang.month, '')} {waktu_sekarang.year}"
+            jam_str = waktu_sekarang.strftime("%H:%M:%S")
+            
             placeholder_waktu.markdown(f"""
             <div style="background: rgba(255, 255, 255, 0.9); border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 10px; text-align: right;">
-                <span style="font-size: 10px; color: #64748b;">🕒 Live Update:</span><br>
-                <strong style="font-size: 12px; color: #0f172a;">{waktu_sekarang}</strong>
+                <span style="font-size: 10px; color: #64748b;">🕒 Live Update (WIB):</span><br>
+                <strong style="font-size: 12px; color: #0f172a;">{tgl_str} | {jam_str} WIB</strong>
             </div>
             """, unsafe_allow_html=True)
             time.sleep(1)
@@ -714,7 +720,7 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Penyimpanan Permanen Aktif:** Data kas yang Anda input atau *copy-paste* tersimpan aman dan tidak akan hilang saat direfresh. Pada cetak PDF, kolom **Uraian** otomatis diatur **rata kiri** agar rapi.")
+        st.markdown("💡 **Penyimpanan Permanen Aktif:** Data kas yang Anda input atau *copy-paste* tersimpan aman dan tidak akan hilang saat direfresh. Pada cetak PDF, kolom **Uraian** otomatis diatur **rata kiri** serta tercantum **Tempat & Tanggal update otomatis** pada tanda tangan.")
         
         def format_rupiah_pdf(num):
             try:
@@ -764,7 +770,7 @@ if not df.empty:
                 styles = getSampleStyleSheet()
                 
                 elements.append(Paragraph("PEMERINTAH KABUPATEN BANDUNG", ParagraphStyle('Sub1', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
-                elements.append(Paragraph("KECAMATAN RANCAAEKEK - DESA NANJUNG MEKAR", ParagraphStyle('Sub2', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
+                elements.append(Paragraph("RT 06 / RW 14 - KECAMATAN RANCAAEKEK", ParagraphStyle('Sub2', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
                 elements.append(Paragraph(judul, ParagraphStyle('Title', parent=styles['Heading1'], fontSize=13, alignment=1, textColor=colors.HexColor('#1f2937'))))
                 elements.append(Spacer(1, 15))
                 
@@ -773,10 +779,8 @@ if not df.empty:
                 df_pdf_clean["Kredit (Keluar)"] = df_pdf_clean["Kredit (Keluar)"].apply(parsing_angka_aman).apply(format_Rupiah)
                 
                 kolom = list(df_pdf_clean.columns)
-                # Gaya sel khusus: Uraian rata kiri (alignment=0), lainnya rata tengah/kanan (alignment=1)
                 cell_s_left = ParagraphStyle('CellLeft', parent=styles['Normal'], fontSize=8.5, leading=10, alignment=0)
                 cell_s_center = ParagraphStyle('CellCenter', parent=styles['Normal'], fontSize=8.5, leading=10, alignment=1)
-                
                 head_s = ParagraphStyle('Head', parent=styles['Normal'], fontSize=9, leading=11, textColor=colors.whitesmoke, fontName='Helvetica-Bold', alignment=1)
                 
                 t_data = [[Paragraph(c, head_s) for c in kolom]]
@@ -784,7 +788,6 @@ if not df.empty:
                     row_cells = []
                     for col_name in kolom:
                         val_str = str(r[col_name]) if pd.notnull(r[col_name]) else ""
-                        # Uraian rata kiri, kolom lain rata tengah
                         if "URAIAN" in col_name.upper():
                             row_cells.append(Paragraph(val_str, cell_s_left))
                         else:
@@ -802,11 +805,16 @@ if not df.empty:
                     ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
                 ]))
                 elements.append(t)
-                elements.append(Spacer(1, 20))
+                elements.append(Spacer(1, 15))
+                
+                # Tanggal & Tempat Update Otomatis untuk Tanda Tangan PDF
+                waktu_pdf = datetime.now(ZoneInfo("Asia/Jakarta"))
+                bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
+                tgl_cetak_pdf = f"Bandung, {waktu_pdf.day} {bulan_indo_nama.get(waktu_pdf.month, '')} {waktu_pdf.year}"
                 
                 ttd_data = [
-                    [Paragraph("<b>Mengetahui,<br/>Ketua RT 06</b>", ParagraphStyle('T1', parent=styles['Normal'], alignment=1, fontSize=9)),
-                     Paragraph("<b>Bendahara RT 06</b>", ParagraphStyle('T2', parent=styles['Normal'], alignment=1, fontSize=9))],
+                    [Paragraph(f"<b>{tgl_cetak_pdf}</b><br/>Mengetahui,<br/>Ketua RT 06</b>", ParagraphStyle('T1', parent=styles['Normal'], alignment=1, fontSize=9)),
+                     Paragraph(f"<b>{tgl_cetak_pdf}</b><br/>Bendahara RT 06</b>", ParagraphStyle('T2', parent=styles['Normal'], alignment=1, fontSize=9))],
                     [Spacer(1, 35), Spacer(1, 35)],
                     [Paragraph("<b>( ......................................... )</b>", ParagraphStyle('T3', parent=styles['Normal'], alignment=1, fontSize=9)),
                      Paragraph("<b>( ......................................... )</b>", ParagraphStyle('T4', parent=styles['Normal'], alignment=1, fontSize=9))]
