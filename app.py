@@ -127,13 +127,20 @@ def parsing_angka_aman(val):
     if isinstance(val, (int, float)):
         return float(val)
     val_str = str(val).strip().replace("Rp", "").replace(" ", "")
-    clean_str = "".join([c for c in val_str if c.isdigit() or c == '-' or c == '.'])
-    if '.' in clean_str and ',' in clean_str:
+    # Pertahankan hanya digit angka, tanda minus, dan titik/koma desimal
+    clean_str = "".join([c for c in val_str if c.isdigit() or c == '-' or c == '.' or c == ','])
+    if not clean_str or clean_str == "-":
+        return 0.0
+    # Normalisasi format pemisah ribuan
+    if ',' in clean_str and '.' in clean_str:
         clean_str = clean_str.replace('.', '').replace(',', '.')
+    elif ',' in clean_str:
+        clean_str = clean_str.replace(',', '')
     elif clean_str.count('.') > 1:
-        clean_str = clean_str.replace('.', '')
+        parts = clean_str.split('.')
+        clean_str = "".join(parts[:-1]) + "." + parts[-1]
     try:
-        return float(clean_str) if clean_str != "" else 0.0
+        return float(clean_str)
     except:
         return 0.0
 
@@ -654,7 +661,7 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Info Super Stabil:** Kolom nomor urut telah dihapus total. Semua kolom dikunci murni sebagai teks (`TextColumn`) sehingga data yang Anda salin dari Excel masuk secara akurat tanpa berubah sendiri.")
+        st.markdown("💡 **Info Stabil:** Kolom nomor urut telah dihapus total. Semua kolom teks dan angka dikunci murni (`TextColumn`) sehingga data jutaan rupiah yang Anda salin dari Excel masuk secara akurat tanpa berubah sendiri.")
         
         def format_rupiah_pdf(num):
             try:
@@ -676,7 +683,7 @@ if not df.empty:
                 df_rt_view_saldo, 
                 num_rows="dynamic", 
                 use_container_width=True, 
-                key="editor_kas_rt_nonum_pure",
+                key="editor_kas_rt_nonum_pure_v2",
                 column_config={
                     "Tanggal": st.column_config.TextColumn("Tanggal"),
                     "Uraian / Keterangan Transaksi": st.column_config.TextColumn("Uraian / Keterangan Transaksi"),
@@ -763,7 +770,7 @@ if not df.empty:
                 df_sosial_view_saldo, 
                 num_rows="dynamic", 
                 use_container_width=True, 
-                key="editor_kas_sosial_nonum_pure",
+                key="editor_kas_sosial_nonum_pure_v2",
                 column_config={
                     "Tanggal": st.column_config.TextColumn("Tanggal"),
                     "Uraian / Keterangan Transaksi": st.column_config.TextColumn("Uraian / Keterangan Transaksi"),
