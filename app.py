@@ -89,7 +89,7 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Inisialisasi State Data Kas RT Awal (Disimpan sebagai teks/string untuk stabilitas input mutlak)
+# Inisialisasi State Data Kas RT Awal
 if 'df_kas_rt_state' not in st.session_state:
     st.session_state.df_kas_rt_state = pd.DataFrame({
         "Tanggal": ["01/06/2026", "05/06/2026", "12/06/2026", "20/06/2026"],
@@ -99,8 +99,8 @@ if 'df_kas_rt_state' not in st.session_state:
             "Pengeluaran Perbaikan Lampu Penerangan Jalan RT", 
             "Pengeluaran Konsumsi Rapat Koordinasi Warga"
         ],
-        "Debet (Masuk)": ["1500000", "2400000", "", ""],
-        "Kredit (Keluar)": ["", "", "350000", "150000"]
+        "Debet (Masuk)": [1500000.0, 2400000.0, 0.0, 0.0],
+        "Kredit (Keluar)": [0.0, 0.0, 350000.0, 150000.0]
     })
 
 # Inisialisasi State Data Kas Sosial Awal
@@ -117,8 +117,8 @@ if 'df_kas_sosial_state' not in st.session_state:
             "Penerimaan Perelek Warga Minggu ke-4",
             "Saldo Akhir Kas Sosial"
         ],
-        "Debet (Masuk)": ["750000", "150000", "150000", "", "150000", "", "150000", ""],
-        "Kredit (Keluar)": ["", "", "", "200000", "", "250000", "", ""]
+        "Debet (Masuk)": [750000.0, 150000.0, 150000.0, 0.0, 150000.0, 0.0, 150000.0, 0.0],
+        "Kredit (Keluar)": [0.0, 0.0, 0.0, 200000.0, 0.0, 250000.0, 0.0, 0.0]
     })
 
 def parsing_angka_aman(val):
