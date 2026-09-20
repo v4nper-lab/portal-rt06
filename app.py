@@ -91,7 +91,7 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Fungsi Penyimpanan Permanen ke File Lokal (Agar tidak hilang saat refresh)
+# Fungsi Penyimpanan Permanen ke File Lokal
 FILE_KAS_RT = "penyimpanan_kas_rt.csv"
 FILE_KAS_SOSIAL = "penyimpanan_kas_sosial.csv"
 
@@ -714,7 +714,7 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Penyimpanan Permanen Aktif:** Data kas yang Anda input atau *copy-paste* akan otomatis tersimpan permanen ke file sistem, sehingga **tidak akan hilang meskipun halaman direfresh (*refresh*)**. Cukup gunakan 1 tabel tunggal di bawah ini.")
+        st.markdown("💡 **Penyimpanan Permanen Aktif:** Data kas yang Anda input atau *copy-paste* tersimpan aman dan tidak akan hilang saat direfresh. Pada cetak PDF, kolom **Uraian** otomatis diatur **rata kiri** agar rapi.")
         
         def format_rupiah_pdf(num):
             try:
@@ -764,7 +764,7 @@ if not df.empty:
                 styles = getSampleStyleSheet()
                 
                 elements.append(Paragraph("PEMERINTAH KABUPATEN BANDUNG", ParagraphStyle('Sub1', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
-                elements.append(Paragraph("RT 06 / RW 14 - KECAMATAN RANCAAEKEK", ParagraphStyle('Sub2', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
+                elements.append(Paragraph("KECAMATAN RANCAAEKEK - DESA NANJUNG MEKAR", ParagraphStyle('Sub2', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
                 elements.append(Paragraph(judul, ParagraphStyle('Title', parent=styles['Heading1'], fontSize=13, alignment=1, textColor=colors.HexColor('#1f2937'))))
                 elements.append(Spacer(1, 15))
                 
@@ -773,12 +773,23 @@ if not df.empty:
                 df_pdf_clean["Kredit (Keluar)"] = df_pdf_clean["Kredit (Keluar)"].apply(parsing_angka_aman).apply(format_Rupiah)
                 
                 kolom = list(df_pdf_clean.columns)
-                cell_s = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=8.5, leading=10, alignment=1)
+                # Gaya sel khusus: Uraian rata kiri (alignment=0), lainnya rata tengah/kanan (alignment=1)
+                cell_s_left = ParagraphStyle('CellLeft', parent=styles['Normal'], fontSize=8.5, leading=10, alignment=0)
+                cell_s_center = ParagraphStyle('CellCenter', parent=styles['Normal'], fontSize=8.5, leading=10, alignment=1)
+                
                 head_s = ParagraphStyle('Head', parent=styles['Normal'], fontSize=9, leading=11, textColor=colors.whitesmoke, fontName='Helvetica-Bold', alignment=1)
                 
                 t_data = [[Paragraph(c, head_s) for c in kolom]]
                 for _, r in df_pdf_clean.iterrows():
-                    t_data.append([Paragraph(str(r[c]), cell_s) for c in kolom])
+                    row_cells = []
+                    for col_name in kolom:
+                        val_str = str(r[col_name]) if pd.notnull(r[col_name]) else ""
+                        # Uraian rata kiri, kolom lain rata tengah
+                        if "URAIAN" in col_name.upper():
+                            row_cells.append(Paragraph(val_str, cell_s_left))
+                        else:
+                            row_cells.append(Paragraph(val_str, cell_s_center))
+                    t_data.append(row_cells)
                     
                 t = Table(t_data, colWidths=[70, 230, 75, 75, 75], repeatRows=1)
                 t.setStyle(TableStyle([
