@@ -17,7 +17,7 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-# Custom CSS Estetik Profesional - 100% Mencegah Layar Putih & Teks Tombol Jelas
+# Custom CSS Profesional - Menjamin Background Stabil & Teks Tombol Terlihat Jelas
 st.markdown("""
 <style>
     .stApp {
@@ -91,7 +91,7 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Inisialisasi State Kas RT Murni (Tanggal, Uraian, Debet, Kredit)
+# Inisialisasi State Kas RT Murni (Tanpa kolom No, langsung Tanggal)
 if 'df_kas_rt_state' not in st.session_state:
     st.session_state.df_kas_rt_state = pd.DataFrame({
         "Tanggal": ["01/06/2026", "05/06/2026", "12/06/2026", "20/06/2026"],
@@ -105,7 +105,7 @@ if 'df_kas_rt_state' not in st.session_state:
         "Kredit (Keluar)": [0.0, 0.0, 350000.0, 150000.0]
     })
 
-# Inisialisasi State Kas Sosial Murni (Tanggal, Uraian, Debet, Kredit)
+# Inisialisasi State Kas Sosial Murni (Tanpa kolom No, langsung Tanggal)
 if 'df_kas_sosial_state' not in st.session_state:
     st.session_state.df_kas_sosial_state = pd.DataFrame({
         "Tanggal": ["01/06/2026", "05/06/2026", "10/06/2026", "15/06/2026", "20/06/2026", "25/06/2026", "28/06/2026", "30/06/2026"],
@@ -152,7 +152,7 @@ def format_Rupiah(num):
     except:
         return "-"
 
-# Fungsi untuk memproses 1 tabel tunggal yang mencakup Saldo otomatis
+# Fungsi untuk memproses 1 tabel tunggal yang mencakup Saldo otomatis secara real-time
 def hitung_dan_tampilkan_tabel_tunggal(df_input):
     df = df_input.copy()
     curr = 0.0
@@ -676,29 +676,47 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Cukup 1 Tabel Tunggal:** Anda bebas mengetik, menghapus baris, atau menyalin-menempel (*copy-paste*) data dari Excel langsung ke 1 tabel di bawah ini. Saldo langsung menghitung otomatis dengan benar.")
+        st.markdown("💡 **Stabil seperti Excel:** Cukup 1 tabel tunggal di bawah ini. Sekali ketik atau *copy-paste* data dari Excel, hasilnya langsung benar tanpa perlu diulang. Kolom saldo otomatis menghitung dengan akurat.")
         
         def format_rupiah_pdf(num):
             try:
                 n = float(num)
                 if n == 0: return "-"
                 return f"Rp {int(n):,}".replace(",", ".")
-            except:
+            def format_rupiah_pdf(num):
                 return "-"
+        
+        def handle_editor_change(state_key):
+            # Callback instan untuk memastikan state tersimpan langsung pada input pertama
+            session_key_widget = f"editor_{state_key}_tunggal_v3"
+            if session_key_widget in st.session_state:
+                raw_data = st.session_state[session_key_widget]
+                if isinstance(raw_data, pd.DataFrame) and not raw_data.empty:
+                    cleaned_rows = []
+                    for _, r in raw_data.iterrows():
+                        cleaned_rows.append({
+                            "Tanggal": str(r.get("Tanggal", "")),
+                            "Uraian / Keterangan Transaksi": str(r.get("Uraian / Keterangan Transaksi", "")),
+                            "Debet (Masuk)": parsing_angka_aman(r.get("Debet (Masuk)", 0)),
+                            "Kredit (Keluar)": parsing_angka_aman(r.get("Kredit (Keluar)", 0))
+                        })
+                    st.session_state[state_key] = pd.DataFrame(cleaned_rows)
 
-        def render_buku_kas_tunggal(state_key, judul_buku, file_pdf_name, judul_pdf):
+        def render_buku_kas_instan(state_key, judul_buku, file_pdf_name, judul_pdf):
             st.markdown(f"### {judul_buku}")
             
-            # Ambil data murni dari state
+            # Siapkan data live dengan saldo berjalan
             df_sumber = st.session_state[state_key].copy()
             df_tampil_live = hitung_dan_tampilkan_tabel_tunggal(df_sumber)
             
-            # Tampilkan 1 tabel tunggal interaktif yang stabil tanpa terpecah
+            widget_key = f"editor_{state_key}_tunggal_v3"
+            
             edited_df = st.data_editor(
                 df_tampil_live,
                 num_rows="dynamic",
                 use_container_width=True,
-                key=f"editor_{state_key}_tunggal_fix_v2",
+                key=widget_key,
+                on_change=lambda: handle_editor_change(state_key),
                 column_config={
                     "Tanggal": st.column_config.TextColumn("Tanggal"),
                     "Uraian / Keterangan Transaksi": st.column_config.TextColumn("Uraian / Keterangan Transaksi"),
@@ -708,6 +726,7 @@ if not df.empty:
                 }
             )
             
+            # Sinkronisasi instan jika terjadi perubahan data
             if not edited_df.empty:
                 st.session_state[state_key] = pd.DataFrame({
                     "Tanggal": edited_df.get("Tanggal", "").astype(str),
@@ -728,8 +747,8 @@ if not df.empty:
                 elements.append(Spacer(1, 15))
                 
                 df_pdf_clean = hitung_dan_tampilkan_tabel_tunggal(df_lap)
-                df_pdf_clean["Debet (Masuk)"] = df_pdf_clean["Debet (Masuk)"].apply(parsing_angka_aman).apply(format_rupiah_pdf)
-                df_pdf_clean["Kredit (Keluar)"] = df_pdf_clean["Kredit (Keluar)"].apply(parsing_angka_aman).apply(format_rupiah_pdf)
+                df_pdf_clean["Debet (Masuk)"] = df_pdf_clean["Debet (Masuk)"].apply(parsing_angka_aman).apply(format_Rupiah)
+                df_pdf_clean["Kredit (Keluar)"] = df_pdf_clean["Kredit (Keluar)"].apply(parsing_angka_aman).apply(format_Rupiah)
                 
                 kolom = list(df_pdf_clean.columns)
                 cell_s = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=8.5, leading=10, alignment=1)
@@ -778,10 +797,10 @@ if not df.empty:
         tab_kas1, tab_kas2 = st.tabs(["📊 Buku Kas RT 06", "🌾 Buku Kas Sosial (Perelek)"])
         
         with tab_kas1:
-            render_buku_kas_tunggal('df_kas_rt_state', "Buku Kas RT 06", "Laporan_Kas_RT06.pdf", "LAPORAN PERTANGGUNGJAWABAN KEUANGAN KAS RT 06")
+            render_buku_kas_instan('df_kas_rt_state', "Buku Kas RT 06", "Laporan_Kas_RT06.pdf", "LAPORAN PERTANGGUNGJAWABAN KEUANGAN KAS RT 06")
 
         with tab_kas2:
-            render_buku_kas_tunggal('df_kas_sosial_state', "Buku Kas Sosial / Perelek", "Laporan_Kas_Sosial.pdf", "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
+            render_buku_kas_instan('df_kas_sosial_state', "Buku Kas Sosial / Perelek", "Laporan_Kas_Sosial.pdf", "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
 
     elif menu == "🖨️ Cetak Rekap PDF":
         if st.button("⬅️ Kembali ke Beranda"):
