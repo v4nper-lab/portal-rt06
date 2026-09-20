@@ -84,7 +84,7 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Inisialisasi State Data Kas Awal (Tanpa kolom No)
+# Inisialisasi State Data Kas Awal dalam format angka murni
 if 'df_kas_rt_state' not in st.session_state:
     st.session_state.df_kas_rt_state = pd.DataFrame({
         "Tanggal": ["01/06/2026", "05/06/2026", "12/06/2026", "20/06/2026"],
@@ -646,7 +646,7 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Info:** Cukup gunakan **satu tabel interaktif tunggal** di bawah ini (dimulai dari kolom Tanggal). Kolom Saldo akan otomatis terhitung secara *real-time*.")
+        st.markdown("💡 **Info:** Cukup gunakan **satu tabel interaktif tunggal** di bawah ini (dimulai dari kolom Tanggal). Kolom Saldo akan otomatis terhitung dan tampil secara akurat sesuai standar akuntansi.")
         
         tab_kas1, tab_kas2 = st.tabs(["📊 Buku Kas RT 06", "🌾 Buku Kas Sosial (Perelek)"])
         
@@ -659,7 +659,7 @@ if not df.empty:
                 df_rt_gabungan, 
                 num_rows="dynamic", 
                 use_container_width=True, 
-                key="editor_kas_rt_nonum"
+                key="editor_kas_rt_single_correct"
             )
             
             if not edited_rt.empty:
@@ -738,7 +738,7 @@ if not df.empty:
                 df_sosial_gabungan, 
                 num_rows="dynamic", 
                 use_container_width=True, 
-                key="editor_kas_sosial_nonum"
+                key="editor_kas_sosial_single_correct"
             )
             
             if not edited_sosial.empty:
