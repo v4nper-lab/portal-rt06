@@ -17,11 +17,14 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-# Custom CSS responsif untuk Mobile & Desktop, Judul & Logo Jumbo 2x Lipat
+# Custom CSS responsif untuk Mobile & Desktop, Tema Profesional Gradasi & Tombol Jelas
 st.markdown("""
 <style>
     .stApp {
-        background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%);
+        background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%) !important;
+    }
+    .main .block-container {
+        background: transparent !important;
     }
     .metric-card {
         background: rgba(255, 255, 255, 0.95);
@@ -73,6 +76,13 @@ st.markdown("""
         box-shadow: 0 12px 20px rgba(0,0,0,0.15) !important;
         color: #ffffff !important;
     }
+    div.stButton:nth-of-type(1) button { background: linear-gradient(135deg, #2563eb, #1d4ed8) !important; }
+    div.stButton:nth-of-type(2) button { background: linear-gradient(135deg, #059669, #047857) !important; }
+    div.stButton:nth-of-type(3) button { background: linear-gradient(135deg, #0284c7, #0369a1) !important; }
+    div.stButton:nth-of-type(4) button { background: linear-gradient(135deg, #db2777, #be185d) !important; }
+    div.stButton:nth-of-type(5) button { background: linear-gradient(135deg, #d97706, #b45309) !important; }
+    div.stButton:nth-of-type(6) button { background: linear-gradient(135deg, #7c3aed, #6d28d9) !important; }
+    div.stButton:nth-of-type(7) button { background: linear-gradient(135deg, #ea580c, #c2410c) !important; }
 </style>
 """, unsafe_allow_html=True)
 
