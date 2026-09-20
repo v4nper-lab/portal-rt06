@@ -84,7 +84,7 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Inisialisasi State Data Kas Awal
+# Inisialisasi State Data Kas Awal dalam format angka murni
 if 'df_kas_rt_state' not in st.session_state:
     st.session_state.df_kas_rt_state = pd.DataFrame({
         "No": [1, 2, 3, 4],
@@ -95,8 +95,8 @@ if 'df_kas_rt_state' not in st.session_state:
             "Pengeluaran Perbaikan Lampu Penerangan Jalan RT", 
             "Pengeluaran Konsumsi Rapat Koordinasi Warga"
         ],
-        "Debet (Masuk)": [1500000, 2400000, 0, 0],
-        "Kredit (Keluar)": [0, 0, 350000, 150000]
+        "Debet (Masuk)": [1500000.0, 2400000.0, 0.0, 0.0],
+        "Kredit (Keluar)": [0.0, 0.0, 350000.0, 150000.0]
     })
 
 if 'df_kas_sosial_state' not in st.session_state:
@@ -108,8 +108,8 @@ if 'df_kas_sosial_state' not in st.session_state:
             "Penerimaan Hasil Perelek Warga Bulanan",
             "Pengeluaran Santunan Warga Sakit / Kedukaan"
         ],
-        "Debet (Masuk)": [750000, 600000, 0],
-        "Kredit (Keluar)": [0, 0, 250000]
+        "Debet (Masuk)": [750000.0, 600000.0, 0.0],
+        "Kredit (Keluar)": [0.0, 0.0, 250000.0]
     })
 
 def parsing_angka_aman(val):
@@ -133,6 +133,8 @@ def hitung_dan_tampilkan_tabel_kas(df_input):
     saldo_list = []
     current_saldo = 0.0
     
+    debet_formatted = []
+    kredit_formatted = []
     saldo_formatted = []
     
     for idx, row in df.iterrows():
@@ -145,10 +147,20 @@ def hitung_dan_tampilkan_tabel_kas(df_input):
             current_saldo = current_saldo + deb - kre
             
         saldo_list.append(current_saldo)
+        
+        debet_formatted.append(format_Rp(deb))
+        kredit_formatted.append(format_Rp(kre))
         saldo_formatted.append(format_Rp(current_saldo))
         
-    df["Saldo (Rp)"] = saldo_formatted
-    return df
+    df_hasil = pd.DataFrame({
+        "No": df.get("No", range(1, len(df)+1)),
+        "Tanggal": df.get("Tanggal", ""),
+        "Uraian / Keterangan Transaksi": df.get("Uraian / Keterangan Transaksi", ""),
+        "Debet (Masuk)": debet_formatted,
+        "Kredit (Keluar)": kredit_formatted,
+        "Saldo (Rp)": saldo_formatted
+    })
+    return df_hasil
 
 # Header Utama Portal RT 06
 col_logo, col_title = st.columns([1, 3.5])
@@ -637,21 +649,17 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Info:** Kolom **Saldo (Rp)** kini tampil otomatis di dalam satu tabel interaktif. Anda bebas melakukan edit, *copy-paste* data dari Excel, maupun menggunakan tombol **Undo / Redo** (atau tekan `Ctrl + Z` di keyboard) jika ada kesalahan input.")
+        st.markdown("💡 **Panduan:** Masukkan atau *copy-paste* data transaksi Anda pada **Tabel 1 (Area Input)**. Kolom saldo akhir akan secara otomatis terhitung secara akurat dan tampil di **Tabel 2 (Laporan Hasil Akhir Resmi)** di bawahnya.")
         
         tab_kas1, tab_kas2 = st.tabs(["📊 Buku Kas RT 06", "🌾 Buku Kas Sosial (Perelek)"])
         
         with tab_kas1:
-            st.markdown("### Buku Kas RT 06")
-            
-            # Gabungkan state dasar ke dalam fungsi hitung saldo agar kolom Saldo ikut dirender langsung di editor
-            df_rt_gabungan = hitung_dan_tampilkan_tabel_kas(st.session_state.df_kas_rt_state)
-            
+            st.markdown("### 1️⃣ Area Input Transaksi Kas RT (Edit / Copy-Paste dari Excel)")
             edited_rt = st.data_editor(
-                df_rt_gabungan, 
+                st.session_state.df_kas_rt_state, 
                 num_rows="dynamic", 
                 use_container_width=True, 
-                key="editor_kas_rt_with_saldo"
+                key="editor_kas_rt_stable"
             )
             
             if not edited_rt.empty:
@@ -664,6 +672,10 @@ if not df.empty:
                     "Debet (Masuk)": edited_rt.get("Debet (Masuk)", 0).apply(unformat_angka),
                     "Kredit (Keluar)": edited_rt.get("Kredit (Keluar)", 0).apply(unformat_angka)
                 })
+
+            st.markdown("### 2️⃣ Laporan Hasil Akhir Kas RT (Saldo Otomatis Sesuai Standar Akuntansi)")
+            df_rt_final_tampil = hitung_dan_tampilkan_tabel_kas(st.session_state.df_kas_rt_state)
+            st.dataframe(df_rt_final_tampil, use_container_width=True, hide_index=True)
 
             def buat_pdf_standar_akuntansi(df_lap, judul):
                 buffer = io.BytesIO()
@@ -723,15 +735,12 @@ if not df.empty:
             )
 
         with tab_kas2:
-            st.markdown("### Buku Kas Sosial / Perelek")
-            
-            df_sosial_gabungan = hitung_dan_tampilkan_tabel_kas(st.session_state.df_kas_sosial_state)
-            
+            st.markdown("### 1️⃣ Area Input Transaksi Kas Sosial (Edit / Copy-Paste dari Excel)")
             edited_sosial = st.data_editor(
-                df_sosial_gabungan, 
+                st.session_state.df_kas_sosial_state, 
                 num_rows="dynamic", 
                 use_container_width=True, 
-                key="editor_kas_sosial_with_saldo"
+                key="editor_kas_sosial_stable"
             )
             
             if not edited_sosial.empty:
@@ -742,7 +751,11 @@ if not df.empty:
                     "Debet (Masuk)": edited_sosial.get("Debet (Masuk)", 0).apply(unformat_angka),
                     "Kredit (Keluar)": edited_sosial.get("Kredit (Keluar)", 0).apply(unformat_angka)
                 })
-            
+
+            st.markdown("### 2️⃣ Laporan Hasil Akhir Kas Sosial (Saldo Otomatis Sesuai Standar Akuntansi)")
+            df_sosial_final_tampil = hitung_dan_tampilkan_tabel_kas(st.session_state.df_kas_sosial_state)
+            st.dataframe(df_sosial_final_tampil, use_container_width=True, hide_index=True)
+
             pdf_akuntansi_perelek = buat_pdf_standar_akuntansi(st.session_state.df_kas_sosial_state, "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
             st.download_button(
                 label="📥 Download PDF Laporan Standar Akuntansi Kas Sosial",
