@@ -719,7 +719,7 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Penyimpanan Permanen Aktif:** Data kas yang Anda input atau *copy-paste* tersimpan aman dan tidak akan hilang saat direfresh. Pada cetak PDF, kolom **Uraian** otomatis diatur **rata kiri** serta tercantum **Tempat & Tanggal update otomatis** pada tanda tangan.")
+        st.markdown("💡 **Penyimpanan Permanen Aktif:** Data kas yang Anda input atau *copy-paste* tersimpan aman dan tidak akan hilang saat direfresh. Pada cetak PDF, kolom **Uraian** otomatis diatur **rata kiri** serta keterangan **Tempat & Tanggal update** hanya tercantum di atas tanda tangan Bendahara.")
         
         def format_rupiah_pdf(num):
             try:
@@ -806,13 +806,13 @@ if not df.empty:
                 elements.append(t)
                 elements.append(Spacer(1, 15))
                 
-                # Tanggal & Tempat Update Otomatis untuk Tanda Tangan PDF (Diperbaiki tag HTML-nya)
+                # Tanggal & Tempat Update Otomatis hanya di atas tanda tangan Bendahara (sebelah kanan)
                 waktu_pdf = datetime.now(ZoneInfo("Asia/Jakarta"))
                 bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
                 tgl_cetak_pdf = f"Bandung, {waktu_pdf.day} {bulan_indo_nama.get(waktu_pdf.month, '')} {waktu_pdf.year}"
                 
                 ttd_data = [
-                    [Paragraph(f"<b>{tgl_cetak_pdf}</b><br/>Mengetahui,<br/>Ketua RT 06", ParagraphStyle('T1', parent=styles['Normal'], alignment=1, fontSize=9)),
+                    [Paragraph("<b>Mengetahui,<br/>Ketua RT 06</b>", ParagraphStyle('T1', parent=styles['Normal'], alignment=1, fontSize=9)),
                      Paragraph(f"<b>{tgl_cetak_pdf}</b><br/>Bendahara RT 06", ParagraphStyle('T2', parent=styles['Normal'], alignment=1, fontSize=9))],
                     [Spacer(1, 35), Spacer(1, 35)],
                     [Paragraph("<b>( ......................................... )</b>", ParagraphStyle('T3', parent=styles['Normal'], alignment=1, fontSize=9)),
