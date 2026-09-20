@@ -5,7 +5,7 @@ import os
 import io
 import time
 from datetime import datetime, date
-from reportlab.lib.pagesizes import letter, landscape
+from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
@@ -84,6 +84,38 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
+# Inisialisasi State Data Kas agar bisa di-edit dan di-paste langsung dari luar
+if 'df_kas_rt_state' not in st.session_state:
+    st.session_state.df_kas_rt_state = pd.DataFrame({
+        "No": [1, 2, 3, 4, 5],
+        "Tanggal": ["01/06/2026", "05/06/2026", "12/06/2026", "20/06/2026", "30/06/2026"],
+        "Uraian / Keterangan Transaksi": [
+            "Saldo Awal Periode Lalu", 
+            "Penerimaan Iuran Warga Bulanan (Periode Juni)", 
+            "Pengeluaran Perbaikan Lampu Penerangan Jalan RT", 
+            "Pengeluaran Konsumsi Rapat Koordinasi Warga",
+            "Saldo Akhir Kas RT (Posisi Per 30 Juni 2026)"
+        ],
+        "Debet (Masuk)": ["Rp 1.500.000", "Rp 2.400.000", "-", "-", "-"],
+        "Kredit (Keluar)": ["-", "-", "Rp 350.000", "Rp 150.000", "-"],
+        "Saldo (Rp)": ["Rp 1.500.000", "Rp 3.900.000", "Rp 3.550.000", "Rp 3.400.000", "Rp 3.400.000"]
+    })
+
+if 'df_kas_sosial_state' not in st.session_state:
+    st.session_state.df_kas_sosial_state = pd.DataFrame({
+        "No": [1, 2, 3, 4],
+        "Tanggal": ["01/06/2026", "10/06/2026", "25/06/2026", "30/06/2026"],
+        "Uraian / Keterangan Transaksi": [
+            "Saldo Awal Kotak Sosial Perelek",
+            "Penerimaan Hasil Perelek Warga Bulanan",
+            "Pengeluaran Santunan Warga Sakit / Kedukaan",
+            "Saldo Akhir Kas Sosial (Posisi Per 30 Juni 2026)"
+        ],
+        "Debet (Masuk)": ["Rp 750.000", "Rp 600.000", "-", "-"],
+        "Kredit (Keluar)": ["-", "-", "Rp 250.000", "-"],
+        "Saldo (Rp)": ["Rp 750.000", "Rp 1.350.000", "Rp 1.100.000", "Rp 1.100.000"]
+    })
+
 # Header Utama Portal RT 06
 col_logo, col_title = st.columns([1, 3.5])
 with col_logo:
@@ -140,12 +172,6 @@ def load_data_rt06():
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
         
-        col_kk_candi = [c for c in df.columns if "KEPALA" in c or "KK" in c]
-        col_kk = col_kk_candi[0] if col_kk_candi else df.columns[2]
-        
-        col_rumah_candi = [c for c in df.columns if "RUMAH" in c or "ALAMAT" in c]
-        col_rumah = col_rumah_candi[0] if col_rumah_candi else None
-
         for col in df.select_dtypes(include=['object']).columns:
             df[col] = df[col].astype(str).str.strip()
             df.loc[df[col].str.lower() == 'nan', col] = None
@@ -220,7 +246,6 @@ if not df.empty:
         with col_jam2:
             placeholder_waktu = st.empty()
 
-        # Untuk keperluan perhitungan metrik dan pencarian KK, buat salinan data dengan ffill agar akurat
         df_ffill = df.copy()
         if col_kk:
             df_ffill[col_kk] = df_ffill[col_kk].replace('', pd.NA).ffill()
@@ -330,7 +355,6 @@ if not df.empty:
             st.rerun()
         st.subheader("🗂️ Cetak Kartu Keluarga (KK)")
         
-        # Buat salinan ffill khusus untuk mengambil daftar Kepala Keluarga secara akurat
         df_ffill = df.copy()
         if col_kk:
             df_ffill[col_kk] = df_ffill[col_kk].replace('', pd.NA).ffill()
@@ -580,29 +604,19 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("Transparansi pencatatan keuangan warga RT 06 sesuai standar akuntansi pelaporan kas.")
+        st.markdown("💡 **Tips Copy-Paste:** Anda bisa langsung menyalin baris data dari file Excel di komputer, lalu *paste* (Ctrl+V) ke dalam tabel interaktif di bawah ini.")
         
-        tab_kas1, tab_kas2 = st.tabs(["📊 Buku Kas RT 06", "🌾 Buku Kas Sosial (Perelek R6 Suayunan)"])
+        tab_kas1, tab_kas2 = st.tabs(["📊 Buku Kas RT 06 (Live Editor / Copy-Paste)", "🌾 Buku Kas Sosial (Live Editor / Copy-Paste)"])
         
         with tab_kas1:
-            st.markdown("### Laporan Posisi Keuangan & Arus Kas RT 06")
-            
-            data_akuntansi_rt = {
-                "No": [1, 2, 3, 4, 5],
-                "Tanggal": ["01/06/2026", "05/06/2026", "12/06/2026", "20/06/2026", "30/06/2026"],
-                "Uraian / Keterangan Transaksi": [
-                    "Saldo Awal Periode Lalu", 
-                    "Penerimaan Iuran Warga Bulanan (Periode Juni)", 
-                    "Pengeluaran Perbaikan Lampu Penerangan Jalan RT", 
-                    "Pengeluaran Konsumsi Rapat Koordinasi Warga",
-                    "Saldo Akhir Kas RT (Posisi Per 30 Juni 2026)"
-                ],
-                "Debet (Masuk)": ["Rp 1.500.000", "Rp 2.400.000", "-", "-", "-"],
-                "Kredit (Keluar)": ["-", "-", "Rp 350.000", "Rp 150.000", "-"],
-                "Saldo (Rp)": ["Rp 1.500.000", "Rp 3.900.000", "Rp 3.550.000", "Rp 3.400.000", "Rp 3.400.000"]
-            }
-            df_akuntansi_rt = pd.DataFrame(data_akuntansi_rt)
-            st.dataframe(df_akuntansi_rt, use_container_width=True, hide_index=True)
+            st.markdown("### Edit & Salin Data Keuangan Kas RT 06")
+            # Menggunakan st.data_editor agar mendukung fitur copy-paste langsung dari file excel luar
+            st.session_state.df_kas_rt_state = st.data_editor(
+                st.session_state.df_kas_rt_state, 
+                num_rows="dynamic", 
+                use_container_width=True, 
+                key="editor_kas_rt"
+            )
             
             def buat_pdf_standar_akuntansi(df_lap, judul):
                 buffer = io.BytesIO()
@@ -650,7 +664,7 @@ if not df.empty:
                 buffer.seek(0)
                 return buffer.getvalue()
 
-            pdf_akuntansi_rt = buat_pdf_standar_akuntansi(df_akuntansi_rt, "LAPORAN PERTANGGUNGJAWABAN KEUANGAN KAS RT 06")
+            pdf_akuntansi_rt = buat_pdf_standar_akuntansi(st.session_state.df_kas_rt_state, "LAPORAN PERTANGGUNGJAWABAN KEUANGAN KAS RT 06")
             st.download_button(
                 label="📥 Download PDF Laporan Standar Akuntansi Kas RT",
                 data=pdf_akuntansi_rt,
@@ -660,25 +674,15 @@ if not df.empty:
             )
 
         with tab_kas2:
-            st.markdown("### Laporan Keuangan Dana Sosial & Perelek R6 Suayunan")
+            st.markdown("### Edit & Salin Data Keuangan Dana Sosial (Perelek)")
+            st.session_state.df_kas_sosial_state = st.data_editor(
+                st.session_state.df_kas_sosial_state, 
+                num_rows="dynamic", 
+                use_container_width=True, 
+                key="editor_kas_sosial"
+            )
             
-            data_akuntansi_perelek = {
-                "No": [1, 2, 3, 4],
-                "Tanggal": ["01/06/2026", "10/06/2026", "25/06/2026", "30/06/2026"],
-                "Uraian / Keterangan Transaksi": [
-                    "Saldo Awal Kotak Sosial Perelek",
-                    "Penerimaan Hasil Perelek Warga Bulanan",
-                    "Pengeluaran Santunan Warga Sakit / Kedukaan",
-                    "Saldo Akhir Kas Sosial (Posisi Per 30 Juni 2026)"
-                ],
-                "Debet (Masuk)": ["Rp 750.000", "Rp 600.000", "-", "-"],
-                "Kredit (Keluar)": ["-", "-", "Rp 250.000", "-"],
-                "Saldo (Rp)": ["Rp 750.000", "Rp 1.350.000", "Rp 1.100.000", "Rp 1.100.000"]
-            }
-            df_akuntansi_perelek = pd.DataFrame(data_akuntansi_perelek)
-            st.dataframe(df_akuntansi_perelek, use_container_width=True, hide_index=True)
-            
-            pdf_akuntansi_perelek = buat_pdf_standar_akuntansi(df_akuntansi_perelek, "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
+            pdf_akuntansi_perelek = buat_pdf_standar_akuntansi(st.session_state.df_kas_sosial_state, "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
             st.download_button(
                 label="📥 Download PDF Laporan Standar Akuntansi Kas Sosial",
                 data=pdf_akuntansi_perelek,
