@@ -719,7 +719,7 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Penyimpanan Permanen Aktif:** Data kas yang Anda input atau *copy-paste* tersimpan aman dan tidak akan hilang saat direfresh. Pada cetak PDF, kolom **Uraian** otomatis diatur **rata kiri** serta keterangan **Tempat & Tanggal update** hanya tercantum di atas tanda tangan Bendahara.")
+        st.markdown("💡 **Penyimpanan Permanen Aktif:** Data kas yang Anda input atau *copy-paste* tersimpan aman dan tidak akan hilang saat direfresh. Pada cetak PDF, judul instansi dihapus bersih dan diganti judul tunggal, serta keterangan Tempat & Tanggal hanya tercantum di atas tanda tangan Bendahara.")
         
         def format_rupiah_pdf(num):
             try:
@@ -768,9 +768,8 @@ if not df.empty:
                 elements = []
                 styles = getSampleStyleSheet()
                 
-                elements.append(Paragraph("PEMERINTAH KABUPATEN BANDUNG", ParagraphStyle('Sub1', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
-                elements.append(Paragraph("KECAMATAN RANCAAEKEK - DESA NANJUNG MEKAR", ParagraphStyle('Sub2', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
-                elements.append(Paragraph(judul, ParagraphStyle('Title', parent=styles['Heading1'], fontSize=13, alignment=1, textColor=colors.HexColor('#1f2937'))))
+                # Judul PDF disederhanakan tanpa instansi pemerintah atas
+                elements.append(Paragraph(judul, ParagraphStyle('Title', parent=styles['Heading1'], fontSize=14, alignment=1, textColor=colors.HexColor('#1f2937'), fontName='Helvetica-Bold')))
                 elements.append(Spacer(1, 15))
                 
                 df_pdf_clean = hitung_dan_tampilkan_tabel_tunggal(df_lap)
@@ -840,7 +839,7 @@ if not df.empty:
             render_buku_kas_instan('df_kas_rt_state', FILE_KAS_RT, "Buku Kas RT 06", "Laporan_Kas_RT06.pdf", "LAPORAN PERTANGGUNGJAWABAN KEUANGAN KAS RT 06")
 
         with tab_kas2:
-            render_buku_kas_instan('df_kas_sosial_state', FILE_KAS_SOSIAL, "Buku Kas Sosial / Perelek", "Laporan_Kas_Sosial.pdf", "LAPORAN DANA SOSIAL PERELEK R6 SUAYUNAN RT 06")
+            render_buku_kas_instan('df_kas_sosial_state', FILE_KAS_SOSIAL, "Buku Kas Sosial / Perelek", "Laporan_Kas_Sosial.pdf", "LAPORAN KAS PERELEK R6 SAUYUNAN")
 
     elif menu == "🖨️ Cetak Rekap PDF":
         if st.button("⬅️ Kembali ke Beranda"):
