@@ -89,7 +89,7 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Inisialisasi State Data Kas RT Awal (Tanpa kolom No)
+# Inisialisasi State Data Kas RT Awal (Murni tanpa kolom No)
 if 'df_kas_rt_state' not in st.session_state:
     st.session_state.df_kas_rt_state = pd.DataFrame({
         "Tanggal": ["01/06/2026", "05/06/2026", "12/06/2026", "20/06/2026"],
@@ -103,7 +103,7 @@ if 'df_kas_rt_state' not in st.session_state:
         "Kredit (Keluar)": ["", "", "350000", "150000"]
     })
 
-# Inisialisasi State Data Kas Sosial Awal (Tanpa kolom No, dimulai langsung dari Tanggal)
+# Inisialisasi State Data Kas Sosial Awal (Murni tanpa kolom No)
 if 'df_kas_sosial_state' not in st.session_state:
     st.session_state.df_kas_sosial_state = pd.DataFrame({
         "Tanggal": ["01/06/2026", "05/06/2026", "10/06/2026", "15/06/2026", "20/06/2026", "25/06/2026", "28/06/2026", "30/06/2026"],
@@ -654,7 +654,7 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Info Super Stabil:** Semua kolom dikunci murni sebagai teks (`TextColumn`) tanpa kolom nomor urut. Data yang Anda salin dari Excel akan masuk dengan akurat, tidak berubah sendiri, dan kolom Saldo otomatis menghitung secara benar.")
+        st.markdown("💡 **Info Super Stabil:** Kolom nomor urut telah dihapus total. Semua kolom dikunci murni sebagai teks (`TextColumn`) sehingga data yang Anda salin dari Excel masuk secara akurat tanpa berubah sendiri.")
         
         def format_rupiah_pdf(num):
             try:
@@ -676,7 +676,7 @@ if not df.empty:
                 df_rt_view_saldo, 
                 num_rows="dynamic", 
                 use_container_width=True, 
-                key="editor_kas_rt_pure_text",
+                key="editor_kas_rt_nonum_pure",
                 column_config={
                     "Tanggal": st.column_config.TextColumn("Tanggal"),
                     "Uraian / Keterangan Transaksi": st.column_config.TextColumn("Uraian / Keterangan Transaksi"),
@@ -763,7 +763,7 @@ if not df.empty:
                 df_sosial_view_saldo, 
                 num_rows="dynamic", 
                 use_container_width=True, 
-                key="editor_kas_sosial_pure_text",
+                key="editor_kas_sosial_nonum_pure",
                 column_config={
                     "Tanggal": st.column_config.TextColumn("Tanggal"),
                     "Uraian / Keterangan Transaksi": st.column_config.TextColumn("Uraian / Keterangan Transaksi"),
