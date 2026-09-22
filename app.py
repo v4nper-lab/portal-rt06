@@ -631,7 +631,7 @@ if not df.empty:
             st.rerun()
         st.subheader("🛠️ Kelola Data Warga (Input Warga Baru & Anggota Keluarga)")
 
-        st.markdown("💡 **Formulir Isian Terstruktur:** Status Perkawinan (sebelum Agama) dan Status Rumah (Tetap / Sewa/Kontrak, sebelum Domisili) kini menggunakan pilihan menu *dropdown* baku yang tepat.")
+        st.markdown("💡 **Formulir Sesuai Kolom Excel Asli:** Form di bawah ini membaca langsung kolom dari data seluruh warga secara presisi. Kolom Status Perkawinan (sebelum Agama) dan Status Rumah (Tetap / Sewa/Kontrak, sebelum Domisili) telah diatur secara tepat.")
 
         df_ffill_form = df.copy()
         if col_rumah:
@@ -644,9 +644,9 @@ if not df.empty:
             df_template_excel = pd.read_excel(FILE_EXCEL_WARGA, header=3)
             kolom_excel_asli = [c for c in df_template_excel.columns if not str(c).upper().startswith("UNNAMED")]
         except:
-            kolom_excel_asli = ["No. Rumah", "Nama Kepala Keluarga", "Nama Anggota Keluarga", "L/P", "Hubungan", "Tempat Lahir", "Tgl Lahir", "Usia", "Status", "Pendidikan", "Pekerjaan"]
+            kolom_excel_asli = list(df.columns)
 
-        with st.form("form_tambah_warga_dropdown_fixed", clear_on_submit=False):
+        with st.form("form_tambah_warga_paling_presisi", clear_on_submit=False):
             st.markdown("#### 📝 Form Input Isian Terstruktur:")
             
             input_values = {}
@@ -658,7 +658,7 @@ if not df.empty:
             for idx, col_name in enumerate(kolom_excel_asli):
                 c_up = str(col_name).upper()
                 
-                # Abaikan kolom "NO" dan "NO."
+                # Lewati kolom nomor urut agar tidak membingungkan
                 if c_up == "NO" or c_up == "NO.":
                     continue
 
@@ -666,22 +666,20 @@ if not df.empty:
                 with col_target:
                     if "RUMAH" in c_up and "STATUS" not in c_up and "ALAMAT" not in c_up:
                         input_values[col_name] = st.selectbox(f"{col_name}", daftar_blok_ada if daftar_blok_ada else ["B3-01"])
-                    elif "ALAMAT" in c_up or "RUMAH" in c_up and "STATUS" not in c_up:
+                    elif "ALAMAT" in c_up:
                         input_values[col_name] = st.selectbox(f"{col_name}", daftar_blok_ada if daftar_blok_ada else ["B3-01"])
                     elif "JK" in c_up or "KELAMIN" in c_up:
                         input_values[col_name] = st.selectbox(f"{col_name}", ["L", "P"])
                     elif "HUBUNGAN" in c_up:
                         input_values[col_name] = st.selectbox(f"{col_name}", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"])
-                    elif "KAWIN" in c_up or "STATUS" in c_up and ("NIKAH" in c_up or "PERKAWINAN" in c_up):
-                        # Khusus kolom Status Perkawinan
-                        input_values[col_name] = st.selectbox("Status Perkawinan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"])
+                    elif "KAWIN" in c_up or ("STATUS" in c_up and ("NIKAH" in c_up or "PERKAWINAN" in c_up)):
+                        input_values[col_name] = st.selectbox(f"{col_name} (Status Perkawinan)", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"])
                     elif "STATUS" in c_up and ("RUMAH" in c_up or "HUNIAN" in c_up):
-                        # Khusus kolom Status Rumah (Tetap, Sewa/Kontrak)
-                        input_values[col_name] = st.selectbox("Status Rumah", ["Tetap", "Sewa/Kontrak"])
+                        input_values[col_name] = st.selectbox(f"{col_name} (Status Rumah)", ["Tetap", "Sewa/Kontrak"])
                     elif "STATUS" in c_up and "DOMISILI" in c_up:
-                        input_values[col_name] = st.selectbox("Status Domisili", ["Warga Tetap", "Warga Kontrak / Musiman"])
+                        input_values[col_name] = st.selectbox(f"{col_name} (Status Domisili)", ["Warga Tetap", "Warga Kontrak / Musiman"])
                     elif "STATUS" in c_up:
-                        input_values[col_name] = st.selectbox(f"{col_name}", ["Tetap", "Sewa/Kontrak", "Warga Tetap", "Warga Kontrak / Musiman"])
+                        input_values[col_name] = st.selectbox(f"{col_name}", ["Tetap", "Sewa/Kontrak", "Warga Tetap", "Warga Kontrak / Musiman", "Kawin", "Belum Kawin"])
                     elif "AGAMA" in c_up:
                         input_values[col_name] = st.selectbox(f"{col_name}", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"])
                     elif "DARAH" in c_up or "GOL" in c_up:
@@ -695,18 +693,18 @@ if not df.empty:
                     elif "LAHIR" in c_up and ("TGL" in c_up or "TANGGAL" in c_up):
                         st.markdown(f"📅 **{col_name} (Format Isian):**")
                         c_t1, c_t2, c_t3 = st.columns(3)
-                        with c_t1: tgl_lhr = st.number_input("Tgl", min_value=1, max_value=31, value=1, key="f_tgl")
-                        with c_t2: bln_lhr = st.number_input("Bln", min_value=1, max_value=12, value=8, key="f_bln")
-                        with c_t3: thn_lhr = st.number_input("Thn", min_value=1900, max_value=2026, value=1995, key="f_thn")
+                        with c_t1: tgl_lhr = st.number_input("Tgl", min_value=1, max_value=31, value=1, key=f"tgl_{col_name}")
+                        with c_t2: bln_lhr = st.number_input("Bln", min_value=1, max_value=12, value=8, key=f"bln_{col_name}")
+                        with c_t3: thn_lhr = st.number_input("Thn", min_value=1900, max_value=2026, value=1995, key=f"thn_{col_name}")
                         
                         bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
                         input_values[col_name] = f"{int(tgl_lhr):02d} {bulan_indo_nama.get(int(bln_lhr), '')} {int(thn_lhr)}"
                     elif "USIA" in c_up or "UMUR" in c_up:
                         usia_otomatis = 2026 - int(thn_lhr)
                         if usia_otomatis < 0: usia_otomatis = 0
-                        input_values[col_name] = st.number_input(f"{col_name} (Otomatis)", min_value=0, max_value=120, value=int(usia_otomatis))
+                        input_values[col_name] = st.number_input(f"{col_name} (Otomatis)", min_value=0, max_value=120, value=int(usia_otomatis), key=f"usia_{col_name}")
                     else:
-                        input_values[col_name] = st.text_input(f"{col_name}")
+                        input_values[col_name] = st.text_input(f"{col_name}", key=f"txt_{col_name}")
 
             if st.form_submit_button("💾 Simpan Data ke Database Warga"):
                 try:
