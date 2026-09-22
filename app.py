@@ -268,7 +268,7 @@ def load_data_rt06():
                     return val_str
                 df[c] = df[c].apply(format_tgl_indo)
             
-        # Urutkan secara otomatis berdasarkan nomor rumah/blok rumah agar selalu rapi berurutan
+        # Urutkan secara otomatis berdasarkan kolom nomor rumah/alamat
         col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
         if col_rumah_sort:
             df = df.sort_values(by=col_rumah_sort, key=lambda col: col.astype(str).str.lower()).reset_index(drop=True)
@@ -460,7 +460,6 @@ if not df.empty:
         if st.button("💾 Simpan Perubahan ke Database Excel", key="save_warga_db"):
             try:
                 if isinstance(edited_df, pd.DataFrame):
-                    # Urutkan ulang berdasarkan kolom rumah sebelum disimpan permanen
                     col_rumah_save = next((col for col in edited_df.columns if "RUMAH" in col or "ALAMAT" in col), None)
                     if col_rumah_save:
                         edited_df = edited_df.sort_values(by=col_rumah_save, key=lambda col: col.astype(str).str.lower()).reset_index(drop=True)
@@ -647,16 +646,23 @@ if not df.empty:
             st.rerun()
         st.subheader("🛠️ Kelola Data Warga (Input Warga Baru & Anggota Keluarga)")
 
-        st.markdown("💡 **Formulir Isian Sempurna & Otomatis Urut:** Kolom Status Rumah kini menyediakan pilihan yang tepat (*Milik / Tetap, Sewa/Kontrak, Kosong*), dan setelah data disimpan, database akan langsung otomatis terurut rapi berdasarkan nomor blok rumah.")
+        st.markdown("💡 **Formulir Isian Sempurna & Otomatis Urut:** Nomor rumah menggunakan daftar blok lengkap yang selalu tersedia, Status Rumah terisi benar (*Milik / Tetap, Sewa/Kontrak, Kosong*)[cite: 4], dan data otomatis tersimpan serta terurut berdasarkan blok rumah.")
 
-        df_ffill_form = df.copy()
-        if col_rumah:
-            df_ffill_form[col_rumah] = df_ffill_form[col_rumah].replace('', pd.NA).ffill()
-            daftar_blok_ada = sorted(list(set(df_ffill_form[col_rumah].dropna().astype(str).tolist())))
-        else:
-            daftar_blok_ada = ["B3-01", "B3-02", "B3-03", "B4-01", "B4-02"]
+        # Menyiapkan daftar lengkap nomor blok rumah yang konsisten dari seluruh data
+        daftar_blok_lengkap = [
+            "B3-01", "B3-02", "B3-03", "B3-04", "B3-05", "B3-06", "B3-07", "B3-08", "B3-09", "B3-10",
+            "B3-11", "B3-12", "B3-13", "B3-14", "B3-15", "B3-16", "B3-17", "B3-18", "B3-19", "B3-20",
+            "B4-01", "B4-02", "B4-03", "B4-04", "B4-05", "B4-06", "B4-07", "B4-08", "B4-09", "B4-10"
+        ]
+        if not df.empty and col_rumah:
+            df_temp_blok = df.copy()
+            df_temp_blok[col_rumah] = df_temp_blok[col_rumah].replace('', pd.NA).ffill()
+            blok_dari_data = sorted(list(set(df_temp_blok[col_rumah].dropna().astype(str).tolist())))
+            for b in blok_dari_data:
+                if b not in daftar_blok_lengkap:
+                    daftar_blok_lengkap.append(b)
 
-        with st.form("form_tambah_warga_perfect_v8", clear_on_submit=False):
+        with st.form("form_tambah_warga_perfect_v9", clear_on_submit=False):
             st.markdown("#### 📝 Form Input Isian Terstruktur:")
             
             col_f1, col_f2 = st.columns(2)
@@ -665,18 +671,18 @@ if not df.empty:
 
             # Kolom Kiri
             with col_f1:
-                in_no_rumah = st.selectbox("No. Rumah", daftar_blok_ada if daftar_blok_ada else ["B3-01"], key="in_no_rmh_v8")
-                in_nama_kk = st.text_input("Nama Kepala Keluarga", key="in_nama_kk_v8")
-                in_nama_anggota = st.text_input("Nama Lengkap Anggota Keluarga", key="in_nama_anggota_v8")
-                in_jk = st.selectbox("L/P", ["L", "P"], key="in_jk_v8")
-                in_hub = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"], key="in_hub_v8")
-                in_tmplhr = st.text_input("Tempat Lahir", key="in_tmplhr_v8")
+                in_no_rumah = st.selectbox("No. Rumah", sorted(daftar_blok_lengkap), key="in_no_rmh_v9")
+                in_nama_kk = st.text_input("Nama Kepala Keluarga", key="in_nama_kk_v9")
+                in_nama_anggota = st.text_input("Nama Lengkap Anggota Keluarga", key="in_nama_anggota_v9")
+                in_jk = st.selectbox("L/P", ["L", "P"], key="in_jk_v9")
+                in_hub = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"], key="in_hub_v9")
+                in_tmplhr = st.text_input("Tempat Lahir", key="in_tmplhr_v9")
                 
                 st.markdown("📅 **Tanggal Lahir:**")
                 c_t1, c_t2, c_t3 = st.columns(3)
-                with c_t1: tgl_lhr = st.number_input("Tgl", min_value=1, max_value=31, value=1, key="in_tgl_v8")
-                with c_t2: bln_lhr = st.number_input("Bln", min_value=1, max_value=12, value=8, key="in_bln_v8")
-                with c_t3: thn_lhr = st.number_input("Thn", min_value=1900, max_value=2026, value=1995, key="in_thn_v8")
+                with c_t1: tgl_lhr = st.number_input("Tgl", min_value=1, max_value=31, value=1, key="in_tgl_v9")
+                with c_t2: bln_lhr = st.number_input("Bln", min_value=1, max_value=12, value=8, key="in_bln_v9")
+                with c_t3: thn_lhr = st.number_input("Thn", min_value=1900, max_value=2026, value=1995, key="in_thn_v9")
                 
                 bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
                 in_tgllhr = f"{int(tgl_lhr):02d} {bulan_indo_nama.get(int(bln_lhr), '')} {int(thn_lhr)}"
@@ -685,18 +691,18 @@ if not df.empty:
             with col_f2:
                 usia_otomatis = 2026 - int(thn_lhr)
                 if usia_otomatis < 0: usia_otomatis = 0
-                in_usia = st.number_input("Usia (Otomatis)", min_value=0, max_value=120, value=int(usia_otomatis), key="in_usia_auto_v8")
+                in_usia = st.number_input("Usia (Otomatis)", min_value=0, max_value=120, value=int(usia_otomatis), key="in_usia_auto_v9")
                 
-                in_status_nikah = st.selectbox("Status (Status Perkawinan)", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"], key="in_status_nikah_v8")
-                in_agama = st.selectbox("Agama", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"], key="in_agama_v8")
-                in_goldarah = st.selectbox("Gol. Darah", ["A", "B", "AB", "O", "Tidak Tahu"], key="in_goldarah_v8")
-                in_suku = st.selectbox("Etnis / Suku", ["Sunda", "Jawa", "Padang", "Batak", "Betawi", "Lainnya"], key="in_suku_v8")
-                in_pend = st.selectbox("Pendidikan", ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma IV / Strata I", "Sedang SD/sedajerat", "Sedang SLTP/sederajat", "Belum / Tidak Sekolah"], key="in_pend_v8")
-                in_pek = st.selectbox("Pekerjaan", ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"], key="in_pek_v8")
+                in_status_nikah = st.selectbox("Status (Status Perkawinan)", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"], key="in_status_nikah_v9")
+                in_agama = st.selectbox("Agama", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"], key="in_agama_v9")
+                in_goldarah = st.selectbox("Gol. Darah", ["A", "B", "AB", "O", "Tidak Tahu"], key="in_goldarah_v9")
+                in_suku = st.selectbox("Etnis / Suku", ["Sunda", "Jawa", "Padang", "Batak", "Betawi", "Lainnya"], key="in_suku_v9")
+                in_pend = st.selectbox("Pendidikan", ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma IV / Strata I", "Sedang SD/sedajerat", "Sedang SLTP/sederajat", "Belum / Tidak Sekolah"], key="in_pend_v9")
+                in_pek = st.selectbox("Pekerjaan", ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"], key="in_pek_v9")
                 
-                # Status Rumah dengan pilihan yang benar (Milik/Tetap, Sewa/Kontrak, Kosong)
-                in_status_rumah = st.selectbox("Status Rumah (Stus Rumah)", ["Milik / Tetap", "Sewa/Kontrak", "Kosong"], key="in_status_rumah_v8")
-                in_status_domisili = st.selectbox("Status Domisili", ["Nanjung Mekar", "luar NM"], key="in_status_domisili_v8")
+                # Status Rumah (Milik / Tetap, Sewa/Kontrak, Kosong)
+                in_status_rumah = st.selectbox("Status Rumah (Stus Rumah)", ["Milik / Tetap", "Sewa/Kontrak", "Kosong"], key="in_status_rumah_v9")
+                in_status_domisili = st.selectbox("Status Domisili", ["Nanjung Mekar", "luar NM"], key="in_status_domisili_v9")
 
             if st.form_submit_button("💾 Simpan Data ke Database Warga"):
                 try:
@@ -706,7 +712,7 @@ if not df.empty:
                     baris_baru_dict = {}
                     for col_excel in df_raw_excel.columns:
                         c_up = str(col_excel).upper()
-                        if "RUMAH" in c_up and "STATUS" not in c_up or "ALAMAT" in c_up:
+                        if ("RUMAH" in c_up and "STATUS" not in c_up and "STUS" not in c_up) or "ALAMAT" in c_up:
                             baris_baru_dict[col_excel] = in_no_rumah
                         elif "KEPALA" in c_up or "KK" in c_up:
                             baris_baru_dict[col_excel] = in_nama_kk
@@ -743,7 +749,7 @@ if not df.empty:
 
                     df_updated_excel = pd.concat([df_raw_excel, pd.DataFrame([baris_baru_dict])], ignore_index=True)
 
-                    # Urutkan otomatis berdasarkan kolom rumah/alamat sebelum disimpan ke Excel
+                    # Urutkan otomatis berdasarkan kolom rumah/alamat sebelum disimpan
                     col_rumah_excel_save = next((col for col in df_updated_excel.columns if "RUMAH" in col or "ALAMAT" in col), None)
                     if col_rumah_excel_save:
                         df_updated_excel = df_updated_excel.sort_values(by=col_rumah_excel_save, key=lambda col: col.astype(str).str.lower()).reset_index(drop=True)
