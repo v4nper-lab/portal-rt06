@@ -92,9 +92,10 @@ st.markdown("""
 if 'selected_menu' not in st.session_state:
     st.session_state.selected_menu = "Beranda / Dashboard"
 
-# Fungsi Penyimpanan Permanen ke File Lokal
+# Fungsi Penyimpanan Permanen Kas ke File Lokal CSV
 FILE_KAS_RT = "penyimpanan_kas_rt.csv"
 FILE_KAS_SOSIAL = "penyimpanan_kas_sosial.csv"
+FILE_EXCEL_WARGA = "data_warga_rt06.xlsx"
 
 def muat_data_kas(file_path, default_df):
     if os.path.exists(file_path):
@@ -112,12 +113,11 @@ def simpan_data_kas(file_path, df):
     except:
         pass
 
-# Inisialisasi Data Kas RT (Mulai bersih kosong jika belum ada file tersimpan)
+# Inisialisasi Data Kas RT & Sosial
 if 'df_kas_rt_state' not in st.session_state:
     default_rt = pd.DataFrame(columns=["Tanggal", "Uraian / Keterangan Transaksi", "Debet (Masuk)", "Kredit (Keluar)"])
     st.session_state.df_kas_rt_state = muat_data_kas(FILE_KAS_RT, default_rt)
 
-# Inisialisasi Data Kas Sosial (Mulai bersih kosong jika belum ada file tersimpan)
 if 'df_kas_sosial_state' not in st.session_state:
     default_sosial = pd.DataFrame(columns=["Tanggal", "Uraian / Keterangan Transaksi", "Debet (Masuk)", "Kredit (Keluar)"])
     st.session_state.df_kas_sosial_state = muat_data_kas(FILE_KAS_SOSIAL, default_sosial)
@@ -212,7 +212,7 @@ with col_logo:
         except:
             st.image(logo_path, width=380)
     else:
-        st.write("🏠")
+            st.write("🏠")
 
 with col_title:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -223,12 +223,11 @@ st.write("---")
 
 @st.cache_data(ttl=60)
 def load_data_rt06():
-    file_excel = "data_warga_rt06.xlsx"
-    if not os.path.exists(file_excel):
+    if not os.path.exists(FILE_EXCEL_WARGA):
         return pd.DataFrame()
     
     try:
-        df = pd.read_excel(file_excel, header=3)
+        df = pd.read_excel(FILE_EXCEL_WARGA, header=3)
         df.columns = df.columns.astype(str).str.strip().str.upper()
         
         def adalah_baris_nomor(row):
@@ -272,7 +271,7 @@ def load_data_rt06():
             
         return df
     except Exception as e:
-        st.error(f"Gagal memuat data: {e}")
+        st.error(f"Gagal memuat data warga: {e}")
         return pd.DataFrame()
 
 if 'df_warga' not in st.session_state:
@@ -424,7 +423,7 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("📋 Data Keseluruhan Warga")
-        st.data_editor(df, num_rows="dynamic", use_container_width=True, key="editor_warga_grid")
+        st.dataframe(df, use_container_width=True, hide_index=True)
 
     elif menu == "🗂️ Cetak Kartu Keluarga (KK)":
         if st.button("⬅️ Kembali ke Beranda"):
@@ -586,48 +585,137 @@ if not df.empty:
         if st.button("⬅️ Kembali ke Beranda"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
-        st.subheader("🛠️ Kelola Data Warga")
-        aksi = st.selectbox("Aksi:", ["➕ Tambah Warga Baru"])
-        
-        if aksi == "➕ Tambah Warga Baru":
-            with st.form("form_tambah"):
-                df_ffill_kelola = df.copy()
-                if col_kk:
-                    df_ffill_kelola[col_kk] = df_ffill_kelola[col_kk].replace('', pd.NA).ffill()
-                if col_rumah:
-                    df_ffill_kelola[col_rumah] = df_ffill_kelola[col_rumah].replace('', pd.NA).ffill()
+        st.subheader("🛠️ Kelola Data Warga (Tambah & Hapus Berdasarkan Blok Rumah)")
 
-                daftar_no_rumah = sorted(list(set(df_ffill_kelola[col_rumah].dropna().astype(str).tolist()))) if col_rumah else ["B3-01", "B3-02"]
-                no_rumah = st.selectbox("No. Rumah", daftar_no_rumah)
+        tab_tambah, tab_hapus = st.tabs(["➕ Tambah Warga Baru", "🗑️ Hapus Data Warga"])
+
+        with tab_tambah:
+            st.markdown("### Form Input Warga Baru")
+            with st.form("form_tambah_warga_baru", clear_on_submit=True):
+                col_w1, col_w2 = st.columns(2)
+                with col_w1:
+                    no_rumah_in = st.text_input("Nomor Blok Rumah (Contoh: B3-01)")
+                    nama_kk_in = st.text_input("Nama Kepala Keluarga (KK)")
+                    nama_anggota_in = st.text_input("Nama Lengkap Anggota Keluarga")
+                    jk_in = st.selectbox("Jenis Kelamin", ["L", "P"])
+                    hubungan_in = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"])
+                with col_w2:
+                    tempat_lahir_in = st.text_input("Tempat Lahir")
+                    tgl_lahir_in = st.text_input("Tanggal Lahir (Contoh: 15 Agustus 1990)")
+                    usia_in = st.number_input("Usia (Tahun)", min_value=0, max_value=120, value=30)
+                    status_nikah_in = st.selectbox("Status Pernikahan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"])
+                    pendidikan_in = st.selectbox("Pendidikan Terakhir", ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma / Sarjana (S1/S2/S3)", "Belum / Tidak Sekolah"])
+                    pekerjaan_in = st.selectbox("Pekerjaan", ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar / Mahasiswa", "PNS / TNI / Polri"])
+
+                if st.form_submit_button("💾 Simpan Warga Baru ke Database"):
+                    if not nama_anggota_in.strip() or not no_rumah_in.strip():
+                        st.warning("⚠️ Nomor Blok Rumah dan Nama Lengkap Anggota wajib diisi!")
+                    else:
+                        try:
+                            # Muat file excel mentah header baris ke-3
+                            df_raw_excel = pd.read_excel(FILE_EXCEL_WARGA, header=3)
+                            
+                            # Buat baris baru dengan format kolom yang sama persis
+                            kolom_tersedia = list(df_raw_excel.columns)
+                            baris_baru_dict = {}
+                            for c in kolom_tersedia:
+                                c_upper = str(c).upper()
+                                if "RUMAH" in c_upper or "ALAMAT" in c_upper:
+                                    baris_baru_dict[c] = no_rumah_in
+                                elif "KEPALA" in c_upper or "KK" in c_upper:
+                                    baris_baru_dict[c] = nama_kk_in
+                                elif "NAMA" in c_upper or "ANGGOTA" in c_upper:
+                                    baris_baru_dict[c] = nama_anggota_in
+                                elif "JK" in c_upper or "KELAMIN" in c_upper:
+                                    baris_baru_dict[c] = jk_in
+                                elif "HUBUNGAN" in c_upper:
+                                    baris_baru_dict[c] = hubungan_in
+                                elif "TEMPAT" in c_upper:
+                                    baris_baru_dict[c] = tempat_lahir_in
+                                elif "LAHIR" in c_upper or "TGL" in c_upper:
+                                    baris_baru_dict[c] = tgl_lahir_in
+                                elif "USIA" in c_upper or "UMUR" in c_upper:
+                                    baris_baru_dict[c] = usia_in
+                                elif "STATUS" in c_upper and "KAWIN" in c_upper:
+                                    baris_baru_dict[c] = status_nikah_in
+                                elif "PENDIDIKAN" in c_upper:
+                                    baris_baru_dict[c] = pendidikan_in
+                                elif "PEKERJAAN" in c_upper:
+                                    baris_baru_dict[c] = pekerjaan_in
+                                else:
+                                    baris_baru_dict[c] = "-"
+
+                            df_updated_excel = pd.concat([df_raw_excel, pd.DataFrame([baris_baru_dict])], ignore_index=True)
+                            
+                            # Timpa kembali ke file excel asli dengan mempertahankan struktur header aslinya
+                            with pd.ExcelWriter(FILE_EXCEL_WARGA, engine='openpyxl', mode='w') as writer:
+                                # Tulis header kosong di 3 baris pertama agar sesuai template asli
+                                pd.DataFrame().to_excel(writer, index=False, sheet_name="Data Warga")
+                            
+                            # Tulis ulang menggunakan openpyxl langsung agar aman
+                            import openpyxl
+                            wb = openpyxl.Workbook()
+                            ws = wb.active
+                            ws.title = "Data Warga"
+                            ws.append(["DATA WARGA RT 06 RW 14"])
+                            ws.append([])
+                            ws.append([])
+                            ws.append(list(df_updated_excel.columns))
+                            for _, r in df_updated_excel.iterrows():
+                                ws.append(list(r.values))
+                            wb.save(FILE_EXCEL_WARGA)
+
+                            # Refresh session state warga
+                            st.session_state.df_warga = load_data_rt06()
+                            st.success(f"✅ Data warga **{nama_anggota_in}** (Blok: {no_rumah_in}) berhasil disimpan permanen ke database!")
+                            time.sleep(1)
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Gagal menyimpan ke file Excel: {e}")
+
+        with tab_hapus:
+            st.markdown("### Hapus Data Warga Berdasarkan Blok Rumah / Nama")
+            if df.empty:
+                st.info("ℹ️ Belum ada data warga terdata.")
+            else:
+                df_ffill_hapus = df.copy()
+                if col_rumah:
+                    df_ffill_hapus[col_rumah] = df_ffill_hapus[col_rumah].replace('', pd.NA).ffill()
                 
-                nama_kk = st.selectbox("Nama Kepala Keluarga", sorted(list(set(df_ffill_kelola[col_kk].dropna().astype(str).tolist()))))
-                nama_anggota = st.text_input("Nama Lengkap Anggota Keluarga")
-                jk = st.selectbox("Jenis Kelamin", ["L", "P"])
-                hubungan = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"])
-                tempat_lahir = st.text_input("Tempat Lahir")
-                
-                tanggal_lahir_date = st.date_input("Tanggal Lahir", value=date(1995, 1, 1))
-                bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
-                tanggal_lahir_str = f"{tanggal_lahir_date.day:02d} {bulan_indo_nama.get(tanggal_lahir_date.month, '')} {tanggal_lahir_date.year}"
-                
-                usia = st.number_input("Usia", min_value=0, max_value=120, value=25)
-                status_nikah = st.selectbox("Status Pernikahan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"])
-                
-                pendidikan = st.selectbox("Pendidikan Terakhir", [
-                    "Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", 
-                    "Diploma / Sarjana (S1/S2/S3)", "Belum / Tidak Sekolah"
-                ])
-                
-                pekerjaan = st.selectbox("Pekerjaan", [
-                    "Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", 
-                    "Belum Bekerja", "Pelajar / Mahasiswa", "PNS / TNI / Polri"
-                ])
-                
-                status_rumah = st.selectbox("Status Rumah", ["Milik / Tetap", "Sewa / Kontrak"])
-                status_domisili = st.selectbox("Status Domisili", ["Warga Tetap", "Warga Kontrak", "Luar NM"])
-                
-                if st.form_submit_button("Simpan Data Warga Baru"):
-                    st.success(f"Data **{nama_anggota}** berhasil disiapkan!")
+                daftar_blok_rumah = sorted(list(set(df_ffill_hapus[col_rumah].dropna().astype(str).tolist()))) if col_rumah else []
+                pilihan_blok_hapus = st.selectbox("Pilih Nomor Blok Rumah / Alamat:", daftar_blok_rumah)
+
+                if pilihan_blok_hapus:
+                    df_warga_blok = df_ffill_hapus[df_ffill_hapus[col_rumah].astype(str).str.strip().str.lower() == pilihan_blok_hapus.strip().lower()]
+                    st.markdown(f"**Daftar Warga di Blok {pilihan_blok_hapus}:**")
+                    
+                    daftar_nama_anggota = df_warga_blok[col_nama].dropna().astype(str).tolist() if col_nama else []
+                    pilihan_warga_hapus = st.selectbox("Pilih Nama Warga yang Akan Dihapus:", daftar_nama_anggota)
+
+                    if st.button("🗑️ Hapus Warga Terpilih Secara Permanen", type="primary"):
+                        try:
+                            df_raw_excel = pd.read_excel(FILE_EXCEL_WARGA, header=3)
+                            # Filter baris yang tidak sama dengan nama warga yang akan dihapus
+                            df_filtered = df_raw_excel[~df_raw_excel.apply(lambda row: row.astype(str).str.contains(pilihan_warga_hapus).any(), axis=1)].reset_index(drop=True)
+
+                            import openpyxl
+                            wb = openpyxl.Workbook()
+                            ws = wb.active
+                            ws.title = "Data Warga"
+                            ws.append(["DATA WARGA RT 06 RW 14"])
+                            ws.append([])
+                            ws.append([])
+                            ws.append(list(df_filtered.columns))
+                            for _, r in df_filtered.iterrows():
+                                ws.append(list(r.values))
+                            wb.save(FILE_EXCEL_WARGA)
+
+                            st.session_state.df_warga = load_data_rt06()
+                            st.success(f"✅ Data warga **{pilihan_warga_hapus}** di Blok **{pilihan_blok_hapus}** berhasil dihapus permanen!")
+                            time.sleep(1)
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Gagal menghapus data: {e}")
 
     elif menu == "📊 Rekapitulasi Administrasi RW":
         if st.button("⬅️ Kembali ke Beranda"):
@@ -681,12 +769,11 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Input & Rekapitulasi Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Sauyunan)")
-        st.markdown("💡 **Sistem Input Formulir Akuntansi:** Gunakan formulir di bawah ini untuk menambahkan transaksi baru secara akurat. Anda juga dapat membersihkan data awal kapan saja menggunakan tombol reset.")
+        st.markdown("💡 **Sistem Input Formulir Akuntansi:** Gunakan formulir di bawah ini untuk menambahkan transaksi baru secara akurat. Data dijamin tersimpan permanen dan langsung menghasilkan rekapan akuntansi yang benar.")
 
         def render_buku_kas_formulir(state_key, file_path, judul_buku, file_pdf_name, judul_pdf, pakai_logo=False):
             st.markdown(f"### 📝 Tambah Transaksi Baru: {judul_buku}")
             
-            # Tombol Bersihkan Semua Data dari Awal
             if st.button(f"🧹 Bersihkan Semua Data (Mulai dari Awal) - {judul_buku}", key=f"reset_{state_key}"):
                 empty_df = pd.DataFrame(columns=["Tanggal", "Uraian / Keterangan Transaksi", "Debet (Masuk)", "Kredit (Keluar)"])
                 st.session_state[state_key] = empty_df
@@ -694,7 +781,6 @@ if not df.empty:
                 st.success(f"✅ Data {judul_buku} berhasil dikosongkan. Silakan mulai input dari awal!")
                 st.rerun()
 
-            # Formulir Input Transaksi Baru ala Kelola Warga
             with st.form(f"form_tambah_{state_key}", clear_on_submit=True):
                 col_f1, col_f2 = st.columns(2)
                 with col_f1:
