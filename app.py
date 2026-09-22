@@ -631,7 +631,7 @@ if not df.empty:
             st.rerun()
         st.subheader("🛠️ Kelola Data Warga (Input Warga Baru & Anggota Keluarga)")
 
-        st.markdown("💡 **Formulir Isian Terstruktur:** Kolom isian status perkawinan kini menggunakan pilihan baku (**Belum Kawin, Kawin, Cerai Hidup, Cerai Mati**) dan usia terhitung otomatis.")
+        st.markdown("💡 **Formulir Isian Terstruktur:** Status Perkawinan (sebelum Agama) dan Status Rumah (Tetap / Sewa/Kontrak, sebelum Domisili) kini menggunakan pilihan menu *dropdown* baku yang tepat.")
 
         df_ffill_form = df.copy()
         if col_rumah:
@@ -646,7 +646,7 @@ if not df.empty:
         except:
             kolom_excel_asli = ["No. Rumah", "Nama Kepala Keluarga", "Nama Anggota Keluarga", "L/P", "Hubungan", "Tempat Lahir", "Tgl Lahir", "Usia", "Status", "Pendidikan", "Pekerjaan"]
 
-        with st.form("form_tambah_warga_dropdown_status_nikah", clear_on_submit=False):
+        with st.form("form_tambah_warga_dropdown_fixed", clear_on_submit=False):
             st.markdown("#### 📝 Form Input Isian Terstruktur:")
             
             input_values = {}
@@ -664,19 +664,22 @@ if not df.empty:
 
                 col_target = col_f1 if idx < mid_point else col_f2
                 with col_target:
-                    if "RUMAH" in c_up or "ALAMAT" in c_up:
+                    if "RUMAH" in c_up and "STATUS" not in c_up and "ALAMAT" not in c_up:
+                        input_values[col_name] = st.selectbox(f"{col_name}", daftar_blok_ada if daftar_blok_ada else ["B3-01"])
+                    elif "ALAMAT" in c_up or "RUMAH" in c_up and "STATUS" not in c_up:
                         input_values[col_name] = st.selectbox(f"{col_name}", daftar_blok_ada if daftar_blok_ada else ["B3-01"])
                     elif "JK" in c_up or "KELAMIN" in c_up:
                         input_values[col_name] = st.selectbox(f"{col_name}", ["L", "P"])
                     elif "HUBUNGAN" in c_up:
                         input_values[col_name] = st.selectbox(f"{col_name}", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"])
-                    elif "KAWIN" in c_up or ("STATUS" in c_up and ("NIKAH" in c_up or "PERKAWINAN" in c_up)):
-                        # Label diubah/disesuaikan khusus untuk status perkawinan
+                    elif "KAWIN" in c_up or "STATUS" in c_up and ("NIKAH" in c_up or "PERKAWINAN" in c_up):
+                        # Khusus kolom Status Perkawinan
                         input_values[col_name] = st.selectbox("Status Perkawinan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"])
                     elif "STATUS" in c_up and ("RUMAH" in c_up or "HUNIAN" in c_up):
-                        input_values[col_name] = st.selectbox(f"{col_name}", ["Tetap", "Sewa/Kontrak"])
+                        # Khusus kolom Status Rumah (Tetap, Sewa/Kontrak)
+                        input_values[col_name] = st.selectbox("Status Rumah", ["Tetap", "Sewa/Kontrak"])
                     elif "STATUS" in c_up and "DOMISILI" in c_up:
-                        input_values[col_name] = st.selectbox(f"{col_name}", ["Warga Tetap", "Warga Kontrak / Musiman"])
+                        input_values[col_name] = st.selectbox("Status Domisili", ["Warga Tetap", "Warga Kontrak / Musiman"])
                     elif "STATUS" in c_up:
                         input_values[col_name] = st.selectbox(f"{col_name}", ["Tetap", "Sewa/Kontrak", "Warga Tetap", "Warga Kontrak / Musiman"])
                     elif "AGAMA" in c_up:
