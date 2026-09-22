@@ -631,9 +631,8 @@ if not df.empty:
             st.rerun()
         st.subheader("🛠️ Kelola Data Warga (Input Warga Baru & Anggota Keluarga)")
 
-        st.markdown("💡 **Formulir Pilihan Baku & Otomatisasi Usia:** Kolom di bawah ini dilengkapi menu pilihan *dropdown* yang baku dan perhitungan usia otomatis.")
+        st.markdown("💡 **Formulir Isian Terstruktur:** Kolom **No.** dan **Status Rumah** telah dihilangkan. Isian Status Perkawinan (Belum Kawin, Kawin, dll) serta Status Rumah (Tetap, Sewa/Kontrak) kini menggunakan pilihan baku.")
 
-        # Ambil daftar unik blok rumah yang sudah ada jika tersedia
         df_ffill_form = df.copy()
         if col_rumah:
             df_ffill_form[col_rumah] = df_ffill_form[col_rumah].replace('', pd.NA).ffill()
@@ -647,33 +646,38 @@ if not df.empty:
         except:
             kolom_excel_asli = ["No. Rumah", "Nama Kepala Keluarga", "Nama Anggota Keluarga", "L/P", "Hubungan", "Tempat Lahir", "Tgl Lahir", "Usia", "Status", "Pendidikan", "Pekerjaan"]
 
-        with st.form("form_tambah_warga_dropdown", clear_on_submit=False):
+        with st.form("form_tambah_warga_dropdown_final", clear_on_submit=False):
             st.markdown("#### 📝 Form Input Isian Terstruktur:")
             
             input_values = {}
             col_f1, col_f2 = st.columns(2)
             mid_point = len(kolom_excel_asli) // 2
             
-            # Variabel penampung untuk perhitungan usia otomatis
             tgl_lhr, bln_lhr, thn_lhr = 1, 1, 1995
 
             for idx, col_name in enumerate(kolom_excel_asli):
+                c_up = str(col_name).upper()
+                
+                # Abaikan/skip kolom "NO", "STATUS RUMAH", "NO."
+                if c_up == "NO" or "STATUS RUMAH" in c_up or c_up == "NO.":
+                    continue
+
                 col_target = col_f1 if idx < mid_point else col_f2
                 with col_target:
-                    c_up = str(col_name).upper()
-                    
                     if "RUMAH" in c_up or "ALAMAT" in c_up:
                         input_values[col_name] = st.selectbox(f"{col_name}", daftar_blok_ada if daftar_blok_ada else ["B3-01"])
                     elif "JK" in c_up or "KELAMIN" in c_up:
                         input_values[col_name] = st.selectbox(f"{col_name}", ["L", "P"])
                     elif "HUBUNGAN" in c_up:
                         input_values[col_name] = st.selectbox(f"{col_name}", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"])
-                    elif "STATUS" in c_up and "RUMAH" in c_up:
-                        input_values[col_name] = st.selectbox(f"{col_name}", ["Milik Sendiri", "Kontrak / Sewa"])
+                    elif "STATUS" in c_up and ("KAWIN" in c_up or "NIKAH" in c_up):
+                        input_values[col_name] = st.selectbox(f"{col_name}", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"])
+                    elif "STATUS" in c_up and ("RUMAH" in c_up or "HUNIAN" in c_up):
+                        input_values[col_name] = st.selectbox(f"{col_name}", ["Tetap", "Sewa/Kontrak"])
                     elif "STATUS" in c_up and "DOMISILI" in c_up:
                         input_values[col_name] = st.selectbox(f"{col_name}", ["Warga Tetap", "Warga Kontrak / Musiman"])
                     elif "STATUS" in c_up:
-                        input_values[col_name] = st.selectbox(f"{col_name}", ["Warga Tetap", "Warga Kontrak / Musiman", "Kawin", "Belum Kawin"])
+                        input_values[col_name] = st.selectbox(f"{col_name}", ["Tetap", "Sewa/Kontrak", "Warga Tetap", "Warga Kontrak / Musiman"])
                     elif "AGAMA" in c_up:
                         input_values[col_name] = st.selectbox(f"{col_name}", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"])
                     elif "DARAH" in c_up or "GOL" in c_up:
@@ -694,7 +698,6 @@ if not df.empty:
                         bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
                         input_values[col_name] = f"{int(tgl_lhr):02d} {bulan_indo_nama.get(int(bln_lhr), '')} {int(thn_lhr)}"
                     elif "USIA" in c_up or "UMUR" in c_up:
-                        # Hitung usia otomatis secara instan
                         usia_otomatis = 2026 - int(thn_lhr)
                         if usia_otomatis < 0: usia_otomatis = 0
                         input_values[col_name] = st.number_input(f"{col_name} (Otomatis)", min_value=0, max_value=120, value=int(usia_otomatis))
@@ -705,7 +708,6 @@ if not df.empty:
                 try:
                     df_raw_excel = pd.read_excel(FILE_EXCEL_WARGA, header=3)
                     
-                    # Update usia otomatis pada dictionary jika kolom usia ada
                     for k in input_values:
                         if "USIA" in str(k).upper() or "UMUR" in str(k).upper():
                             input_values[k] = 2026 - int(thn_lhr)
@@ -727,7 +729,7 @@ if not df.empty:
                     wb.save(FILE_EXCEL_WARGA)
 
                     st.session_state.df_warga = load_data_rt06()
-                    st.success("✅ Data warga baru berhasil disimpan permanen ke database dengan pilihan baku!")
+                    st.success("✅ Data warga baru berhasil disimpan permanen ke database!")
                     time.sleep(1)
                     st.rerun()
                 except Exception as e:
