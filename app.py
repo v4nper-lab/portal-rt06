@@ -100,7 +100,7 @@ def muat_data_kas(file_path, default_df):
     if os.path.exists(file_path):
         try:
             df_disk = pd.read_csv(file_path)
-            if not df_disk.empty and "Tanggal" in df_disk.columns:
+            if not df_disk.empty:
                 return df_disk
         except:
             pass
@@ -339,7 +339,7 @@ if not df.empty:
         "📈 Grafik Demografi", 
         "🛠️ Kelola Warga", 
         "📊 Rekapitulasi Administrasi RW",
-        "💰 Laporan Kas RT & Sosial (Perelek R6 Suayunan)",
+        "💰 Laporan Kas RT & Sosial (Perelek R6 Sauyunan)",
         "🖨️ Cetak Rekap PDF"
     ]
     
@@ -428,8 +428,8 @@ if not df.empty:
             if st.button("📊 Rekapitulasi Administrasi RW", use_container_width=True):
                 st.session_state.selected_menu = "📊 Rekapitulasi Administrasi RW"
                 st.rerun()
-            if st.button("💰 Laporan Kas RT & Sosial (Perelek R6)", use_container_width=True):
-                st.session_state.selected_menu = "💰 Laporan Kas RT & Sosial (Perelek R6 Suayunan)"
+            if st.button("💰 Laporan Kas RT & Sosial (Perelek R6 Sauyunan)", use_container_width=True):
+                st.session_state.selected_menu = "💰 Laporan Kas RT & Sosial (Perelek R6 Sauyunan)"
                 st.rerun()
         with col_m2:
             if st.button("📈 Grafik Demografi", use_container_width=True):
@@ -714,12 +714,12 @@ if not df.empty:
         df_rekap_rw = pd.DataFrame(data_rekap_rw)
         st.dataframe(df_rekap_rw, use_container_width=True, hide_index=True)
 
-    elif menu == "💰 Laporan Kas RT & Sosial (Perelek R6 Suayunan)":
+    elif menu == "💰 Laporan Kas RT & Sosial (Perelek R6 Sauyunan)":
         if st.button("⬅️ Kembali ke Beranda"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
-        st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Penyimpanan Permanen Aktif:** Data kas yang Anda input atau *copy-paste* tersimpan aman ke file sistem lokal. Pada cetak PDF Kas Perelek, judul laporan diperbesar, posisi di tengah di atas tabel, lengkap dengan sub-judul **PERIODE TAHUN 2026** dan logo Perelek.")
+        st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Sauyunan)")
+        st.markdown("💡 **Penyimpanan Permanen Aktif:** Data kas yang Anda input atau *copy-paste* tersimpan aman ke file sistem lokal. Nama menu dan PDF kini telah disesuaikan menjadi **Perelek R6 Sauyunan**.")
         
         def format_rupiah_pdf(num):
             try:
