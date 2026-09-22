@@ -268,6 +268,11 @@ def load_data_rt06():
                     return val_str
                 df[c] = df[c].apply(format_tgl_indo)
             
+        # Urutkan secara otomatis berdasarkan kolom nomor rumah/alamat jika tersedia
+        col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
+        if col_rumah_sort:
+            df = df.sort_values(by=col_rumah_sort, key=lambda col: col.astype(str).str.lower()).reset_index(drop=True)
+            
         return df
     except Exception as e:
         st.error(f"Gagal memuat data warga: {e}")
@@ -279,7 +284,6 @@ if 'df_warga' not in st.session_state:
 df = st.session_state.df_warga
 
 if not df.empty:
-    # Identifikasi kolom secara aman dan toleran
     col_kk_candi = [c for c in df.columns if "KEPALA" in c or "KK" in c]
     col_kk = col_kk_candi[0] if col_kk_candi else df.columns[2]
     
@@ -424,20 +428,18 @@ if not df.empty:
             st.rerun()
         st.subheader("📋 Data Keseluruhan Warga & Manajemen Hapus")
         
-        st.markdown("💡 Anda dapat melihat seluruh data warga di bawah ini. Pilih nama anggota keluarga pada menu di bawah untuk menghapusnya secara otomatis.")
+        st.markdown("💡 Data di bawah ini otomatis terurut berdasarkan nomor blok rumah. Pilih nama anggota keluarga pada menu di bawah untuk menghapusnya secara otomatis.")
         st.dataframe(df, use_container_width=True, hide_index=True)
 
         st.markdown("---")
         st.subheader("🗑️ Hapus Data Warga Otomatis (Berdasarkan Kolom Anggota Keluarga)")
         
-        # Ekstraksi seluruh nilai dari kolom nama yang terdeteksi secara aman
         semua_nama_warga = []
         for col_name in df.columns:
             if "NAMA" in col_name or "ANGGOTA" in col_name or "WARGA" in col_name:
                 vals = df[col_name].dropna().astype(str).tolist()
                 semua_nama_warga.extend(vals)
         
-        # Fallback jika kolom spesifik tidak ketemu, ambil kolom ke-3 atau ke-4
         if not semua_nama_warga and len(df.columns) > 3:
             semua_nama_warga = df.iloc[:, 3].dropna().astype(str).tolist()
             
@@ -642,7 +644,7 @@ if not df.empty:
             st.rerun()
         st.subheader("🛠️ Kelola Data Warga (Input Warga Baru & Anggota Keluarga)")
 
-        st.markdown("💡 **Otomatisasi Usia & Blok:** Masukkan tanggal lahir, maka usia akan langsung terhitung otomatis. Penambahan anggota keluarga dapat dilakukan dalam satu form terpadu.")
+        st.markdown("💡 **Otomatisasi Usia & Blok:** Masukkan tanggal lahir, maka usia akan langsung terhitung otomatis. Hasil inputan akan otomatis tersimpan rapi dan **berurutan sesuai nomor blok rumah** persis seperti format pada menu Data Seluruh Warga.")
 
         with st.form("form_tambah_warga_terpadu", clear_on_submit=False):
             col_k1, col_k2 = st.columns(2)
@@ -713,6 +715,11 @@ if not df.empty:
 
                         df_updated_excel = pd.concat([df_raw_excel, pd.DataFrame([baris_baru_dict])], ignore_index=True)
 
+                        # Urutkan dataframe excel berdasarkan kolom blok rumah secara otomatis sebelum disimpan
+                        col_rumah_excel = next((col for col in df_updated_excel.columns if "RUMAH" in col or "ALAMAT" in col), None)
+                        if col_rumah_excel:
+                            df_updated_excel = df_updated_excel.sort_values(by=col_rumah_excel, key=lambda col: col.astype(str).str.lower()).reset_index(drop=True)
+
                         import openpyxl
                         wb = openpyxl.Workbook()
                         ws = wb.active
@@ -726,7 +733,7 @@ if not df.empty:
                         wb.save(FILE_EXCEL_WARGA)
 
                         st.session_state.df_warga = load_data_rt06()
-                        st.success(f"✅ Data warga **{nama_anggota_in}** (Usia: {usia_otomatis} Tahun) berhasil disimpan permanen!")
+                        st.success(f"✅ Data warga **{nama_anggota_in}** (Blok: {no_rumah_in}, Usia: {usia_otomatis} Thn) berhasil disimpan dan diurutkan otomatis!")
                         time.sleep(1)
                         st.rerun()
                     except Exception as e:
