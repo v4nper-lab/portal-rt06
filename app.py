@@ -421,61 +421,40 @@ if not df.empty:
         if st.button("⬅️ Kembali ke Beranda"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
-        st.subheader("📋 Data Keseluruhan Warga & Manajemen Hapus")
+        st.subheader("📋 Edit & Hapus Data Warga Langsung pada Tabel")
         
-        st.markdown("💡 Data di bawah ini ditampilkan persis sesuai urutan baris data asli pada file database Anda. Pilih nama anggota keluarga pada menu di bawah untuk menghapusnya secara otomatis.")
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.markdown("💡 **Mode Interaktif Excel:** Anda dapat langsung mengedit sel mana pun di tabel di bawah ini (ubah nama, usia, dll), atau mencentang baris untuk menghapusnya. Perubahan akan langsung tersimpan secara permanen ke database.")
 
-        st.markdown("---")
-        st.subheader("🗑️ Hapus Data Warga Otomatis (Berdasarkan Kolom Anggota Keluarga)")
-        
-        semua_nama_warga = []
-        for col_name in df.columns:
-            if "NAMA" in col_name or "ANGGOTA" in col_name or "WARGA" in col_name:
-                vals = df[col_name].dropna().astype(str).tolist()
-                semua_nama_warga.extend(vals)
-        
-        if not semua_nama_warga and len(df.columns) > 3:
-            semua_nama_warga = df.iloc[:, 3].dropna().astype(str).tolist()
-            
-        semua_nama_warga = sorted(list(set([n.strip() for n in semua_nama_warga if n.strip() and n.strip().lower() != 'nan'])))
+        # Komponen Tabel Interaktif (bisa edit dan hapus langsung seperti Excel)
+        edited_df = st.data_editor(
+            df,
+            num_rows="dynamic",
+            use_container_width=True,
+            key="editor_tabel_warga_interaktif"
+        )
 
-        if semua_nama_warga:
-            warga_dihapus = st.selectbox("Pilih Nama Anggota Keluarga yang akan Dihapus:", ["-- Pilih Nama Anggota --"] + semua_nama_warga)
-            
-            if warga_dihapus != "-- Pilih Nama Anggota --":
-                if st.button(f"⚠️ Hapus Anggota '{warga_dihapus}' Sekarang secara Permanen"):
-                    try:
-                        df_raw_excel = pd.read_excel(FILE_EXCEL_WARGA, header=3)
-                        
-                        def baris_bukan_warga(row):
-                            for val in row.values:
-                                if pd.notnull(val) and str(val).strip().lower() == warga_dihapus.strip().lower():
-                                    return False
-                            return True
+        # Tombol Simpan Perubahan Langsung dari Tabel Interaktif
+        if st.button("💾 Simpan Perubahan / Hapus ke Database"):
+            try:
+                if isinstance(edited_df, pd.DataFrame):
+                    import openpyxl
+                    wb = openpyxl.Workbook()
+                    ws = wb.active
+                    ws.title = "Data Warga"
+                    ws.append(["DATA WARGA RT 06 RW 14"])
+                    ws.append([])
+                    ws.append([])
+                    ws.append(list(edited_df.columns))
+                    for _, r in edited_df.iterrows():
+                        ws.append(list(r.values))
+                    wb.save(FILE_EXCEL_WARGA)
 
-                        df_filtered = df_raw_excel[df_raw_excel.apply(baris_bukan_warga, axis=1)].reset_index(drop=True)
-
-                        import openpyxl
-                        wb = openpyxl.Workbook()
-                        ws = wb.active
-                        ws.title = "Data Warga"
-                        ws.append(["DATA WARGA RT 06 RW 14"])
-                        ws.append([])
-                        ws.append([])
-                        ws.append(list(df_filtered.columns))
-                        for _, r in df_filtered.iterrows():
-                            ws.append(list(r.values))
-                        wb.save(FILE_EXCEL_WARGA)
-
-                        st.session_state.df_warga = load_data_rt06()
-                        st.success(f"✅ Data anggota keluarga **{warga_dihapus}** berhasil dihapus permanen dari database!")
-                        time.sleep(1)
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"❌ Gagal menghapus data: {e}")
-        else:
-            st.info("ℹ️ Belum ada data nama anggota keluarga yang terdeteksi untuk dihapus.")
+                    st.session_state.df_warga = load_data_rt06()
+                    st.success("✅ Perubahan dan pembaruan data warga berhasil disimpan permanen!")
+                    time.sleep(1)
+                    st.rerun()
+            except Exception as e:
+                st.error(f"❌ Gagal menyimpan perubahan: {e}")
 
     elif menu == "🗂️ Cetak Kartu Keluarga (KK)":
         if st.button("⬅️ Kembali ke Beranda"):
