@@ -268,19 +268,6 @@ def load_data_rt06():
                     return val_str
                 df[c] = df[c].apply(format_tgl_indo)
             
-        # Cari kolom rumah/alamat dan kepala keluarga untuk pengurutan dan pengelompokan yang sempurna
-        col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
-        col_kk_sort = next((col for col in df.columns if "KEPALA" in col or "KK" in col), None)
-        
-        if col_rumah_sort and col_kk_sort:
-            # Mengisi sel kosong ke bawah agar pengelompokan keluarga rapi
-            df[col_rumah_sort] = df[col_rumah_sort].fillna(method='ffill')
-            df[col_kk_sort] = df[col_kk_sort].fillna(method='ffill')
-            df = df.sort_values(by=[col_rumah_sort, col_kk_sort], key=lambda col: col.astype(str).str.lower()).reset_index(drop=True)
-        elif col_rumah_sort:
-            df[col_rumah_sort] = df[col_rumah_sort].fillna(method='ffill')
-            df = df.sort_values(by=col_rumah_sort, key=lambda col: col.astype(str).str.lower()).reset_index(drop=True)
-            
         return df
     except Exception as e:
         st.error(f"Gagal memuat data warga: {e}")
@@ -436,16 +423,8 @@ if not df.empty:
             st.rerun()
         st.subheader("📋 Data Keseluruhan Warga & Manajemen Hapus")
         
-        st.markdown("💡 Data di bawah ini telah dikelompokkan dan diurutkan secara rapi berdasarkan nomor blok rumah serta kepala keluarga. Pilih nama anggota keluarga pada menu di bawah untuk menghapusnya secara otomatis.")
-        
-        # Tampilkan DataFrame dengan pengisian sel kosong (ffill) agar kelompok keluarga terlihat jelas
-        df_tampil_bersih = df.copy()
-        if col_kk:
-            df_tampil_bersih[col_kk] = df_tampil_bersih[col_kk].ffill()
-        if col_rumah:
-            df_tampil_bersih[col_rumah] = df_tampil_bersih[col_rumah].ffill()
-            
-        st.dataframe(df_tampil_bersih, use_container_width=True, hide_index=True)
+        st.markdown("💡 Data di bawah ini ditampilkan persis sesuai urutan baris data asli pada file database Anda. Pilih nama anggota keluarga pada menu di bawah untuk menghapusnya secara otomatis.")
+        st.dataframe(df, use_container_width=True, hide_index=True)
 
         st.markdown("---")
         st.subheader("🗑️ Hapus Data Warga Otomatis (Berdasarkan Kolom Anggota Keluarga)")
@@ -660,7 +639,7 @@ if not df.empty:
             st.rerun()
         st.subheader("🛠️ Kelola Data Warga (Input Warga Baru & Anggota Keluarga)")
 
-        st.markdown("💡 **Otomatisasi Usia & Blok:** Masukkan tanggal lahir, maka usia akan langsung terhitung otomatis. Hasil inputan akan otomatis tersimpan rapi dan **berurutan sesuai nomor blok rumah & kepala keluarga**.")
+        st.markdown("💡 **Otomatisasi Usia & Blok:** Masukkan tanggal lahir, maka usia akan langsung terhitung otomatis. Data baru akan ditambahkan secara bersih ke dalam database.")
 
         with st.form("form_tambah_warga_terpadu", clear_on_submit=False):
             col_k1, col_k2 = st.columns(2)
@@ -731,15 +710,6 @@ if not df.empty:
 
                         df_updated_excel = pd.concat([df_raw_excel, pd.DataFrame([baris_baru_dict])], ignore_index=True)
 
-                        # Urutkan dataframe excel berdasarkan kolom blok rumah dan kepala keluarga
-                        col_rumah_excel = next((col for col in df_updated_excel.columns if "RUMAH" in col or "ALAMAT" in col), None)
-                        col_kk_excel = next((col for col in df_updated_excel.columns if "KEPALA" in col or "KK" in col), None)
-                        
-                        if col_rumah_excel and col_kk_excel:
-                            df_updated_excel = df_updated_excel.sort_values(by=[col_rumah_excel, col_kk_excel], key=lambda col: col.astype(str).str.lower()).reset_index(drop=True)
-                        elif col_rumah_excel:
-                            df_updated_excel = df_updated_excel.sort_values(by=col_rumah_excel, key=lambda col: col.astype(str).str.lower()).reset_index(drop=True)
-
                         import openpyxl
                         wb = openpyxl.Workbook()
                         ws = wb.active
@@ -753,7 +723,7 @@ if not df.empty:
                         wb.save(FILE_EXCEL_WARGA)
 
                         st.session_state.df_warga = load_data_rt06()
-                        st.success(f"✅ Data warga **{nama_anggota_in}** (Blok: {no_rumah_in}, Usia: {usia_otomatis} Thn) berhasil disimpan dan dikelompokkan otomatis!")
+                        st.success(f"✅ Data warga **{nama_anggota_in}** (Blok: {no_rumah_in}, Usia: {usia_otomatis} Thn) berhasil disimpan!")
                         time.sleep(1)
                         st.rerun()
                     except Exception as e:
