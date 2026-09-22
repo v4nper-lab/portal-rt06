@@ -631,7 +631,7 @@ if not df.empty:
             st.rerun()
         st.subheader("🛠️ Kelola Data Warga (Input Warga Baru & Anggota Keluarga)")
 
-        st.markdown("💡 **Formulir Isian Terstruktur Presisi:** Kolom 'Stus Rumah' yang salah sebelumnya telah diperbaiki sepenuhnya menjadi **Status Perkawinan** (*Belum Kawin, Kawin, Cerai Hidup, Cerai Mati*) dan ditempatkan sebelum Agama. Kolom **Status Rumah** (*Tetap, Sewa/Kontrak*) ditempatkan sebelum Domisili.")
+        st.markdown("💡 **Formulir Isian Terstruktur:** Status Perkawinan (*Belum Kawin, Kawin, Cerai Hidup, Cerai Mati*) dan Status Rumah (*Tetap, Sewa/Kontrak*) kini diatur secara eksplisit menggunakan pilihan *dropdown* yang benar.")
 
         df_ffill_form = df.copy()
         if col_rumah:
@@ -646,7 +646,7 @@ if not df.empty:
         except:
             kolom_excel_asli = list(df.columns)
 
-        with st.form("form_tambah_warga_paling_akurat_v2", clear_on_submit=False):
+        with st.form("form_tambah_warga_locked_v3", clear_on_submit=False):
             st.markdown("#### 📝 Form Input Isian Terstruktur:")
             
             input_values = {}
@@ -658,38 +658,38 @@ if not df.empty:
             for idx, col_name in enumerate(kolom_excel_asli):
                 c_up = str(col_name).upper()
                 
-                # Abaikan kolom nomor urut
                 if c_up == "NO" or c_up == "NO.":
                     continue
 
                 col_target = col_f1 if idx < mid_point else col_f2
                 with col_target:
-                    # Deteksi paksa berdasarkan nama kolom yang dimaksud agar tidak pernah salah lagi
+                    # KUNCI UTAMA: Identifikasi kolom secara tepat berdasarkan maksudnya
                     if "RUMAH" in c_up and "STATUS" not in c_up and "ALAMAT" not in c_up:
-                        input_values[col_name] = st.selectbox(f"{col_name} (Nomor Blok Rumah)", daftar_blok_ada if daftar_blok_ada else ["B3-01"])
+                        input_values[col_name] = st.selectbox("No. Rumah", daftar_blok_ada if daftar_blok_ada else ["B3-01"])
                     elif "ALAMAT" in c_up:
-                        input_values[col_name] = st.selectbox(f"{col_name} (Nomor Blok Rumah)", daftar_blok_ada if daftar_blok_ada else ["B3-01"])
+                        input_values[col_name] = st.selectbox("No. Rumah", daftar_blok_ada if daftar_blok_ada else ["B3-01"])
                     elif "JK" in c_up or "KELAMIN" in c_up:
-                        input_values[col_name] = st.selectbox(f"{col_name}", ["L", "P"])
+                        input_values[col_name] = st.selectbox("L/P", ["L", "P"])
                     elif "HUBUNGAN" in c_up:
-                        input_values[col_name] = st.selectbox(f"{col_name}", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"])
-                    elif "KAWIN" in c_up or "NIKAH" in c_up or ("STATUS" in c_up and ("KAWIN" in c_up or "NIKAH" in c_up or "PERKAWINAN" in c_up)) or "STUS" in c_up:
-                        # KOREKSI TOTAL: Mengatasi string "Stus Rumah" dari excel agar menjadi Status Perkawinan
+                        input_values[col_name] = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"])
+                    elif "KAWIN" in c_up or "NIKAH" in c_up or "PERKAWINAN" in c_up or "STUS" in c_up and "RUMAH" not in c_up:
+                        # Paksa jadi Status Perkawinan dengan dropdown baku
                         input_values[col_name] = st.selectbox("Status Perkawinan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"])
                     elif "STATUS" in c_up and ("RUMAH" in c_up or "HUNIAN" in c_up):
+                        # Paksa jadi Status Rumah dengan pilihan Tetap atau Sewa/Kontrak
                         input_values[col_name] = st.selectbox("Status Rumah", ["Tetap", "Sewa/Kontrak"])
                     elif "STATUS" in c_up and "DOMISILI" in c_up:
                         input_values[col_name] = st.selectbox("Status Domisili", ["Warga Tetap", "Warga Kontrak / Musiman"])
                     elif "AGAMA" in c_up:
-                        input_values[col_name] = st.selectbox(f"{col_name}", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"])
+                        input_values[col_name] = st.selectbox("Agama", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"])
                     elif "DARAH" in c_up or "GOL" in c_up:
-                        input_values[col_name] = st.selectbox(f"{col_name}", ["A", "B", "AB", "O", "-"])
+                        input_values[col_name] = st.selectbox("Gol. Darah", ["A", "B", "AB", "O", "-"])
                     elif "SUKU" in c_up or "ETNIS" in c_up:
-                        input_values[col_name] = st.selectbox(f"{col_name}", ["Sunda", "Jawa", "Padang", "Batak", "Betawi", "Lainnya"])
+                        input_values[col_name] = st.selectbox("Etnis / Suku", ["Sunda", "Jawa", "Padang", "Batak", "Betawi", "Lainnya"])
                     elif "PENDIDIKAN" in c_up:
-                        input_values[col_name] = st.selectbox(f"{col_name}", ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma / Sarjana (S1/S2/S3)", "Belum / Tidak Sekolah"])
+                        input_values[col_name] = st.selectbox("Pendidikan", ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma / Sarjana (S1/S2/S3)", "Belum / Tidak Sekolah"])
                     elif "PEKERJAAN" in c_up:
-                        input_values[col_name] = st.selectbox(f"{col_name}", ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar / Mahasiswa", "PNS / TNI / Polri"])
+                        input_values[col_name] = st.selectbox("Pekerjaan", ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar / Mahasiswa", "PNS / TNI / Polri"])
                     elif "LAHIR" in c_up and ("TGL" in c_up or "TANGGAL" in c_up):
                         st.markdown(f"📅 **{col_name} (Format Isian):**")
                         c_t1, c_t2, c_t3 = st.columns(3)
@@ -702,7 +702,7 @@ if not df.empty:
                     elif "USIA" in c_up or "UMUR" in c_up:
                         usia_otomatis = 2026 - int(thn_lhr)
                         if usia_otomatis < 0: usia_otomatis = 0
-                        input_values[col_name] = st.number_input(f"{col_name} (Otomatis)", min_value=0, max_value=120, value=int(usia_otomatis), key=f"usia_{col_name}")
+                        input_values[col_name] = st.number_input("Usia (Otomatis)", min_value=0, max_value=120, value=int(usia_otomatis), key=f"usia_{col_name}")
                     else:
                         input_values[col_name] = st.text_input(f"{col_name}", key=f"txt_{col_name}")
 
