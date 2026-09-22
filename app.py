@@ -423,11 +423,11 @@ if not df.empty:
             st.rerun()
         st.subheader("📋 Edit & Hapus Data Warga Langsung pada Tabel")
         
-        st.markdown("💡 **Mode Interaktif Excel:** Anda dapat langsung mengedit sel mana pun di tabel di bawah ini, atau menghapus baris data. Warga dengan status **Kontrak / Musiman** otomatis diberi **warna latar kuning lembut**.")
+        st.markdown("💡 **Mode Interaktif Excel:** Anda dapat langsung mengedit sel mana pun di tabel di bawah ini, atau menghapus baris data. Warga dengan status **Kontrak / Musiman / luar NM** otomatis diberi **warna latar kuning lembut**.")
 
         def highlight_status_musiman(row):
             row_str = str(row.values).lower()
-            if "kontrak" in row_str or "musiman" in row_str or "sewa" in row_str:
+            if "kontrak" in row_str or "musiman" in row_str or "sewa" in row_str or "luar nm" in row_str:
                 return ['background-color: #fef08a'] * len(row)
             return [''] * len(row)
 
@@ -632,7 +632,7 @@ if not df.empty:
             st.rerun()
         st.subheader("🛠️ Kelola Data Warga (Input Warga Baru & Anggota Keluarga)")
 
-        st.markdown("💡 **Formulir Isian Terstruktur:** Status Perkawinan (*Belum Kawin, Kawin, Cerai Hidup, Cerai Mati*) dan Status Rumah (*Tetap, Sewa/Kontrak*) kini diatur secara eksplisit menggunakan pilihan *dropdown* yang benar.")
+        st.markdown("💡 **Formulir Isian Terstruktur Bersih:** Kolom nomor rumah tunggal, Status Perkawinan (sebelum Agama), Status Rumah (*Tetap, Sewa/Kontrak*), dan Status Domisili (*Nanjung Mekar, luar NM*) telah diatur secara rapi dan presisi.")
 
         df_ffill_form = df.copy()
         if col_rumah:
@@ -641,80 +641,93 @@ if not df.empty:
         else:
             daftar_blok_ada = ["B3-01", "B3-02", "B3-03", "B4-01", "B4-02"]
 
-        try:
-            df_template_excel = pd.read_excel(FILE_EXCEL_WARGA, header=3)
-            kolom_excel_asli = [c for c in df_template_excel.columns if not str(c).upper().startswith("UNNAMED")]
-        except:
-            kolom_excel_asli = list(df.columns)
-
-        with st.form("form_tambah_warga_strict_final", clear_on_submit=False):
+        with st.form("form_tambah_warga_perfect_v5", clear_on_submit=False):
             st.markdown("#### 📝 Form Input Isian Terstruktur:")
             
-            input_values = {}
             col_f1, col_f2 = st.columns(2)
-            mid_point = len(kolom_excel_asli) // 2
             
             tgl_lhr, bln_lhr, thn_lhr = 1, 1, 1995
 
-            for idx, col_name in enumerate(kolom_excel_asli):
-                c_up = str(col_name).upper()
+            # Kolom Kiri (Data Identitas & Keluarga)
+            with col_f1:
+                in_no_rumah = st.selectbox("No. Rumah", daftar_blok_ada if daftar_blok_ada else ["B3-01"], key="in_no_rmh_v5")
+                in_nama_kk = st.text_input("Nama Kepala Keluarga", key="in_nama_kk_v5")
+                in_nama_anggota = st.text_input("Nama Lengkap Anggota Keluarga", key="in_nama_anggota_v5")
+                in_jk = st.selectbox("L/P (Jenis Kelamin)", ["L", "P"], key="in_jk_v5")
+                in_hub = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"], key="in_hub_v5")
+                in_tmplhr = st.text_input("Tempat Lahir", key="in_tmplhr_v5")
                 
-                if c_up == "NO" or c_up == "NO.":
-                    continue
+                st.markdown("📅 **Tanggal Lahir:**")
+                c_t1, c_t2, c_t3 = st.columns(3)
+                with c_t1: tgl_lhr = st.number_input("Tgl", min_value=1, max_value=31, value=1, key="in_tgl_v5")
+                with c_t2: bln_lhr = st.number_input("Bln", min_value=1, max_value=12, value=8, key="in_bln_v5")
+                with c_t3: thn_lhr = st.number_input("Thn", min_value=1900, max_value=2026, value=1995, key="in_thn_v5")
+                
+                bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
+                in_tgllhr = f"{int(tgl_lhr):02d} {bulan_indo_nama.get(int(bln_lhr), '')} {int(thn_lhr)}"
 
-                col_target = col_f1 if idx < mid_point else col_f2
-                unique_key_widget = f"field_input_{idx}_{col_name}"
+            # Kolom Kanan (Demografi, Status, Pekerjaan, dll)
+            with col_f2:
+                usia_otomatis = 2026 - int(thn_lhr)
+                if usia_otomatis < 0: usia_otomatis = 0
+                in_usia = st.number_input("Usia (Otomatis)", min_value=0, max_value=120, value=int(usia_otomatis), key="in_usia_auto_v5")
                 
-                with col_target:
-                    if "RUMAH" in c_up and "STATUS" not in c_up and "ALAMAT" not in c_up:
-                        input_values[col_name] = st.selectbox("No. Rumah", daftar_blok_ada if daftar_blok_ada else ["B3-01"], key=unique_key_widget)
-                    elif "ALAMAT" in c_up:
-                        input_values[col_name] = st.selectbox("No. Rumah", daftar_blok_ada if daftar_blok_ada else ["B3-01"], key=unique_key_widget)
-                    elif "JK" in c_up or "KELAMIN" in c_up:
-                        input_values[col_name] = st.selectbox("L/P", ["L", "P"], key=unique_key_widget)
-                    elif "HUBUNGAN" in c_up:
-                        input_values[col_name] = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"], key=unique_key_widget)
-                    elif "KAWIN" in c_up or "NIKAH" in c_up or "PERKAWINAN" in c_up or "STUS" in c_up and "RUMAH" not in c_up:
-                        input_values[col_name] = st.selectbox("Status Perkawinan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"], key=unique_key_widget)
-                    elif "STATUS" in c_up and ("RUMAH" in c_up or "HUNIAN" in c_up):
-                        input_values[col_name] = st.selectbox("Status Rumah", ["Tetap", "Sewa/Kontrak"], key=unique_key_widget)
-                    elif "STATUS" in c_up and "DOMISILI" in c_up:
-                        input_values[col_name] = st.selectbox("Status Domisili", ["Warga Tetap", "Warga Kontrak / Musiman"], key=unique_key_widget)
-                    elif "AGAMA" in c_up:
-                        input_values[col_name] = st.selectbox("Agama", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"], key=unique_key_widget)
-                    elif "DARAH" in c_up or "GOL" in c_up:
-                        input_values[col_name] = st.selectbox("Gol. Darah", ["A", "B", "AB", "O", "-"], key=unique_key_widget)
-                    elif "SUKU" in c_up or "ETNIS" in c_up:
-                        input_values[col_name] = st.selectbox("Etnis / Suku", ["Sunda", "Jawa", "Padang", "Batak", "Betawi", "Lainnya"], key=unique_key_widget)
-                    elif "PENDIDIKAN" in c_up:
-                        input_values[col_name] = st.selectbox("Pendidikan", ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma / Sarjana (S1/S2/S3)", "Belum / Tidak Sekolah"], key=unique_key_widget)
-                    elif "PEKERJAAN" in c_up:
-                        input_values[col_name] = st.selectbox("Pekerjaan", ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar / Mahasiswa", "PNS / TNI / Polri"], key=unique_key_widget)
-                    elif "LAHIR" in c_up and ("TGL" in c_up or "TANGGAL" in c_up):
-                        st.markdown(f"📅 **{col_name} (Format Isian):**")
-                        c_t1, c_t2, c_t3 = st.columns(3)
-                        with c_t1: tgl_lhr = st.number_input("Tgl", min_value=1, max_value=31, value=1, key=f"tgl_{idx}_{col_name}")
-                        with c_t2: bln_lhr = st.number_input("Bln", min_value=1, max_value=12, value=8, key=f"bln_{idx}_{col_name}")
-                        with c_t3: thn_lhr = st.number_input("Thn", min_value=1900, max_value=2026, value=1995, key=f"thn_{idx}_{col_name}")
-                        
-                        bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
-                        input_values[col_name] = f"{int(tgl_lhr):02d} {bulan_indo_nama.get(int(bln_lhr), '')} {int(thn_lhr)}"
-                    elif "USIA" in c_up or "UMUR" in c_up:
-                        usia_otomatis = 2026 - int(thn_lhr)
-                        if usia_otomatis < 0: usia_otomatis = 0
-                        input_values[col_name] = st.number_input("Usia (Otomatis)", min_value=0, max_value=120, value=int(usia_otomatis), key=unique_key_widget)
-                    else:
-                        input_values[col_name] = st.text_input(f"{col_name}", key=unique_key_widget)
+                # 1. Status Perkawinan (Tepat sebelum Agama)
+                in_status_nikah = st.selectbox("Status Perkawinan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"], key="in_status_nikah_v5")
+                in_agama = st.selectbox("Agama", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"], key="in_agama_v5")
+                in_goldarah = st.selectbox("Gol. Darah", ["A", "B", "AB", "O", "-"], key="in_goldarah_v5")
+                in_suku = st.selectbox("Etnis / Suku", ["Sunda", "Jawa", "Padang", "Batak", "Betawi", "Lainnya"], key="in_suku_v5")
+                in_pend = st.selectbox("Pendidikan", ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma / Sarjana (S1/S2/S3)", "Belum / Tidak Sekolah"], key="in_pend_v5")
+                in_pek = st.selectbox("Pekerjaan", ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar / Mahasiswa", "PNS / TNI / Polri"], key="in_pek_v5")
+                
+                # 2. Status Rumah (Tetap, Sewa/Kontrak) tepat sebelum Status Domisili
+                in_status_rumah = st.selectbox("Status Rumah", ["Tetap", "Sewa/Kontrak"], key="in_status_rumah_v5")
+                
+                # 3. Status Domisili (Nanjung Mekar, luar NM)
+                in_status_domisili = st.selectbox("Status Domisili", ["Nanjung Mekar", "luar NM"], key="in_status_domisili_v5")
 
             if st.form_submit_button("💾 Simpan Data ke Database Warga"):
                 try:
                     df_raw_excel = pd.read_excel(FILE_EXCEL_WARGA, header=3)
+                    df_raw_excel.columns = df_raw_excel.columns.astype(str).str.strip().str.upper()
                     
-                    for k in input_values:
-                        if "USIA" in str(k).upper() or "UMUR" in str(k).upper():
-                            input_values[k] = 2026 - int(thn_lhr)
-
-                    baris_baru_dict = {c: input_values.get(c, "-") for c in df_raw_excel.columns}
+                    baris_baru_dict = {}
+                    for col_excel in df_raw_excel.columns:
+                        c_up = str(col_excel).upper()
+                        if "RUMAH" in c_up and "STATUS" not in c_up or "ALAMAT" in c_up:
+                            baris_baru_dict[col_excel] = in_no_rumah
+                        elif "KEPALA" in c_up or "KK" in c_up:
+                            baris_baru_dict[col_excel] = in_nama_kk
+                        elif "ANGGOTA" in c_up or "NAMA" in c_up:
+                            baris_baru_dict[col_excel] = in_nama_anggota
+                        elif "JK" in c_up or "KELAMIN" in c_up:
+                            baris_baru_dict[col_excel] = in_jk
+                        elif "HUBUNGAN" in c_up:
+                            baris_baru_dict[col_excel] = in_hub
+                        elif "TEMPAT" in c_up:
+                            baris_baru_dict[col_excel] = in_tmplhr
+                        elif "LAHIR" in c_up and ("TGL" in c_up or "TANGGAL" in c_up):
+                            baris_baru_dict[col_excel] = in_tgllhr
+                        elif "USIA" in c_up or "UMUR" in c_up:
+                            baris_baru_dict[col_excel] = 2026 - int(thn_lhr)
+                        elif "KAWIN" in c_up or "NIKAH" in c_up or "PERKAWINAN" in c_up or "STUS" in c_up and "RUMAH" not in c_up:
+                            baris_baru_dict[col_excel] = in_status_nikah
+                        elif "AGAMA" in c_up:
+                            baris_baru_dict[col_excel] = in_agama
+                        elif "DARAH" in c_up or "GOL" in c_up:
+                            baris_baru_dict[col_excel] = in_goldarah
+                        elif "SUKU" in c_up or "ETNIS" in c_up:
+                            baris_baru_dict[col_excel] = in_suku
+                        elif "PENDIDIKAN" in c_up:
+                            baris_baru_dict[col_excel] = in_pend
+                        elif "PEKERJAAN" in c_up:
+                            baris_baru_dict[col_excel] = in_pek
+                        elif "STATUS" in c_up and ("RUMAH" in c_up or "HUNIAN" in c_up):
+                            baris_baru_dict[col_excel] = in_status_rumah
+                        elif "STATUS" in c_up and "DOMISILI" in c_up:
+                            baris_baru_dict[col_excel] = in_status_domisili
+                        else:
+                            baris_baru_dict[col_excel] = "-"
 
                     df_updated_excel = pd.concat([df_raw_excel, pd.DataFrame([baris_baru_dict])], ignore_index=True)
 
