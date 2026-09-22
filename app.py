@@ -279,11 +279,12 @@ if 'df_warga' not in st.session_state:
 df = st.session_state.df_warga
 
 if not df.empty:
+    # Identifikasi kolom secara aman dan toleran
     col_kk_candi = [c for c in df.columns if "KEPALA" in c or "KK" in c]
     col_kk = col_kk_candi[0] if col_kk_candi else df.columns[2]
     
     col_nama_candi = [c for c in df.columns if "ANGGOTA" in c or "NAMA" in c]
-    col_nama = col_nama_candi[0] if col_nama_candi else df.columns[3]
+    col_nama = col_nama_candi[0] if col_nama_candi else (df.columns[3] if len(df.columns) > 3 else df.columns[0])
     
     col_rumah_candi = [c for c in df.columns if "RUMAH" in c or "ALAMAT" in c]
     col_rumah = col_rumah_candi[0] if col_rumah_candi else None
@@ -423,21 +424,33 @@ if not df.empty:
             st.rerun()
         st.subheader("📋 Data Keseluruhan Warga & Manajemen Hapus")
         
-        st.markdown("💡 Anda dapat melihat seluruh data warga di bawah ini. Jika ada data warga yang ingin dihapus secara otomatis, pilih nama anggota keluarga pada menu di bawah.")
+        st.markdown("💡 Anda dapat melihat seluruh data warga di bawah ini. Pilih nama anggota keluarga pada menu di bawah untuk menghapusnya secara otomatis.")
         st.dataframe(df, use_container_width=True, hide_index=True)
 
         st.markdown("---")
-        st.subheader("🗑️ Hapus Data Warga Otomatis (Berdasarkan Nama Anggota)")
-        if not df.empty and col_nama:
-            daftar_nama_anggota = sorted(df[col_nama].dropna().astype(str).tolist())
-            warga_dihapus = st.selectbox("Pilih Nama Anggota Keluarga yang akan Dihapus:", ["-- Pilih Nama Anggota --"] + daftar_nama_anggota)
+        st.subheader("🗑️ Hapus Data Warga Otomatis (Berdasarkan Kolom Anggota Keluarga)")
+        
+        # Ekstraksi seluruh nilai dari kolom nama yang terdeteksi secara aman
+        semua_nama_warga = []
+        for col_name in df.columns:
+            if "NAMA" in col_name or "ANGGOTA" in col_name or "WARGA" in col_name:
+                vals = df[col_name].dropna().astype(str).tolist()
+                semua_nama_warga.extend(vals)
+        
+        # Fallback jika kolom spesifik tidak ketemu, ambil kolom ke-3 atau ke-4
+        if not semua_nama_warga and len(df.columns) > 3:
+            semua_nama_warga = df.iloc[:, 3].dropna().astype(str).tolist()
+            
+        semua_nama_warga = sorted(list(set([n.strip() for n in semua_nama_warga if n.strip() and n.strip().lower() != 'nan'])))
+
+        if semua_nama_warga:
+            warga_dihapus = st.selectbox("Pilih Nama Anggota Keluarga yang akan Dihapus:", ["-- Pilih Nama Anggota --"] + semua_nama_warga)
             
             if warga_dihapus != "-- Pilih Nama Anggota --":
                 if st.button(f"⚠️ Hapus Anggota '{warga_dihapus}' Sekarang secara Permanen"):
                     try:
                         df_raw_excel = pd.read_excel(FILE_EXCEL_WARGA, header=3)
                         
-                        # Filter baris yang kolom nama anggota keluarganya tidak sama persis dengan yang dipilih
                         def baris_bukan_warga(row):
                             for val in row.values:
                                 if pd.notnull(val) and str(val).strip().lower() == warga_dihapus.strip().lower():
@@ -464,6 +477,8 @@ if not df.empty:
                         st.rerun()
                     except Exception as e:
                         st.error(f"❌ Gagal menghapus data: {e}")
+        else:
+            st.info("ℹ️ Belum ada data nama anggota keluarga yang terdeteksi untuk dihapus.")
 
     elif menu == "🗂️ Cetak Kartu Keluarga (KK)":
         if st.button("⬅️ Kembali ke Beranda"):
