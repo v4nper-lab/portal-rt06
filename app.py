@@ -112,38 +112,14 @@ def simpan_data_kas(file_path, df):
     except:
         pass
 
-# Inisialisasi Data Kas RT
+# Inisialisasi Data Kas RT (Mulai bersih kosong jika belum ada file tersimpan)
 if 'df_kas_rt_state' not in st.session_state:
-    default_rt = pd.DataFrame({
-        "Tanggal": ["01/06/2026", "05/06/2026", "12/06/2026", "20/06/2026"],
-        "Uraian / Keterangan Transaksi": [
-            "Saldo Awal Periode Lalu", 
-            "Penerimaan Iuran Warga Bulanan (Periode Juni)", 
-            "Pengeluaran Perbaikan Lampu Penerangan Jalan RT", 
-            "Pengeluaran Konsumsi Rapat Koordinasi Warga"
-        ],
-        "Debet (Masuk)": [1500000.0, 2400000.0, 0.0, 0.0],
-        "Kredit (Keluar)": [0.0, 0.0, 350000.0, 150000.0]
-    })
+    default_rt = pd.DataFrame(columns=["Tanggal", "Uraian / Keterangan Transaksi", "Debet (Masuk)", "Kredit (Keluar)"])
     st.session_state.df_kas_rt_state = muat_data_kas(FILE_KAS_RT, default_rt)
 
-# Inisialisasi Data Kas Sosial
+# Inisialisasi Data Kas Sosial (Mulai bersih kosong jika belum ada file tersimpan)
 if 'df_kas_sosial_state' not in st.session_state:
-    default_sosial = pd.DataFrame({
-        "Tanggal": ["01/06/2026", "05/06/2026", "10/06/2026", "15/06/2026", "20/06/2026", "25/06/2026", "28/06/2026", "30/06/2026"],
-        "Uraian / Keterangan Transaksi": [
-            "Saldo Awal Kotak Sosial Perelek",
-            "Penerimaan Perelek Warga Minggu ke-1",
-            "Penerimaan Perelek Warga Minggu ke-2",
-            "Pengeluaran Bantuan Warga Sakit",
-            "Penerimaan Perelek Warga Minggu ke-3",
-            "Pengeluaran Santunan Kedukaan",
-            "Penerimaan Perelek Warga Minggu ke-4",
-            "Saldo Akhir Kas Sosial"
-        ],
-        "Debet (Masuk)": [750000.0, 150000.0, 150000.0, 0.0, 150000.0, 0.0, 150000.0, 0.0],
-        "Kredit (Keluar)": [0.0, 0.0, 0.0, 200000.0, 0.0, 250000.0, 0.0, 0.0]
-    })
+    default_sosial = pd.DataFrame(columns=["Tanggal", "Uraian / Keterangan Transaksi", "Debet (Masuk)", "Kredit (Keluar)"])
     st.session_state.df_kas_sosial_state = muat_data_kas(FILE_KAS_SOSIAL, default_sosial)
 
 def parsing_angka_aman(val):
@@ -176,6 +152,9 @@ def format_Rupiah(num):
         return "-"
 
 def hitung_dan_tampilkan_tabel_tunggal(df_input):
+    if df_input.empty:
+        return pd.DataFrame(columns=["Tanggal", "Uraian / Keterangan Transaksi", "Debet (Masuk)", "Kredit (Keluar)", "Saldo (Rp)"])
+        
     df = df_input.copy()
     curr = 0.0
     
@@ -702,11 +681,19 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Input & Rekapitulasi Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Sauyunan)")
-        st.markdown("💡 **Sistem Input Formulir Akuntansi:** Gunakan formulir di bawah ini untuk menambahkan transaksi baru secara akurat. Data dijamin tersimpan permanen dan langsung menghasilkan rekapan akuntansi yang benar.")
+        st.markdown("💡 **Sistem Input Formulir Akuntansi:** Gunakan formulir di bawah ini untuk menambahkan transaksi baru secara akurat. Anda juga dapat membersihkan data awal kapan saja menggunakan tombol reset.")
 
         def render_buku_kas_formulir(state_key, file_path, judul_buku, file_pdf_name, judul_pdf, pakai_logo=False):
             st.markdown(f"### 📝 Tambah Transaksi Baru: {judul_buku}")
             
+            # Tombol Bersihkan Semua Data dari Awal
+            if st.button(f"🧹 Bersihkan Semua Data (Mulai dari Awal) - {judul_buku}", key=f"reset_{state_key}"):
+                empty_df = pd.DataFrame(columns=["Tanggal", "Uraian / Keterangan Transaksi", "Debet (Masuk)", "Kredit (Keluar)"])
+                st.session_state[state_key] = empty_df
+                simpan_data_kas(file_path, empty_df)
+                st.success(f"✅ Data {judul_buku} berhasil dikosongkan. Silakan mulai input dari awal!")
+                st.rerun()
+
             # Formulir Input Transaksi Baru ala Kelola Warga
             with st.form(f"form_tambah_{state_key}", clear_on_submit=True):
                 col_f1, col_f2 = st.columns(2)
@@ -739,20 +726,20 @@ if not df.empty:
             df_sumber = st.session_state[state_key].copy()
             df_tampil_live = hitung_dan_tampilkan_tabel_tunggal(df_sumber)
 
-            # Tombol Opsi Hapus Baris Terakhir atau Reset Tabel
-            col_aksi1, col_aksi2 = st.columns([2, 2])
-            with col_aksi1:
-                if st.button(f"🗑️ Hapus Baris Transaksi Terakhir ({judul_buku})", key=f"del_{state_key}"):
-                    if len(df_sumber) > 1:
-                        df_sumber = df_sumber.iloc[:-1].reset_index(drop=True)
-                        st.session_state[state_key] = df_sumber
-                        simpan_data_kas(file_path, df_sumber)
-                        st.success("✅ Baris transaksi terakhir berhasil dihapus!")
-                        st.rerun()
-                    else:
-                        st.warning("⚠️ Tidak dapat menghapus baris awal utama!")
+            if df_tampil_live.empty:
+                st.info("ℹ️ Belum ada transaksi tercatat. Silakan tambahkan transaksi melalui formulir di atas.")
+            else:
+                col_aksi1, col_aksi2 = st.columns([2, 2])
+                with col_aksi1:
+                    if st.button(f"🗑️ Hapus Baris Transaksi Terakhir ({judul_buku})", key=f"del_{state_key}"):
+                        if len(df_sumber) > 0:
+                            df_sumber = df_sumber.iloc[:-1].reset_index(drop=True)
+                            st.session_state[state_key] = df_sumber
+                            simpan_data_kas(file_path, df_sumber)
+                            st.success("✅ Baris transaksi terakhir berhasil dihapus!")
+                            st.rerun()
 
-            st.dataframe(df_tampil_live, use_container_width=True, hide_index=True)
+                st.dataframe(df_tampil_live, use_container_width=True, hide_index=True)
 
             def format_rupiah_pdf(num):
                 try:
