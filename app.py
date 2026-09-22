@@ -407,6 +407,21 @@ if not df.empty:
                 st.session_state.selected_menu = "🖨️ Cetak Rekap PDF"
                 st.rerun()
 
+        for _ in range(5):
+            waktu_sekarang = datetime.now(ZoneInfo("Asia/Jakarta"))
+            bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
+            tgl_str = f"{waktu_sekarang.day:02d} {bulan_indo_nama.get(waktu_sekarang.month, '')} {waktu_sekarang.year}"
+            jam_str = waktu_sekarang.strftime("%H:%M:%S")
+            
+            placeholder_waktu.markdown(f"""
+            <div style="background: rgba(255, 255, 255, 0.9); border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 10px; text-align: right;">
+                <span style="font-size: 10px; color: #64748b;">🕒 Live Update (WIB):</span><br>
+                <strong style="font-size: 12px; color: #0f172a;">{tgl_str} | {jam_str} WIB</strong>
+            </div>
+            """, unsafe_allow_html=True)
+            time.sleep(1)
+        st.rerun()
+
     elif menu == "📋 Data Seluruh Warga":
         if st.button("⬅️ Kembali ke Beranda", key="back_warga"):
             st.session_state.selected_menu = "Beranda / Dashboard"
@@ -622,7 +637,7 @@ if not df.empty:
             st.rerun()
         st.subheader("🛠️ Kelola Data Warga (Input Warga Baru & Anggota Keluarga)")
 
-        st.markdown("💡 **Formulir Isian Terstruktur Bersih:** Kolom nomor rumah tunggal, Status Perkawinan (sebelum Agama), Status Rumah (*Tetap, Sewa/Kontrak*), dan Status Domisili (*Nanjung Mekar, luar NM*) telah diatur secara rapi dan presisi.")
+        st.markdown("💡 **Formulir Isian Sesuai Tabel Excel:** Urutan dan nama kolom input disesuaikan persis dengan output tabel Data Seluruh Warga (Status Perkawinan sebelum Agama, serta Status Rumah & Status Domisili di ujung kanan).")
 
         df_ffill_form = df.copy()
         if col_rumah:
@@ -631,50 +646,45 @@ if not df.empty:
         else:
             daftar_blok_ada = ["B3-01", "B3-02", "B3-03", "B4-01", "B4-02"]
 
-        with st.form("form_tambah_warga_perfect_v6", clear_on_submit=False):
+        with st.form("form_tambah_warga_exact_match", clear_on_submit=False):
             st.markdown("#### 📝 Form Input Isian Terstruktur:")
             
             col_f1, col_f2 = st.columns(2)
             
             tgl_lhr, bln_lhr, thn_lhr = 1, 1, 1995
 
-            # Kolom Kiri (Data Identitas & Keluarga)
+            # Kolom Kiri
             with col_f1:
-                in_no_rumah = st.selectbox("No. Rumah", daftar_blok_ada if daftar_blok_ada else ["B3-01"], key="in_no_rmh_v6")
-                in_nama_kk = st.text_input("Nama Kepala Keluarga", key="in_nama_kk_v6")
-                in_nama_anggota = st.text_input("Nama Lengkap Anggota Keluarga", key="in_nama_anggota_v6")
-                in_jk = st.selectbox("L/P (Jenis Kelamin)", ["L", "P"], key="in_jk_v6")
-                in_hub = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"], key="in_hub_v6")
-                in_tmplhr = st.text_input("Tempat Lahir", key="in_tmplhr_v6")
+                in_no_rumah = st.selectbox("No. Rumah", daftar_blok_ada if daftar_blok_ada else ["B3-01"], key="in_no_rmh_v7")
+                in_nama_kk = st.text_input("Nama Kepala Keluarga", key="in_nama_kk_v7")
+                in_nama_anggota = st.text_input("Nama Lengkap Anggota Keluarga", key="in_nama_anggota_v7")
+                in_jk = st.selectbox("L/P", ["L", "P"], key="in_jk_v7")
+                in_hub = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"], key="in_hub_v7")
+                in_tmplhr = st.text_input("Tempat Lahir", key="in_tmplhr_v7")
                 
                 st.markdown("📅 **Tanggal Lahir:**")
                 c_t1, c_t2, c_t3 = st.columns(3)
-                with c_t1: tgl_lhr = st.number_input("Tgl", min_value=1, max_value=31, value=1, key="in_tgl_v6")
-                with c_t2: bln_lhr = st.number_input("Bln", min_value=1, max_value=12, value=8, key="in_bln_v6")
-                with c_t3: thn_lhr = st.number_input("Thn", min_value=1900, max_value=2026, value=1995, key="in_thn_v6")
+                with c_t1: tgl_lhr = st.number_input("Tgl", min_value=1, max_value=31, value=1, key="in_tgl_v7")
+                with c_t2: bln_lhr = st.number_input("Bln", min_value=1, max_value=12, value=8, key="in_bln_v7")
+                with c_t3: thn_lhr = st.number_input("Thn", min_value=1900, max_value=2026, value=1995, key="in_thn_v7")
                 
                 bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
                 in_tgllhr = f"{int(tgl_lhr):02d} {bulan_indo_nama.get(int(bln_lhr), '')} {int(thn_lhr)}"
 
-            # Kolom Kanan (Demografi, Status, Pekerjaan, dll)
+            # Kolom Kanan (Urutan persis seperti gambar tabel Excel Anda)
             with col_f2:
                 usia_otomatis = 2026 - int(thn_lhr)
                 if usia_otomatis < 0: usia_otomatis = 0
-                in_usia = st.number_input("Usia (Otomatis)", min_value=0, max_value=120, value=int(usia_otomatis), key="in_usia_auto_v6")
+                in_usia = st.number_input("Usia (Otomatis)", min_value=0, max_value=120, value=int(usia_otomatis), key="in_usia_auto_v7")
                 
-                # 1. Status Perkawinan (Tepat sebelum Agama)
-                in_status_nikah = st.selectbox("Status Perkawinan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"], key="in_status_nikah_v6")
-                in_agama = st.selectbox("Agama", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"], key="in_agama_v6")
-                in_goldarah = st.selectbox("Gol. Darah", ["A", "B", "AB", "O", "-"], key="in_goldarah_v6")
-                in_suku = st.selectbox("Etnis / Suku", ["Sunda", "Jawa", "Padang", "Batak", "Betawi", "Lainnya"], key="in_suku_v6")
-                in_pend = st.selectbox("Pendidikan", ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma / Sarjana (S1/S2/S3)", "Belum / Tidak Sekolah"], key="in_pend_v6")
-                in_pek = st.selectbox("Pekerjaan", ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar / Mahasiswa", "PNS / TNI / Polri"], key="in_pek_v6")
-                
-                # 2. Status Rumah (Tetap, Sewa/Kontrak) tepat sebelum Status Domisili
-                in_status_rumah = st.selectbox("Status Rumah", ["Tetap", "Sewa/Kontrak"], key="in_status_rumah_v6")
-                
-                # 3. Status Domisili (Nanjung Mekar, luar NM)
-                in_status_domisili = st.selectbox("Status Domisili", ["Nanjung Mekar", "luar NM"], key="in_status_domisili_v6")
+                in_status_nikah = st.selectbox("Status (Status Perkawinan)", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"], key="in_status_nikah_v7")
+                in_agama = st.selectbox("Agama", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"], key="in_agama_v7")
+                in_goldarah = st.selectbox("Gol. Darah", ["A", "B", "AB", "O", "Tidak Tahu"], key="in_goldarah_v7")
+                in_suku = st.selectbox("Etnis / Suku", ["Sunda", "Jawa", "Padang", "Batak", "Betawi", "Lainnya"], key="in_suku_v7")
+                in_pend = st.selectbox("Pendidikan", ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma IV / Strata I", "Sedang SD/sedajerat", "Sedang SLTP/sederajat", "Belum / Tidak Sekolah"], key="in_pend_v7")
+                in_pek = st.selectbox("Pekerjaan", ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"], key="in_pek_v7")
+                in_status_rumah = st.selectbox("Status Rumah", ["Milik / Tetap", "Sewa/Kontrak", "KOSONG", "None"], key="in_status_rumah_v7")
+                in_status_domisili = st.selectbox("Status Domisili", ["Nanjung Mekar", "luar NM", "None"], key="in_status_domisili_v7")
 
             if st.form_submit_button("💾 Simpan Data ke Database Warga"):
                 try:
@@ -700,7 +710,7 @@ if not df.empty:
                             baris_baru_dict[col_excel] = in_tgllhr
                         elif "USIA" in c_up or "UMUR" in c_up:
                             baris_baru_dict[col_excel] = 2026 - int(thn_lhr)
-                        elif "KAWIN" in c_up or "NIKAH" in c_up or "PERKAWINAN" in c_up or "STUS" in c_up and "RUMAH" not in c_up:
+                        elif c_up == "STATUS" or "KAWIN" in c_up or "NIKAH" in c_up or "PERKAWINAN" in c_up:
                             baris_baru_dict[col_excel] = in_status_nikah
                         elif "AGAMA" in c_up:
                             baris_baru_dict[col_excel] = in_agama
@@ -712,9 +722,9 @@ if not df.empty:
                             baris_baru_dict[col_excel] = in_pend
                         elif "PEKERJAAN" in c_up:
                             baris_baru_dict[col_excel] = in_pek
-                        elif "STATUS" in c_up and ("RUMAH" in c_up or "HUNIAN" in c_up):
+                        elif "STATUS RUMAH" in c_up or ("STATUS" in c_up and ("RUMAH" in c_up or "HUNIAN" in c_up)):
                             baris_baru_dict[col_excel] = in_status_rumah
-                        elif "STATUS" in c_up and "DOMISILI" in c_up:
+                        elif "STATUS DOMISILI" in c_up or ("STATUS" in c_up and "DOMISILI" in c_up):
                             baris_baru_dict[col_excel] = in_status_domisili
                         else:
                             baris_baru_dict[col_excel] = "-"
@@ -733,8 +743,9 @@ if not df.empty:
                         ws.append(list(r.values))
                     wb.save(FILE_EXCEL_WARGA)
 
+                    # Simpan juga perubahan ke file disk agar cache terbaca ulang
                     st.session_state.df_warga = load_data_rt06()
-                    st.success("✅ Data warga baru berhasil disimpan permanen ke database!")
+                    st.success("✅ Data warga baru berhasil disimpan permanen ke database Excel!")
                     time.sleep(1)
                     st.rerun()
                 except Exception as e:
