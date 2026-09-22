@@ -268,7 +268,7 @@ def load_data_rt06():
                     return val_str
                 df[c] = df[c].apply(format_tgl_indo)
             
-        # Mengisi sel kosong ke bawah (ffill) sementara pada kolom rumah dan KK untuk memastikan pengelompokan keluarga rapi
+        # Mengisi sel kosong ke bawah (ffill) pada kolom blok rumah dan kepala keluarga agar pengelompokan keluarga rapi
         col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
         col_kk_sort = next((col for col in df.columns if "KEPALA" in col or "KK" in col), None)
         
@@ -416,7 +416,7 @@ if not df.empty:
                 st.session_state.selected_menu = "🛠️ Kelola Warga"
                 st.rerun()
             if st.button("🖨️ Cetak Laporan Rekap PDF", use_container_width=True, key="btn_m7"):
-                st.session_state.selected_menu = "🖨️ Cetak Laporan Rekap PDF"
+                st.session_state.selected_menu = "🖨️ Cetak Rekap PDF"
                 st.rerun()
 
         for _ in range(5):
@@ -440,7 +440,14 @@ if not df.empty:
             st.rerun()
         st.subheader("📋 Data Keseluruhan Warga (Urut Berdasarkan No. Rumah & Kepala Keluarga)")
         
-        st.markdown("💡 **Mode Interaktif Excel:** Data di bawah ini sudah dikelompokkan dan diurutkan secara rapi berdasarkan nomor blok rumah serta kepala keluarga. Warga dengan status **Kontrak / Musiman / luar NM** otomatis diberi **warna latar kuning lembut**.")
+        st.markdown("💡 **Mode Interaktif Excel:** Data di bawah ini dikelompokkan dan diurutkan secara rapi berdasarkan nomor blok rumah serta kepala keluarga. Warga dengan status **Kontrak / Musiman / luar NM** otomatis diberi **warna latar kuning lembut**.")
+
+        # Tampilkan DataFrame dengan pengisian sel kosong (ffill) agar kelompok keluarga terlihat jelas
+        df_tampil_bersih = df.copy()
+        if col_kk:
+            df_tampil_bersih[col_kk] = df_tampil_bersih[col_kk].ffill()
+        if col_rumah:
+            df_tampil_bersih[col_rumah] = df_tampil_bersih[col_rumah].ffill()
 
         def highlight_status_musiman(row):
             row_str = str(row.values).lower()
@@ -449,7 +456,7 @@ if not df.empty:
             return [''] * len(row)
 
         try:
-            styled_df = df.style.apply(highlight_status_musiman, axis=1)
+            styled_df = df_tampil_bersih.style.apply(highlight_status_musiman, axis=1)
             edited_df = st.data_editor(
                 styled_df,
                 num_rows="dynamic",
@@ -458,7 +465,7 @@ if not df.empty:
             )
         except:
             edited_df = st.data_editor(
-                df,
+                df_tampil_bersih,
                 num_rows="dynamic",
                 use_container_width=True,
                 key="editor_tabel_warga_interaktif_fallback"
@@ -672,7 +679,7 @@ if not df.empty:
                 if b not in daftar_blok_lengkap:
                     daftar_blok_lengkap.append(b)
 
-        with st.form("form_tambah_warga_perfect_v10", clear_on_submit=False):
+        with st.form("form_tambah_warga_perfect_v11", clear_on_submit=False):
             st.markdown("#### 📝 Form Input Isian Terstruktur:")
             
             col_f1, col_f2 = st.columns(2)
@@ -681,18 +688,18 @@ if not df.empty:
 
             # Kolom Kiri
             with col_f1:
-                in_no_rumah = st.selectbox("No. Rumah", sorted(daftar_blok_lengkap), key="in_no_rmh_v10")
-                in_nama_kk = st.text_input("Nama Kepala Keluarga", key="in_nama_kk_v10")
-                in_nama_anggota = st.text_input("Nama Lengkap Anggota Keluarga", key="in_nama_anggota_v10")
-                in_jk = st.selectbox("L/P", ["L", "P"], key="in_jk_v10")
-                in_hub = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"], key="in_hub_v10")
-                in_tmplhr = st.text_input("Tempat Lahir", key="in_tmplhr_v10")
+                in_no_rumah = st.selectbox("No. Rumah", sorted(daftar_blok_lengkap), key="in_no_rmh_v11")
+                in_nama_kk = st.text_input("Nama Kepala Keluarga", key="in_nama_kk_v11")
+                in_nama_anggota = st.text_input("Nama Lengkap Anggota Keluarga", key="in_nama_anggota_v11")
+                in_jk = st.selectbox("L/P", ["L", "P"], key="in_jk_v11")
+                in_hub = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"], key="in_hub_v11")
+                in_tmplhr = st.text_input("Tempat Lahir", key="in_tmplhr_v11")
                 
                 st.markdown("📅 **Tanggal Lahir:**")
                 c_t1, c_t2, c_t3 = st.columns(3)
-                with c_t1: tgl_lhr = st.number_input("Tgl", min_value=1, max_value=31, value=1, key="in_tgl_v10")
-                with c_t2: bln_lhr = st.number_input("Bln", min_value=1, max_value=12, value=8, key="in_bln_v10")
-                with c_t3: thn_lhr = st.number_input("Thn", min_value=1900, max_value=2026, value=1995, key="in_thn_v10")
+                with c_t1: tgl_lhr = st.number_input("Tgl", min_value=1, max_value=31, value=1, key="in_tgl_v11")
+                with c_t2: bln_lhr = st.number_input("Bln", min_value=1, max_value=12, value=8, key="in_bln_v11")
+                with c_t3: thn_lhr = st.number_input("Thn", min_value=1900, max_value=2026, value=1995, key="in_thn_v11")
                 
                 bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
                 in_tgllhr = f"{int(tgl_lhr):02d} {bulan_indo_nama.get(int(bln_lhr), '')} {int(thn_lhr)}"
@@ -701,17 +708,17 @@ if not df.empty:
             with col_f2:
                 usia_otomatis = 2026 - int(thn_lhr)
                 if usia_otomatis < 0: usia_otomatis = 0
-                in_usia = st.number_input("Usia (Otomatis)", min_value=0, max_value=120, value=int(usia_otomatis), key="in_usia_auto_v10")
+                in_usia = st.number_input("Usia (Otomatis)", min_value=0, max_value=120, value=int(usia_otomatis), key="in_usia_auto_v11")
                 
-                in_status_nikah = st.selectbox("Status (Status Perkawinan)", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"], key="in_status_nikah_v10")
-                in_agama = st.selectbox("Agama", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"], key="in_agama_v10")
-                in_goldarah = st.selectbox("Gol. Darah", ["A", "B", "AB", "O", "Tidak Tahu"], key="in_goldarah_v10")
-                in_suku = st.selectbox("Etnis / Suku", ["Sunda", "Jawa", "Padang", "Batak", "Betawi", "Lainnya"], key="in_suku_v10")
-                in_pend = st.selectbox("Pendidikan", ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma IV / Strata I", "Sedang SD/sedajerat", "Sedang SLTP/sederajat", "Belum / Tidak Sekolah"], key="in_pend_v10")
-                in_pek = st.selectbox("Pekerjaan", ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"], key="in_pek_v10")
+                in_status_nikah = st.selectbox("Status (Status Perkawinan)", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"], key="in_status_nikah_v11")
+                in_agama = st.selectbox("Agama", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"], key="in_agama_v11")
+                in_goldarah = st.selectbox("Gol. Darah", ["A", "B", "AB", "O", "Tidak Tahu"], key="in_goldarah_v11")
+                in_suku = st.selectbox("Etnis / Suku", ["Sunda", "Jawa", "Padang", "Batak", "Betawi", "Lainnya"], key="in_suku_v11")
+                in_pend = st.selectbox("Pendidikan", ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma IV / Strata I", "Sedang SD/sedajerat", "Sedang SLTP/sederajat", "Belum / Tidak Sekolah"], key="in_pend_v11")
+                in_pek = st.selectbox("Pekerjaan", ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"], key="in_pek_v11")
                 
-                in_status_rumah = st.selectbox("Status Rumah (Stus Rumah)", ["Milik / Tetap", "Sewa/Kontrak", "Kosong"], key="in_status_rumah_v10")
-                in_status_domisili = st.selectbox("Status Domisili", ["Nanjung Mekar", "luar NM"], key="in_status_domisili_v10")
+                in_status_rumah = st.selectbox("Status Rumah (Stus Rumah)", ["Milik / Tetap", "Sewa/Kontrak", "Kosong"], key="in_status_rumah_v11")
+                in_status_domisili = st.selectbox("Status Domisili", ["Nanjung Mekar", "luar NM"], key="in_status_domisili_v11")
 
             if st.form_submit_button("💾 Simpan Data ke Database Warga"):
                 try:
