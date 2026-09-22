@@ -211,23 +211,6 @@ def hitung_dan_tampilkan_tabel_tunggal(df_input):
     })
     return df_hasil
 
-def handle_editor_change(state_key, file_path):
-    widget_key = f"editor_{state_key}_tunggal_v3"
-    if widget_key in st.session_state:
-        raw_data = st.session_state[widget_key]
-        if isinstance(raw_data, pd.DataFrame) and not raw_data.empty:
-            cleaned_rows = []
-            for _, r in raw_data.iterrows():
-                cleaned_rows.append({
-                    "Tanggal": str(r.get("Tanggal", "")),
-                    "Uraian / Keterangan Transaksi": str(r.get("Uraian / Keterangan Transaksi", "")),
-                    "Debet (Masuk)": parsing_angka_aman(r.get("Debet (Masuk)", 0)),
-                    "Kredit (Keluar)": parsing_angka_aman(r.get("Kredit (Keluar)", 0))
-                })
-            new_df = pd.DataFrame(cleaned_rows)
-            st.session_state[state_key] = new_df
-            simpan_data_kas(file_path, new_df)
-
 # Header Utama Portal RT 06
 col_logo, col_title = st.columns([1, 3.5])
 with col_logo:
@@ -718,49 +701,66 @@ if not df.empty:
         if st.button("⬅️ Kembali ke Beranda"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
-        st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Sauyunan)")
-        st.markdown("💡 **Penyimpanan Permanen Aktif:** Data kas yang Anda input atau *copy-paste* tersimpan aman ke file sistem lokal. Nama menu dan PDF kini telah disesuaikan menjadi **Perelek R6 Sauyunan**.")
-        
-        def format_rupiah_pdf(num):
-            try:
-                n = float(num)
-                if n == 0: return "-"
-                return f"Rp {int(n):,}".replace(",", ".")
-            except:
-                return "-"
+        st.subheader("💰 Input & Rekapitulasi Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Sauyunan)")
+        st.markdown("💡 **Sistem Input Formulir Akuntansi:** Gunakan formulir di bawah ini untuk menambahkan transaksi baru secara akurat. Data dijamin tersimpan permanen dan langsung menghasilkan rekapan akuntansi yang benar.")
 
-        def render_buku_kas_instan(state_key, file_path, judul_buku, file_pdf_name, judul_pdf, pakai_logo=False):
-            st.markdown(f"### {judul_buku}")
+        def render_buku_kas_formulir(state_key, file_path, judul_buku, file_pdf_name, judul_pdf, pakai_logo=False):
+            st.markdown(f"### 📝 Tambah Transaksi Baru: {judul_buku}")
             
+            # Formulir Input Transaksi Baru ala Kelola Warga
+            with st.form(f"form_tambah_{state_key}", clear_on_submit=True):
+                col_f1, col_f2 = st.columns(2)
+                with col_f1:
+                    tgl_input = st.text_input("Tanggal Transaksi (Contoh: 01/06/2026)", value=datetime.now(ZoneInfo("Asia/Jakarta")).strftime("%d/%m/%Y"))
+                    uraian_input = st.text_input("Uraian / Keterangan Transaksi")
+                with col_f2:
+                    debet_input = st.number_input("Debet / Masuk (Rp)", min_value=0.0, step=1000.0, value=0.0)
+                    kredit_input = st.number_input("Kredit / Keluar (Rp)", min_value=0.0, step=1000.0, value=0.0)
+                
+                submitted = st.form_submit_button("➕ Tambahkan ke Pembukuan")
+                if submitted:
+                    if not uraian_input.strip():
+                        st.warning("⚠️ Uraian / Keterangan transaksi tidak boleh kosong!")
+                    else:
+                        df_cur = st.session_state[state_key].copy()
+                        baris_baru = pd.DataFrame({
+                            "Tanggal": [tgl_input],
+                            "Uraian / Keterangan Transaksi": [uraian_input],
+                            "Debet (Masuk)": [float(debet_input)],
+                            "Kredit (Keluar)": [float(kredit_input)]
+                        })
+                        df_updated = pd.concat([df_cur, baris_baru], ignore_index=True)
+                        st.session_state[state_key] = df_updated
+                        simpan_data_kas(file_path, df_updated)
+                        st.success(f"✅ Transaksi '**{uraian_input}**' berhasil dicatat ke pembukuan!")
+                        st.rerun()
+
+            st.markdown(f"### 📊 Tabel Rekapitulasi Akuntansi: {judul_buku}")
             df_sumber = st.session_state[state_key].copy()
             df_tampil_live = hitung_dan_tampilkan_tabel_tunggal(df_sumber)
-            
-            widget_key = f"editor_{state_key}_tunggal_v3"
-            
-            edited_df = st.data_editor(
-                df_tampil_live,
-                num_rows="dynamic",
-                use_container_width=True,
-                key=widget_key,
-                on_change=lambda: handle_editor_change(state_key, file_path),
-                column_config={
-                    "Tanggal": st.column_config.TextColumn("Tanggal"),
-                    "Uraian / Keterangan Transaksi": st.column_config.TextColumn("Uraian / Keterangan Transaksi"),
-                    "Debet (Masuk)": st.column_config.NumberColumn("Debet (Masuk)", format="%d"),
-                    "Kredit (Keluar)": st.column_config.NumberColumn("Kredit (Keluar)", format="%d"),
-                    "Saldo (Rp)": st.column_config.TextColumn("Saldo (Rp)", disabled=True)
-                }
-            )
-            
-            if not edited_df.empty:
-                new_df_state = pd.DataFrame({
-                    "Tanggal": edited_df.get("Tanggal", "").astype(str),
-                    "Uraian / Keterangan Transaksi": edited_df.get("Uraian / Keterangan Transaksi", "").astype(str),
-                    "Debet (Masuk)": edited_df.get("Debet (Masuk)", 0).apply(parsing_angka_aman),
-                    "Kredit (Keluar)": edited_df.get("Kredit (Keluar)", 0).apply(parsing_angka_aman)
-                })
-                st.session_state[state_key] = new_df_state
-                simpan_data_kas(file_path, new_df_state)
+
+            # Tombol Opsi Hapus Baris Terakhir atau Reset Tabel
+            col_aksi1, col_aksi2 = st.columns([2, 2])
+            with col_aksi1:
+                if st.button(f"🗑️ Hapus Baris Transaksi Terakhir ({judul_buku})", key=f"del_{state_key}"):
+                    if len(df_sumber) > 1:
+                        df_sumber = df_sumber.iloc[:-1].reset_index(drop=True)
+                        st.session_state[state_key] = df_sumber
+                        simpan_data_kas(file_path, df_sumber)
+                        st.success("✅ Baris transaksi terakhir berhasil dihapus!")
+                        st.rerun()
+                    else:
+                        st.warning("⚠️ Tidak dapat menghapus baris awal utama!")
+
+            st.dataframe(df_tampil_live, use_container_width=True, hide_index=True)
+
+            def format_rupiah_pdf(num):
+                try:
+                    n = float(num)
+                    if n == 0: return "-"
+                    return f"Rp {int(n):,}".replace(",", ".")
+                except:
+                    return "-"
 
             def buat_pdf_standar_akuntansi(df_lap, judul):
                 buffer = io.BytesIO()
@@ -867,10 +867,10 @@ if not df.empty:
         tab_kas1, tab_kas2 = st.tabs(["📊 Buku Kas RT 06", "🌾 Buku Kas Sosial (Perelek)"])
         
         with tab_kas1:
-            render_buku_kas_instan('df_kas_rt_state', FILE_KAS_RT, "Buku Kas RT 06", "Laporan_Kas_RT06.pdf", "LAPORAN PERTANGGUNGJAWABAN KEUANGAN KAS RT 06", pakai_logo=False)
+            render_buku_kas_formulir('df_kas_rt_state', FILE_KAS_RT, "Buku Kas RT 06", "Laporan_Kas_RT06.pdf", "LAPORAN PERTANGGUNGJAWABAN KEUANGAN KAS RT 06", pakai_logo=False)
 
         with tab_kas2:
-            render_buku_kas_instan('df_kas_sosial_state', FILE_KAS_SOSIAL, "Buku Kas Sosial / Perelek", "Laporan_Kas_Sosial.pdf", "LAPORAN KAS PERELEK R6 SAUYUNAN", pakai_logo=True)
+            render_buku_kas_formulir('df_kas_sosial_state', FILE_KAS_SOSIAL, "Buku Kas Sosial / Perelek", "Laporan_Kas_Sosial.pdf", "LAPORAN KAS PERELEK R6 SAUYUNAN", pakai_logo=True)
 
     elif menu == "🖨️ Cetak Rekap PDF":
         if st.button("⬅️ Kembali ke Beranda"):
