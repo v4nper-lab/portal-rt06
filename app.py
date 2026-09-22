@@ -100,7 +100,7 @@ def muat_data_kas(file_path, default_df):
     if os.path.exists(file_path):
         try:
             df_disk = pd.read_csv(file_path)
-            if not df_disk.empty:
+            if not df_disk.empty and "Tanggal" in df_disk.columns:
                 return df_disk
         except:
             pass
@@ -719,7 +719,7 @@ if not df.empty:
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Suayunan)")
-        st.markdown("💡 **Penyimpanan Permanen Aktif:** Data kas yang Anda input atau *copy-paste* tersimpan aman dan tidak akan hilang saat direfresh. Pada cetak PDF Kas Perelek, judul laporan diperbesar, posisinya tepat di tengah di atas tabel, lengkap dengan sub-judul **PERIODE TAHUN 2026** dan logo Perelek.")
+        st.markdown("💡 **Penyimpanan Permanen Aktif:** Data kas yang Anda input atau *copy-paste* tersimpan aman ke file sistem lokal. Pada cetak PDF Kas Perelek, judul laporan diperbesar, posisi di tengah di atas tabel, lengkap dengan sub-judul **PERIODE TAHUN 2026** dan logo Perelek.")
         
         def format_rupiah_pdf(num):
             try:
@@ -768,7 +768,6 @@ if not df.empty:
                 elements = []
                 styles = getSampleStyleSheet()
                 
-                # Style Judul Besar & Rata Tengah
                 style_judul_pusat = ParagraphStyle('JudulPusat', parent=styles['Heading1'], fontSize=16, alignment=1, textColor=colors.HexColor('#1f2937'), fontName='Helvetica-Bold')
                 style_subjudul_pusat = ParagraphStyle('SubJudulPusat', parent=styles['Normal'], fontSize=12, alignment=1, textColor=colors.HexColor('#4b5563'), fontName='Helvetica-Bold')
                 
@@ -783,7 +782,6 @@ if not df.empty:
                     if os.path.exists(logo_file):
                         try:
                             img_logo = RLImage(logo_file, width=45, height=45)
-                            # Tabel header agar logo berada di kiri, dan teks judul persis di tengah secara estetika
                             t_header = Table([[img_logo, [p_judul, Spacer(1, 3), p_sub]]], colWidths=[55, 445])
                             t_header.setStyle(TableStyle([
                                 ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
@@ -800,7 +798,6 @@ if not df.empty:
                         elements.append(Spacer(1, 3))
                         elements.append(p_sub)
                 else:
-                    # Buku Kas RT
                     elements.append(Paragraph(f"<b>{judul}</b>", style_judul_pusat))
                     elements.append(Spacer(1, 3))
                     elements.append(Paragraph("<b>PERIODE TAHUN 2026</b>", style_subjudul_pusat))
