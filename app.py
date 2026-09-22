@@ -423,20 +423,28 @@ if not df.empty:
             st.rerun()
         st.subheader("📋 Data Keseluruhan Warga & Manajemen Hapus")
         
-        st.markdown("💡 Anda dapat melihat seluruh data warga di bawah ini. Jika ada data warga yang ingin dihapus secara manual, pilih nama warga pada menu di bawah.")
+        st.markdown("💡 Anda dapat melihat seluruh data warga di bawah ini. Jika ada data warga yang ingin dihapus secara otomatis, pilih nama anggota keluarga pada menu di bawah.")
         st.dataframe(df, use_container_width=True, hide_index=True)
 
         st.markdown("---")
-        st.subheader("🗑️ Hapus Data Warga Manual")
+        st.subheader("🗑️ Hapus Data Warga Otomatis (Berdasarkan Nama Anggota)")
         if not df.empty and col_nama:
-            daftar_nama_warga = sorted(df[col_nama].dropna().astype(str).tolist())
-            warga_dihapus = st.selectbox("Pilih Nama Warga yang akan Dihapus:", ["-- Pilih Warga --"] + daftar_nama_warga)
+            daftar_nama_anggota = sorted(df[col_nama].dropna().astype(str).tolist())
+            warga_dihapus = st.selectbox("Pilih Nama Anggota Keluarga yang akan Dihapus:", ["-- Pilih Nama Anggota --"] + daftar_nama_anggota)
             
-            if warga_dihapus != "-- Pilih Warga --":
-                if st.button(f"⚠️ Hapus Data Warga '{warga_dihapus}' Sekarang"):
+            if warga_dihapus != "-- Pilih Nama Anggota --":
+                if st.button(f"⚠️ Hapus Anggota '{warga_dihapus}' Sekarang secara Permanen"):
                     try:
                         df_raw_excel = pd.read_excel(FILE_EXCEL_WARGA, header=3)
-                        df_filtered = df_raw_excel[~df_raw_excel.apply(lambda row: row.astype(str).str.contains(warga_dihapus).any(), axis=1)].reset_index(drop=True)
+                        
+                        # Filter baris yang kolom nama anggota keluarganya tidak sama persis dengan yang dipilih
+                        def baris_bukan_warga(row):
+                            for val in row.values:
+                                if pd.notnull(val) and str(val).strip().lower() == warga_dihapus.strip().lower():
+                                    return False
+                            return True
+
+                        df_filtered = df_raw_excel[df_raw_excel.apply(baris_bukan_warga, axis=1)].reset_index(drop=True)
 
                         import openpyxl
                         wb = openpyxl.Workbook()
@@ -451,7 +459,7 @@ if not df.empty:
                         wb.save(FILE_EXCEL_WARGA)
 
                         st.session_state.df_warga = load_data_rt06()
-                        st.success(f"✅ Data warga **{warga_dihapus}** berhasil dihapus permanen!")
+                        st.success(f"✅ Data anggota keluarga **{warga_dihapus}** berhasil dihapus permanen dari database!")
                         time.sleep(1)
                         st.rerun()
                     except Exception as e:
@@ -619,7 +627,7 @@ if not df.empty:
             st.rerun()
         st.subheader("🛠️ Kelola Data Warga (Input Warga Baru & Anggota Keluarga)")
 
-        st.markdown("💡 **Otomatisasi Usia:** Masukkan tanggal lahir dengan benar, maka usia akan langsung terhitung otomatis. Anda juga dapat langsung menambahkan anggota keluarga baru dalam satu form tanpa harus mengetik ulang nomor blok rumah.")
+        st.markdown("💡 **Otomatisasi Usia & Blok:** Masukkan tanggal lahir, maka usia akan langsung terhitung otomatis. Penambahan anggota keluarga dapat dilakukan dalam satu form terpadu.")
 
         with st.form("form_tambah_warga_terpadu", clear_on_submit=False):
             col_k1, col_k2 = st.columns(2)
@@ -640,7 +648,6 @@ if not df.empty:
                 with col_t3:
                     thn_lhr = st.number_input("Tahun", min_value=1900, max_value=2026, value=1995)
                 
-                # Hitung usia otomatis berdasarkan tanggal sekarang (Tahun 2026)
                 tahun_sekarang = 2026
                 usia_otomatis = tahun_sekarang - int(thn_lhr)
                 if usia_otomatis < 0: usia_otomatis = 0
