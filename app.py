@@ -240,6 +240,29 @@ def load_data_rt06_direct():
             df[col] = df[col].astype(str).str.strip()
             df.loc[df[col].str.lower() == 'nan', col] = None
         
+        # Pembersihan total format tanggal dari jam 00:00:00
+        bulan_indo = {
+            1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
+            7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
+        }
+        
+        for c in df.columns:
+            if "TGL" in c or "TANGGAL" in c or "LAHIR" in c:
+                def format_tgl_bersih(val):
+                    if pd.isnull(val) or str(val).lower() in ['nan', 'none', '']:
+                        return ""
+                    val_str = str(val).strip()
+                    if "00:00:00" in val_str:
+                        val_str = val_str.replace("00:00:00", "").strip()
+                    try:
+                        dt = pd.to_datetime(val_str, errors='coerce')
+                        if pd.notnull(dt):
+                            return f"{dt.day:02d} {bulan_indo.get(dt.month, '')} {dt.year}"
+                    except:
+                        pass
+                    return val_str
+                df[c] = df[c].apply(format_tgl_bersih)
+
         # Pengurutan otomatis berdasarkan No. Rumah secara rapi
         col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
         col_kk_sort = next((col for col in df.columns if "KEPALA" in col or "KK" in col), None)
@@ -406,7 +429,7 @@ if not df.empty:
             st.rerun()
         st.subheader("📋 Data Keseluruhan Warga (Kelola, Edit, dan Hapus Langsung di Tabel)")
         
-        st.markdown("💡 **Panduan Interaktif:** Kolom nomor rumah dan seluruh kolom lainnya kini tampil lengkap persis sesuai file Excel Anda. Anda dapat langsung menambah baris baru, mengedit data, atau menghapus baris di tabel bawah ini. Warga dengan status domisili **luar NM** otomatis diberi **warna latar kuning lembut**[cite: 2].")
+        st.markdown("💡 **Panduan Interaktif:** Format tanggal lahir kini bersih tanpa tambahan jam (`00:00:00`). Anda dapat langsung menambah baris baru, mengedit data, atau menghapus baris di tabel bawah ini. Warga dengan status domisili **luar NM** otomatis diberi **warna latar kuning lembut**[cite: 2].")
 
         def highlight_luar_nm(row):
             row_str = str(row.values).lower()
@@ -934,8 +957,8 @@ if not df.empty:
                 ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#2563eb')),
                 ('ALIGN', (0,0), (-1,-1), 'CENTER'),
                 ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-                ('BOTTOMPADDING', (0,0), (-1,-1), 5),
-                ('TOPPADDING', (0,0), (-1,-1), 5),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+                ('TOPPADDING', (0,0), (-1,-1), 6),
                 ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f9fafb')),
                 ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d1d5db')),
             ]))
