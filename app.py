@@ -18,54 +18,56 @@ st.set_page_config(
     page_icon="🏠"
 )
 
+# Custom CSS Terang, Elegan, Profesional, dan Jelas Dibaca
 st.markdown("""
 <style>
     .stApp {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%) !important;
-        color: #f8fafc !important;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
     }
     .main .block-container {
-        background: rgba(255, 255, 255, 0.98) !important;
-        padding: 3rem 2.5rem !important;
-        border-radius: 24px !important;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
-        margin-top: 2rem;
-        margin-bottom: 2rem;
+        background: #ffffff !important;
+        padding: 2.5rem 3rem !important;
+        border-radius: 20px !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+        margin-top: 1.5rem;
+        margin-bottom: 1.5rem;
     }
     h1, h2, h3, h4, h5, h6 {
         color: #0f172a !important;
+        font-weight: 800 !important;
     }
     p, label, span, div {
-        color: #334155;
+        color: #334155 !important;
     }
     .metric-card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        padding: 22px;
-        border-radius: 16px;
-        box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.05);
-        margin-bottom: 12px;
-        transition: transform 0.2s ease;
+        background: #f1f5f9;
+        border: 1px solid #cbd5e1;
+        padding: 20px;
+        border-radius: 14px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        margin-bottom: 10px;
+        transition: all 0.2s ease;
     }
     .metric-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 25px -5px rgba(37, 99, 235, 0.15);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.12);
+        background: #ffffff;
     }
     .metric-title {
         font-size: 12px !important;
         text-transform: uppercase;
-        font-weight: 800;
-        color: #64748b;
-        letter-spacing: 0.8px;
+        font-weight: 700;
+        color: #475569;
+        letter-spacing: 0.5px;
     }
     .metric-value {
-        font-size: 28px !important;
+        font-size: 26px !important;
         font-weight: 900 !important;
         margin-top: 6px;
         color: #1e3a8a;
     }
     .jumbo-title {
-        font-size: 38px !important;
+        font-size: 36px !important;
         font-weight: 900 !important;
         color: #1e3a8a !important;
         line-height: 1.1 !important;
@@ -73,7 +75,7 @@ st.markdown("""
     }
     .jumbo-subtitle {
         font-size: 16px !important;
-        font-weight: 700 !important;
+        font-weight: 600 !important;
         color: #475569 !important;
     }
     .stButton button {
@@ -91,10 +93,10 @@ st.markdown("""
     }
     .stButton button:hover {
         transform: translateY(-2px) !important;
-        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35) !important;
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3) !important;
     }
     section[data-testid="stSidebar"] {
-        background-color: #0f172a !important;
+        background-color: #1e293b !important;
     }
     section[data-testid="stSidebar"] * {
         color: #f8fafc !important;
@@ -204,11 +206,11 @@ with col_logo:
     
     if os.path.exists(logo_path):
         try:
-            st.image(logo_path, width=150)
+            st.image(logo_path, width=140)
         except:
             st.write("🏠")
     else:
-        st.markdown("<h1 style='text-align: center;'>🏠</h1>", unsafe_allow_html=True)
+        st.markdown("<h3>🏠</h3>", unsafe_allow_html=True)
 
 with col_title:
     st.markdown('<div class="jumbo-title">PORTAL RESMI RT 06 / RW 14</div>', unsafe_allow_html=True)
@@ -338,7 +340,7 @@ else:
         "🖨️ Cetak Rekap PDF"
     ]
 
-    selected_sidebar = st.sidebar.selectbox("Pilih Halaman:", daftar_menu_pilihan, key="nav_menu_modern")
+    selected_sidebar = st.sidebar.selectbox("Pilih Halaman:", daftar_menu_pilihan, key="nav_menu_v1")
     st.session_state.selected_menu = selected_sidebar
     menu = st.session_state.selected_menu
 
@@ -404,23 +406,23 @@ else:
         
         col_m1, col_m2 = st.columns(2)
         with col_m1:
-            if st.button("📋 Kelola & Data Seluruh Warga", use_container_width=True, key="home_btn_m1_mod"):
+            if st.button("📋 Kelola & Data Seluruh Warga", use_container_width=True, key="home_btn_v1"):
                 st.session_state.selected_menu = "📋 Data Seluruh Warga"
                 st.rerun()
-            if st.button("🗂️ Cetak Kartu Keluarga (KK)", use_container_width=True, key="home_btn_m2_mod"):
+            if st.button("🗂️ Cetak Kartu Keluarga (KK)", use_container_width=True, key="home_btn_v2"):
                 st.session_state.selected_menu = "🗂️ Cetak Kartu Keluarga (KK)"
                 st.rerun()
-            if st.button("📊 Rekapitulasi Administrasi RW", use_container_width=True, key="home_btn_m3_mod"):
+            if st.button("📊 Rekapitulasi Administrasi RW", use_container_width=True, key="home_btn_v3"):
                 st.session_state.selected_menu = "📊 Rekapitulasi Administrasi RW"
                 st.rerun()
         with col_m2:
-            if st.button("📈 Grafik Demografi", use_container_width=True, key="home_btn_m5_mod"):
+            if st.button("📈 Grafik Demografi", use_container_width=True, key="home_btn_v4"):
                 st.session_state.selected_menu = "📈 Grafik Demografi"
                 st.rerun()
-            if st.button("💰 Laporan Kas RT & Sosial", use_container_width=True, key="home_btn_m4_mod"):
+            if st.button("💰 Laporan Kas RT & Sosial", use_container_width=True, key="home_btn_v5"):
                 st.session_state.selected_menu = "💰 Laporan Kas RT & Sosial (Perelek R6 Sauyunan)"
                 st.rerun()
-            if st.button("🖨️ Cetak Laporan Rekap PDF", use_container_width=True, key="home_btn_m7_mod"):
+            if st.button("🖨️ Cetak Laporan Rekap PDF", use_container_width=True, key="home_btn_v6"):
                 st.session_state.selected_menu = "🖨️ Cetak Rekap PDF"
                 st.rerun()
 
@@ -440,7 +442,7 @@ else:
         st.rerun()
 
     elif menu == "📋 Data Seluruh Warga":
-        if st.button("⬅️ Kembali ke Beranda", key="back_warga_mod"):
+        if st.button("⬅️ Kembali ke Beranda", key="back_warga_v1"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("📋 Data Keseluruhan Warga & Penghapusan Permanen")
@@ -459,9 +461,9 @@ else:
         st.markdown("---")
         st.markdown("### 🗑️ Hapus Data Warga (Pindah / Keluar)")
         
-        with st.form("form_hapus_warga_modern", clear_on_submit=False):
+        with st.form("form_hapus_warga_v1", clear_on_submit=False):
             list_warga_pilih = [f"Baris {i+1} | Rumah: {row.get(col_rumah, '-')} | KK: {row.get(col_kk, '-')} | Nama: {row.get(col_nama, '-')}" for i, row in df.iterrows()]
-            target_hapus_str = st.selectbox("Pilih Warga yang Ingin Dihapus:", ["(Pilih warga...)"] + list_warga_pilih, key="sel_hapus_mod")
+            target_hapus_str = st.selectbox("Pilih Warga yang Ingin Dihapus:", ["(Pilih warga...)"] + list_warga_pilih, key="sel_hapus_v1")
             
             btn_eksekusi_hapus = st.form_submit_button("🗑️ Hapus Data Warga Ini Secara Permanen")
             
@@ -508,23 +510,23 @@ else:
                 if eb not in daftar_blok_lengkap and eb.lower() != 'nan' and eb.strip() != '':
                     daftar_blok_lengkap.append(eb)
 
-        with st.form("form_input_warga_mod_v1", clear_on_submit=False):
+        with st.form("form_input_warga_v1", clear_on_submit=False):
             col_f1, col_f2 = st.columns(2)
             with col_f1:
-                in_no_rumah = st.selectbox("No. Rumah", sorted(list(set(daftar_blok_lengkap))), key="in_no_rumah_m")
-                in_nama_kk = st.text_input("NAMA KEPALA KELUARGA", key="in_nama_kk_m")
-                in_nama_anggota = st.text_input("Nama Lengkap Anggota Keluarga", key="in_nama_anggota_m")
-                in_jk = st.selectbox("Jenis Kelamin", ["L", "P"], key="in_jk_m")
-                in_hub = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"], key="in_hub_m")
-                in_tmplhr = st.text_input("Tempat Lahir", key="in_tmplhr_m")
-                thn_lhr = st.number_input("Tahun Lahir", min_value=1900, max_value=2026, value=1995, key="in_thn_m")
+                in_no_rumah = st.selectbox("No. Rumah", sorted(list(set(daftar_blok_lengkap))), key="in_no_rumah_v1")
+                in_nama_kk = st.text_input("NAMA KEPALA KELUARGA", key="in_nama_kk_v1")
+                in_nama_anggota = st.text_input("Nama Lengkap Anggota Keluarga", key="in_nama_anggota_v1")
+                in_jk = st.selectbox("Jenis Kelamin", ["L", "P"], key="in_jk_v1")
+                in_hub = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"], key="in_hub_v1")
+                in_tmplhr = st.text_input("Tempat Lahir", key="in_tmplhr_v1")
+                thn_lhr = st.number_input("Tahun Lahir", min_value=1900, max_value=2026, value=1995, key="in_thn_v1")
             with col_f2:
-                in_status_nikah = st.selectbox("Status Perkawinan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"], key="in_status_nikah_m")
-                in_agama = st.selectbox("Agama", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"], key="in_agama_m")
-                in_pend = st.selectbox("Pendidikan", ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma IV / Strata I", "Sedang SD/sedajerat", "Sedang SLTP/sederajat", "Belum / Tidak Sekolah"], key="in_pend_m")
-                in_pek = st.selectbox("Pekerjaan", ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"], key="in_pek_m")
-                in_status_rumah = st.selectbox("Status Rumah", ["Milik / Tetap", "Sewa/Kontrak", "Kosong"], key="in_status_rumah_m")
-                in_status_domisili = st.selectbox("Status Domisili", ["Nanjung Mekar", "luar NM"], key="in_status_domisili_m")
+                in_status_nikah = st.selectbox("Status Perkawinan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"], key="in_status_nikah_v1")
+                in_agama = st.selectbox("Agama", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"], key="in_agama_v1")
+                in_pend = st.selectbox("Pendidikan", ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma IV / Strata I", "Sedang SD/sedajerat", "Sedang SLTP/sederajat", "Belum / Tidak Sekolah"], key="in_pend_v1")
+                in_pek = st.selectbox("Pekerjaan", ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"], key="in_pek_v1")
+                in_status_rumah = st.selectbox("Status Rumah", ["Milik / Tetap", "Sewa/Kontrak", "Kosong"], key="in_status_rumah_v1")
+                in_status_domisili = st.selectbox("Status Domisili", ["Nanjung Mekar", "luar NM"], key="in_status_domisili_v1")
 
             if st.form_submit_button("💾 Masukkan Data ke Database Excel"):
                 try:
@@ -604,7 +606,7 @@ else:
                     st.error(f"❌ Gagal menyimpan data: {e}")
 
     elif menu == "🗂️ Cetak Kartu Keluarga (KK)":
-        if st.button("⬅️ Kembali ke Beranda", key="back_kk_mod"):
+        if st.button("⬅️ Kembali ke Beranda", key="back_kk_v1"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("🗂️ Cetak Kartu Keluarga (KK)")
@@ -616,7 +618,7 @@ else:
             df_ffill[col_rumah] = df_ffill[col_rumah].replace('', pd.NA).ffill()
 
         daftar_kk = sorted(list(set([str(x).strip() for x in df_ffill[col_kk].dropna().tolist() if str(x).strip().lower() not in ['', 'nan', 'none']])))
-        pilihan_kk = st.selectbox("Pilih Kepala Keluarga:", daftar_kk, key="select_kk_mod")
+        pilihan_kk = st.selectbox("Pilih Kepala Keluarga:", daftar_kk, key="select_kk_v1")
         
         if pilihan_kk:
             df_keluarga = df_ffill[df_ffill[col_kk].astype(str).str.strip().str.lower() == pilihan_kk.strip().lower()].copy()
@@ -627,7 +629,7 @@ else:
             st.dataframe(df_keluarga[cols_tampilan_web], use_container_width=True, hide_index=True)
 
     elif menu == "📈 Grafik Demografi":
-        if st.button("⬅️ Kembali ke Beranda", key="back_grafik_mod"):
+        if st.button("⬅️ Kembali ke Beranda", key="back_grafik_v1"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("📈 Analisis Grafik Demografi Warga")
@@ -635,10 +637,10 @@ else:
             df_jk = df[col_jk].dropna().value_counts().reset_index()
             df_jk.columns = ["Jenis Kelamin", "Jumlah"]
             fig_jk = px.pie(df_jk, names="Jenis Kelamin", values="Jumlah", hole=0.5, title="👥 Rasio Berdasarkan Jenis Kelamin")
-            st.plotly_chart(fig_jk, use_container_width=True, key="chart_jk_mod")
+            st.plotly_chart(fig_jk, use_container_width=True, key="chart_jk_v1")
 
     elif menu == "📊 Rekapitulasi Administrasi RW":
-        if st.button("⬅️ Kembali ke Beranda", key="back_rw_mod"):
+        if st.button("⬅️ Kembali ke Beranda", key="back_rw_v1"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("📊 Rekapitulasi Administrasi RW")
@@ -648,14 +650,14 @@ else:
         st.write(f"- Total Jiwa: {total_jiwa_rw}")
 
     elif menu == "💰 Laporan Kas RT & Sosial (Perelek R6 Sauyunan)":
-        if st.button("⬅️ Kembali ke Beranda", key="back_kas_mod"):
+        if st.button("⬅️ Kembali ke Beranda", key="back_kas_v1"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Laporan Keuangan Kas RT & Sosial")
         st.info("Fitur pembukuan kas aktif.")
 
     elif menu == "🖨️ Cetak Rekap PDF":
-        if st.button("⬅️ Kembali ke Beranda", key="back_pdf_mod"):
+        if st.button("⬅️ Kembali ke Beranda", key="back_pdf_v1"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("🖨️ Cetak Rekapitulasi PDF")
