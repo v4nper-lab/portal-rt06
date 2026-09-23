@@ -406,7 +406,7 @@ if not df.empty:
             st.rerun()
         st.subheader("📋 Data Keseluruhan Warga (Kelola, Edit, dan Hapus Langsung di Tabel)")
         
-        st.markdown("💡 **Panduan Interaktif:** Anda bisa langsung menambah baris baru, mengedit data, atau menghapus baris di tabel bawah ini. Warga dengan status domisili **luar NM** otomatis diberi **warna latar kuning lembut**[cite: 2]. Kolom usia akan otomatis dihitung jika Anda memasukkan tanggal lahir dengan format tahun yang benar.")
+        st.markdown("💡 **Panduan Interaktif:** Kolom-kolom disesuaikan persis dengan file Excel Anda. Anda dapat langsung menambah baris baru, mengedit data, atau menghapus baris di tabel bawah ini. Warga dengan status domisili **luar NM** otomatis diberi **warna latar kuning lembut**[cite: 2]. Kolom usia akan otomatis dihitung jika Anda memasukkan tanggal lahir dengan format tahun yang benar.")
 
         def highlight_luar_nm(row):
             row_str = str(row.values).lower()
@@ -502,7 +502,7 @@ if not df.empty:
                         ws.append(list(r.values))
                     wb.save(FILE_EXCEL_WARGA)
 
-                    st.success("✅ Perubahan data warga berhasil disimpan permanen dan diurutkan otomatis berdasarkan blok rumah!")
+                    st.success("✅ Perubahan data warga berhasil disimpan permanen ke file Excel!")
                     time.sleep(1)
                     st.rerun()
             except Exception as e:
