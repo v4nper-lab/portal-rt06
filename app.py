@@ -301,7 +301,6 @@ if not df.empty:
     daftar_menu_pilihan = [
         "Beranda / Dashboard",
         "📋 Data Seluruh Warga",
-        "🗑️ Kelola & Hapus Warga",
         "🗂️ Cetak Kartu Keluarga (KK)", 
         "📈 Grafik Demografi", 
         "📊 Rekapitulasi Administrasi RW",
@@ -393,21 +392,18 @@ if not df.empty:
             if st.button("📋 Data Seluruh Warga", use_container_width=True, key="btn_m1"):
                 st.session_state.selected_menu = "📋 Data Seluruh Warga"
                 st.rerun()
-            if st.button("🗑️ Kelola & Hapus Warga", use_container_width=True, key="btn_m_hapus"):
-                st.session_state.selected_menu = "🗑️ Kelola & Hapus Warga"
-                st.rerun()
             if st.button("🗂️ Cetak Kartu Keluarga (KK)", use_container_width=True, key="btn_m2"):
                 st.session_state.selected_menu = "🗂️ Cetak Kartu Keluarga (KK)"
                 st.rerun()
             if st.button("📊 Rekapitulasi Administrasi RW", use_container_width=True, key="btn_m3"):
                 st.session_state.selected_menu = "📊 Rekapitulasi Administrasi RW"
                 st.rerun()
+            if st.button("💰 Laporan Kas RT & Sosial (Perelek R6 Sauyunan)", use_container_width=True, key="btn_m4"):
+                st.session_state.selected_menu = "💰 Laporan Kas RT & Sosial (Perelek R6 Sauyunan)"
+                st.rerun()
         with col_m2:
             if st.button("📈 Grafik Demografi", use_container_width=True, key="btn_m5"):
                 st.session_state.selected_menu = "📈 Grafik Demografi"
-                st.rerun()
-            if st.button("💰 Laporan Kas RT & Sosial", use_container_width=True, key="btn_m4"):
-                st.session_state.selected_menu = "💰 Laporan Kas RT & Sosial (Perelek R6 Sauyunan)"
                 st.rerun()
             if st.button("🖨️ Cetak Laporan Rekap PDF", use_container_width=True, key="btn_m7"):
                 st.session_state.selected_menu = "🖨️ Cetak Rekap PDF"
@@ -432,9 +428,9 @@ if not df.empty:
         if st.button("⬅️ Kembali ke Beranda", key="back_warga"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
-        st.subheader("📋 Data Keseluruhan Warga & Formulir Input Stabil")
+        st.subheader("📋 Data Keseluruhan Warga & Penghapusan Warga (Menu Dropdown)")
         
-        st.markdown("💡 **Panduan:** Gunakan tabel referensi di bawah untuk melihat data, atau gunakan formulir stabil di bawah untuk menambah warga baru tanpa loncat-loncat.")
+        st.markdown("💡 **Panduan:** Pilih nama warga yang ingin dihapus pada menu pilihan (dropdown) di bawah ini, lalu klik tombol **'🗑️ Hapus Data Warga Ini'** agar data warga yang pindah terhapus permanen dari sistem.")
 
         def highlight_luar_nm(row):
             row_str = str(row.values).lower()
@@ -446,6 +442,42 @@ if not df.empty:
             st.dataframe(df.style.apply(highlight_luar_nm, axis=1), use_container_width=True, hide_index=True)
         except:
             st.dataframe(df, use_container_width=True, hide_index=True)
+
+        st.markdown("---")
+        st.markdown("### 🗑️ Hapus Data Warga (Pindah / Keluar)")
+        
+        with st.form("form_hapus_warga_dropdown_fix", clear_on_submit=False):
+            list_warga_pilih = [f"Baris {i+1} | Rumah: {row.get(col_rumah, '-')} | KK: {row.get(col_kk, '-')} | Nama: {row.get(col_nama, '-')}" for i, row in df.iterrows()]
+            target_hapus_str = st.selectbox("Pilih Warga yang Ingin Dihapus:", ["(Pilih warga...)"] + list_warga_pilih, key="select_warga_hapus_dropdown_v4")
+            
+            btn_eksekusi_hapus = st.form_submit_button("🗑️ Hapus Data Warga Ini Secara Permanen")
+            
+            if btn_eksekusi_hapus:
+                if target_hapus_str == "(Pilih warga...)":
+                    st.warning("⚠️ Silakan pilih data warga terlebih dahulu dari dropdown.")
+                else:
+                    try:
+                        idx_hapus = int(target_hapus_str.split("|")[0].replace("Baris", "").strip()) - 1
+                        df_setelah_hapus = df.drop(index=idx_hapus).reset_index(drop=True)
+
+                        import openpyxl
+                        wb = openpyxl.Workbook()
+                        ws = wb.active
+                        ws.title = "Data Warga"
+                        ws.append(["DATA WARGA RT 06 RW 14"])
+                        ws.append([])
+                        ws.append([])
+                        ws.append(list(df_setelah_hapus.columns))
+                        for _, r in df_setelah_hapus.iterrows():
+                            ws.append(list(r.values))
+                        wb.save(FILE_EXCEL_WARGA)
+
+                        st.session_state.df_warga_state = load_data_rt06_stable()
+                        st.success("✅ Data warga berhasil dihapus secara permanen dan tidak akan kembali lagi!")
+                        time.sleep(1)
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Gagal menghapus data: {e}")
 
         st.markdown("---")
         st.markdown("### ➕ Form Input Warga Baru / Anggota Keluarga (Stabil & Otomatis Berurutan)")
@@ -463,23 +495,23 @@ if not df.empty:
                 if eb not in daftar_blok_lengkap and eb.lower() != 'nan' and eb.strip() != '':
                     daftar_blok_lengkap.append(eb)
 
-        with st.form("form_input_warga_stabil_v7", clear_on_submit=False):
+        with st.form("form_input_warga_stabil_v6", clear_on_submit=False):
             col_f1, col_f2 = st.columns(2)
             tgl_lhr, bln_lhr, thn_lhr = 1, 1, 1995
 
             with col_f1:
-                in_no_rumah = st.selectbox("No. Rumah", sorted(list(set(daftar_blok_lengkap))), key="in_no_rmh_stabil_v7")
-                in_nama_kk = st.text_input("NAMA KEPALA KELUARGA", key="in_nama_kk_stabil_v7")
-                in_nama_anggota = st.text_input("Nama Lengkap Anggota Keluarga", key="in_nama_anggota_stabil_v7")
-                in_jk = st.selectbox("Jenis Kelamin", ["L", "P"], key="in_jk_stabil_v7")
-                in_hub = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"], key="in_hub_stabil_v7")
-                in_tmplhr = st.text_input("Tempat Lahir", key="in_tmplhr_stabil_v7")
+                in_no_rumah = st.selectbox("No. Rumah", sorted(list(set(daftar_blok_lengkap))), key="in_no_rmh_stabil_v6")
+                in_nama_kk = st.text_input("NAMA KEPALA KELUARGA", key="in_nama_kk_stabil_v6")
+                in_nama_anggota = st.text_input("Nama Lengkap Anggota Keluarga", key="in_nama_anggota_stabil_v6")
+                in_jk = st.selectbox("Jenis Kelamin", ["L", "P"], key="in_jk_stabil_v6")
+                in_hub = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"], key="in_hub_stabil_v6")
+                in_tmplhr = st.text_input("Tempat Lahir", key="in_tmplhr_stabil_v6")
                 
                 st.markdown("📅 **Tanggal Lahir:**")
                 c_t1, c_t2, c_t3 = st.columns(3)
-                with c_t1: tgl_lhr = st.number_input("Tgl", min_value=1, max_value=31, value=1, key="in_tgl_v7")
-                with c_t2: bln_lhr = st.number_input("Bln", min_value=1, max_value=12, value=8, key="in_bln_v7")
-                with c_t3: thn_lhr = st.number_input("Thn", min_value=1900, max_value=2026, value=1995, key="in_thn_v7")
+                with c_t1: tgl_lhr = st.number_input("Tgl", min_value=1, max_value=31, value=1, key="in_tgl_v6")
+                with c_t2: bln_lhr = st.number_input("Bln", min_value=1, max_value=12, value=8, key="in_bln_v6")
+                with c_t3: thn_lhr = st.number_input("Thn", min_value=1900, max_value=2026, value=1995, key="in_thn_v6")
                 
                 bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
                 in_tgllhr = f"{int(tgl_lhr):02d} {bulan_indo_nama.get(int(bln_lhr), '')} {int(thn_lhr)}"
@@ -487,17 +519,17 @@ if not df.empty:
             with col_f2:
                 usia_otomatis = 2026 - int(thn_lhr)
                 if usia_otomatis < 0: usia_otomatis = 0
-                in_usia = st.number_input("Usia (Otomatis)", min_value=0, max_value=120, value=int(usia_otomatis), key="in_usia_stabil_v7")
+                in_usia = st.number_input("Usia (Otomatis)", min_value=0, max_value=120, value=int(usia_otomatis), key="in_usia_stabil_v6")
                 
-                in_status_nikah = st.selectbox("Status Perkawinan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"], key="in_status_nikah_stabil_v7")
-                in_agama = st.selectbox("Agama", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"], key="in_agama_stabil_v7")
-                in_goldarah = st.selectbox("Gol. Darah", ["A", "B", "AB", "O", "Tidak Tahu"], key="in_goldarah_stabil_v7")
-                in_suku = st.selectbox("Etnis / Suku", ["Sunda", "Jawa", "Padang", "Batak", "Betawi", "Lainnya"], key="in_suku_stabil_v7")
-                in_pend = st.selectbox("Pendidikan", ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma IV / Strata I", "Sedang SD/sedajerat", "Sedang SLTP/sederajat", "Belum / Tidak Sekolah"], key="in_pend_stabil_v7")
-                in_pek = st.selectbox("Pekerjaan", ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"], key="in_pek_stabil_v7")
+                in_status_nikah = st.selectbox("Status Perkawinan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"], key="in_status_nikah_stabil_v6")
+                in_agama = st.selectbox("Agama", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"], key="in_agama_stabil_v6")
+                in_goldarah = st.selectbox("Gol. Darah", ["A", "B", "AB", "O", "Tidak Tahu"], key="in_goldarah_stabil_v6")
+                in_suku = st.selectbox("Etnis / Suku", ["Sunda", "Jawa", "Padang", "Batak", "Betawi", "Lainnya"], key="in_suku_stabil_v6")
+                in_pend = st.selectbox("Pendidikan", ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma IV / Strata I", "Sedang SD/sedajerat", "Sedang SLTP/sederajat", "Belum / Tidak Sekolah"], key="in_pend_stabil_v6")
+                in_pek = st.selectbox("Pekerjaan", ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"], key="in_pek_stabil_v6")
                 
-                in_status_rumah = st.selectbox("Status Rumah", ["Milik / Tetap", "Sewa/Kontrak", "Kosong"], key="in_status_rumah_stabil_v7")
-                in_status_domisili = st.selectbox("Status Domisili", ["Nanjung Mekar", "luar NM"], key="in_status_domisili_stabil_v7")
+                in_status_rumah = st.selectbox("Status Rumah", ["Milik / Tetap", "Sewa/Kontrak", "Kosong"], key="in_status_rumah_stabil_v6")
+                in_status_domisili = st.selectbox("Status Domisili", ["Nanjung Mekar", "luar NM"], key="in_status_domisili_stabil_v6")
 
             if st.form_submit_button("💾 Masukkan Data ke Database Excel (Auto-Urut)"):
                 try:
@@ -598,46 +630,6 @@ if not df.empty:
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Gagal menyimpan data: {e}")
-
-    elif menu == "🗑️ Kelola & Hapus Warga":
-        if st.button("⬅️ Kembali ke Beranda", key="back_hapus_menu"):
-            st.session_state.selected_menu = "Beranda / Dashboard"
-            st.rerun()
-        st.subheader("🗑️ Menu Khusus Penghapusan Data Warga (Pindah / Keluar)")
-        st.markdown("💡 **Panduan:** Pilih warga yang sudah pindah melalui menu pilihan di bawah ini, lalu klik tombol merah untuk menghapusnya secara permanen dari file Excel server.")
-
-        with st.form("form_menu_hapus_khusus", clear_on_submit=False):
-            list_warga_pilih = [f"Baris {i+1} | Rumah: {row.get(col_rumah, '-')} | KK: {row.get(col_kk, '-')} | Nama: {row.get(col_nama, '-')}" for i, row in df.iterrows()]
-            target_hapus_str = st.selectbox("Pilih Warga yang Ingin Dihapus:", ["(Pilih warga...)"] + list_warga_pilih, key="select_warga_hapus_dropdown_v5")
-            
-            btn_eksekusi_hapus = st.form_submit_button("🗑️ Hapus Data Warga Ini Secara Permanen")
-            
-            if btn_eksekusi_hapus:
-                if target_hapus_str == "(Pilih warga...)":
-                    st.warning("⚠️ Silakan pilih data warga terlebih dahulu dari dropdown.")
-                else:
-                    try:
-                        idx_hapus = int(target_hapus_str.split("|")[0].replace("Baris", "").strip()) - 1
-                        df_setelah_hapus = df.drop(index=idx_hapus).reset_index(drop=True)
-
-                        import openpyxl
-                        wb = openpyxl.Workbook()
-                        ws = wb.active
-                        ws.title = "Data Warga"
-                        ws.append(["DATA WARGA RT 06 RW 14"])
-                        ws.append([])
-                        ws.append([])
-                        ws.append(list(df_setelah_hapus.columns))
-                        for _, r in df_setelah_hapus.iterrows():
-                            ws.append(list(r.values))
-                        wb.save(FILE_EXCEL_WARGA)
-
-                        st.session_state.df_warga_state = load_data_rt06_stable()
-                        st.success("✅ Data warga berhasil dihapus secara permanen dan tidak akan kembali lagi!")
-                        time.sleep(1)
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"❌ Gagal menghapus data: {e}")
 
     elif menu == "🗂️ Cetak Kartu Keluarga (KK)":
         if st.button("⬅️ Kembali ke Beranda", key="back_kk"):
