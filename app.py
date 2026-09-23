@@ -427,9 +427,9 @@ if not df.empty:
         if st.button("⬅️ Kembali ke Beranda", key="back_warga"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
-        st.subheader("📋 Data Keseluruhan Warga (Kelola, Edit, dan Hapus Langsung di Tabel)")
+        st.subheader("📋 Data Keseluruhan Warga (Sisip Baris, Edit, dan Hapus Langsung di Tabel)")
         
-        st.markdown("💡 **Panduan Interaktif:** Pilih lokasi No. Rumah di bawah ini lalu klik **Sisip Baris Baru** untuk menambah baris kosong di antara baris yang sudah ada. Anda juga bisa mengedit langsung di tabel dan menyimpannya secara permanen.")
+        st.markdown("💡 **Panduan Interaktif:** Pilih baris di tabel bawah ini, lalu klik tombol **➕ Sisip Baris Baru di Bawah Baris Terpilih** untuk menyisipkan baris kosong persis seperti di Excel.")
 
         def highlight_luar_nm(row):
             row_str = str(row.values).lower()
@@ -495,27 +495,22 @@ if not df.empty:
             )
 
         st.markdown("---")
-        st.markdown("### ➕ Sisip Baris Baru di Antara Data Warga")
-        col_ins1, col_ins2 = st.columns([2, 1])
-        with col_ins1:
-            list_rumah_tersedia = df[col_rumah].dropna().astype(str).tolist() if col_rumah else []
-            list_rumah_unik = sorted(list(set([x for x in list_rumah_tersedia if x.lower() != 'nan' and x.strip() != ''])))
-            target_sisip_rumah = st.selectbox("Sisip baris baru di bawah No. Rumah / Blok:", ["(Paling Bawah / Akhir Tabel)"] + list_rumah_unik, key="select_target_rumah_sisip")
-        with col_ins2:
-            st.markdown("<br>", unsafe_allow_html=True)
-            btn_eksekusi_sisip = st.button("➕ Sisip Baris Kosong", use_container_width=True)
+        st.markdown("### ➕ Sisip Baris Kosong Persis Seperti Excel")
+        
+        # Pilihan baris nomor berapa yang ingin disisipkan di bawahnya
+        pilihan_baris = [f"Baris {i+1}: {row.get(col_kk, '')} - {row.get(col_nama, '')}" for i, row in df.iterrows()]
+        target_baris_pilih = st.selectbox("Pilih baris di tabel untuk disisipkan baris kosong di bawahnya:", ["(Sisip di Paling Bawah Tabel)"] + pilihan_baris, key="select_row_excel_insert")
 
-        if btn_eksekusi_sisip:
+        if st.button("➕ Sisip Baris Baru di Bawah Baris Terpilih", key="btn_eksekusi_insert_excel", use_container_width=True):
             try:
-                # Tentukan posisi sisip berdasarkan baris terakhir dari rumah terpilih
-                idx_insert = len(df)
-                if target_sisip_rumah != "(Paling Bawah / Akhir Tabel)" and col_rumah:
-                    for i_r, r_val in df.iterrows():
-                        if str(r_val.get(col_rumah, "")).strip().lower() == target_sisip_rumah.strip().lower():
-                            idx_insert = i_r + 1 # Sisip setelah baris tersebut
+                idx_sisip = len(df)
+                if target_baris_pilih != "(Sisip di Paling Bawah Tabel)":
+                    # Ambil nomor baris dari string pilihan
+                    idx_str = target_baris_pilih.split(":")[0].replace("Baris", "").strip()
+                    idx_sisip = int(idx_str) # Karena 1-indexed, posisi index di bawahnya adalah int tersebut
 
                 baris_kosong = {col: "" for col in df.columns}
-                df_baru_sisip = pd.concat([df.iloc[:idx_insert], pd.DataFrame([baris_kosong]), df.iloc[idx_insert:]], ignore_index=True)
+                df_baru_insert = pd.concat([df.iloc[:idx_sisip], pd.DataFrame([baris_kosong]), df.iloc[idx_sisip:]], ignore_index=True)
 
                 import openpyxl
                 wb = openpyxl.Workbook()
@@ -524,12 +519,12 @@ if not df.empty:
                 ws.append(["DATA WARGA RT 06 RW 14"])
                 ws.append([])
                 ws.append([])
-                ws.append(list(df_baru_sisip.columns))
-                for _, r in df_baru_sisip.iterrows():
+                ws.append(list(df_baru_insert.columns))
+                for _, r in df_baru_insert.iterrows():
                     ws.append(list(r.values))
                 wb.save(FILE_EXCEL_WARGA)
 
-                st.success(f"✅ Berhasil menyisipkan baris baru di bawah No. Rumah {target_sisip_rumah}!")
+                st.success("✅ Berhasil menyisipkan baris baru! Silakan isi data di tabel atas.")
                 time.sleep(1)
                 st.rerun()
             except Exception as e:
@@ -1001,7 +996,7 @@ if not df.empty:
                 ('BOTTOMPADDING', (0,0), (-1,-1), 5),
                 ('TOPPADDING', (0,0), (-1,-1), 5),
                 ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f9fafb')),
-                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
+                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d1d5db')),
             ]))
             elements.append(t)
             doc.build(elements)
