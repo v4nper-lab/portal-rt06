@@ -427,9 +427,9 @@ if not df.empty:
         if st.button("⬅️ Kembali ke Beranda", key="back_warga"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
-        st.subheader("📋 Data Keseluruhan Warga (Sisip Baris, Edit, dan Hapus Langsung di Tabel)")
+        st.subheader("📋 Data Keseluruhan Warga (Kelola, Edit, dan Hapus Langsung di Tabel)")
         
-        st.markdown("💡 **Panduan Interaktif:** Pilih baris di tabel bawah ini, lalu klik tombol **➕ Sisip Baris Baru di Bawah Baris Terpilih** untuk menyisipkan baris kosong persis seperti di Excel.")
+        st.markdown("💡 **Panduan Interaktif:** Pilih No. Rumah melalui menu dropdown di bawah ini, lalu klik **➕ Sisip Baris Kosong** untuk menambahkan data baru tepat di bawah kelompok rumah tersebut.")
 
         def highlight_luar_nm(row):
             row_str = str(row.values).lower()
@@ -495,22 +495,46 @@ if not df.empty:
             )
 
         st.markdown("---")
-        st.markdown("### ➕ Sisip Baris Kosong Persis Seperti Excel")
+        st.markdown("### ➕ Sisip Baris Kosong Berdasarkan No. Rumah (Dropdown)")
         
-        # Pilihan baris nomor berapa yang ingin disisipkan di bawahnya
-        pilihan_baris = [f"Baris {i+1}: {row.get(col_kk, '')} - {row.get(col_nama, '')}" for i, row in df.iterrows()]
-        target_baris_pilih = st.selectbox("Pilih baris di tabel untuk disisipkan baris kosong di bawahnya:", ["(Sisip di Paling Bawah Tabel)"] + pilihan_baris, key="select_row_excel_insert")
+        daftar_blok_lengkap = [
+            "B3-01", "B3-02", "B3-03", "B3-04", "B3-05", "B3-06", "B3-07", "B3-08", "B3-09", "B3-10",
+            "B3-11", "B3-12", "B3-13", "B3-14", "B3-15", "B3-16", "B3-17", "B3-18", "B3-19", "B3-20",
+            "B4-01", "B4-02", "B4-03", "B4-04", "B4-05", "B4-06", "B4-07", "B4-08", "B4-09", "B4-10"
+        ]
+        if col_rumah and not df.empty:
+            df_temp_b = df.copy()
+            df_temp_b['_TEMP_R'] = df_temp_b[col_rumah].ffill()
+            existing_blocks = sorted(list(set(df_temp_b['_TEMP_R'].dropna().astype(str).tolist())))
+            for eb in existing_blocks:
+                if eb not in daftar_blok_lengkap and eb.lower() != 'nan' and eb.strip() != '':
+                    daftar_blok_lengkap.append(eb)
 
-        if st.button("➕ Sisip Baris Baru di Bawah Baris Terpilih", key="btn_eksekusi_insert_excel", use_container_width=True):
+        col_ins_dd1, col_ins_dd2 = st.columns([2, 1])
+        with col_ins_dd1:
+            pilih_blok_baru = st.selectbox("Pilih No. Rumah untuk Sisip Baris Baru:", sorted(list(set(daftar_blok_lengkap))), key="dropdown_pilih_blok_insert")
+        with col_ins_dd2:
+            st.markdown("<br>", unsafe_allow_html=True)
+            btn_eksekusi_dropdown_insert = st.button("➕ Sisip Baris Kosong", use_container_width=True)
+
+        if btn_eksekusi_dropdown_insert:
             try:
-                idx_sisip = len(df)
-                if target_baris_pilih != "(Sisip di Paling Bawah Tabel)":
-                    # Ambil nomor baris dari string pilihan
-                    idx_str = target_baris_pilih.split(":")[0].replace("Baris", "").strip()
-                    idx_sisip = int(idx_str) # Karena 1-indexed, posisi index di bawahnya adalah int tersebut
+                baris_baru_data = {col: "" for col in df.columns}
+                if col_rumah:
+                    baris_baru_data[col_rumah] = pilih_blok_baru
 
-                baris_kosong = {col: "" for col in df.columns}
-                df_baru_insert = pd.concat([df.iloc[:idx_sisip], pd.DataFrame([baris_kosong]), df.iloc[idx_sisip:]], ignore_index=True)
+                # Cari posisi terakhir dari blok rumah tersebut untuk menyisipkan tepat di bawahnya
+                insert_idx = len(df)
+                if col_rumah:
+                    last_match_idx = -1
+                    temp_r_series = df[col_rumah].ffill()
+                    for idx_m, val_m in temp_r_series.items():
+                        if str(val_m).strip().lower() == pilih_blok_baru.strip().lower():
+                            last_match_idx = idx_m
+                    if last_match_idx != -1:
+                        insert_idx = last_match_idx + 1
+
+                df_updated_insert = pd.concat([df.iloc[:insert_idx], pd.DataFrame([baris_baru_data]), df.iloc[insert_idx:]], ignore_index=True)
 
                 import openpyxl
                 wb = openpyxl.Workbook()
@@ -519,12 +543,12 @@ if not df.empty:
                 ws.append(["DATA WARGA RT 06 RW 14"])
                 ws.append([])
                 ws.append([])
-                ws.append(list(df_baru_insert.columns))
-                for _, r in df_baru_insert.iterrows():
+                ws.append(list(df_updated_insert.columns))
+                for _, r in df_updated_insert.iterrows():
                     ws.append(list(r.values))
                 wb.save(FILE_EXCEL_WARGA)
 
-                st.success("✅ Berhasil menyisipkan baris baru! Silakan isi data di tabel atas.")
+                st.success(f"✅ Berhasil menyisipkan baris kosong untuk No. Rumah {pilih_blok_baru}! Silakan lengkapi datanya di tabel atas.")
                 time.sleep(1)
                 st.rerun()
             except Exception as e:
