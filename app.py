@@ -79,13 +79,6 @@ st.markdown("""
         color: #ffffff !important;
         -webkit-text-fill-color: #ffffff !important;
     }
-    div.stButton:nth-of-type(1) button { background: linear-gradient(135deg, #2563eb, #1d4ed8) !important; }
-    div.stButton:nth-of-type(2) button { background: linear-gradient(135deg, #059669, #047857) !important; }
-    div.stButton:nth-of-type(3) button { background: linear-gradient(135deg, #0284c7, #0369a1) !important; }
-    div.stButton:nth-of-type(4) button { background: linear-gradient(135deg, #db2777, #be185d) !important; }
-    div.stButton:nth-of-type(5) button { background: linear-gradient(135deg, #d97706, #b45309) !important; }
-    div.stButton:nth-of-type(6) button { background: linear-gradient(135deg, #7c3aed, #6d28d9) !important; }
-    div.stButton:nth-of-type(7) button { background: linear-gradient(135deg, #ea580c, #c2410c) !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -411,23 +404,23 @@ if not df.empty:
         
         col_m1, col_m2 = st.columns(2)
         with col_m1:
-            if st.button("📋 Data Seluruh Warga", use_container_width=True, key="btn_m1"):
+            if st.button("📋 Data Seluruh Warga", use_container_width=True, key="home_btn_m1"):
                 st.session_state.selected_menu = "📋 Data Seluruh Warga"
                 st.rerun()
-            if st.button("🗂️ Cetak Kartu Keluarga (KK)", use_container_width=True, key="btn_m2"):
+            if st.button("🗂️ Cetak Kartu Keluarga (KK)", use_container_width=True, key="home_btn_m2"):
                 st.session_state.selected_menu = "🗂️ Cetak Kartu Keluarga (KK)"
                 st.rerun()
-            if st.button("📊 Rekapitulasi Administrasi RW", use_container_width=True, key="btn_m3"):
+            if st.button("📊 Rekapitulasi Administrasi RW", use_container_width=True, key="home_btn_m3"):
                 st.session_state.selected_menu = "📊 Rekapitulasi Administrasi RW"
                 st.rerun()
-            if st.button("💰 Laporan Kas RT & Sosial", use_container_width=True, key="btn_m4"):
+            if st.button("💰 Laporan Kas RT & Sosial", use_container_width=True, key="home_btn_m4"):
                 st.session_state.selected_menu = "💰 Laporan Kas RT & Sosial (Perelek R6 Sauyunan)"
                 st.rerun()
         with col_m2:
-            if st.button("📈 Grafik Demografi", use_container_width=True, key="btn_m5"):
+            if st.button("📈 Grafik Demografi", use_container_width=True, key="home_btn_m5"):
                 st.session_state.selected_menu = "📈 Grafik Demografi"
                 st.rerun()
-            if st.button("🖨️ Cetak Laporan Rekap PDF", use_container_width=True, key="btn_m7"):
+            if st.button("🖨️ Cetak Laporan Rekap PDF", use_container_width=True, key="home_btn_m7"):
                 st.session_state.selected_menu = "🖨️ Cetak Rekap PDF"
                 st.rerun()
 
@@ -447,7 +440,7 @@ if not df.empty:
         st.rerun()
 
     elif menu == "📋 Data Seluruh Warga":
-        if st.button("⬅️ Kembali ke Beranda", key="back_warga"):
+        if st.button("⬅️ Kembali ke Beranda", key="back_warga_home"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("📋 Data Keseluruhan Warga, Penghapusan Warga, & Input Stabil")
@@ -469,9 +462,9 @@ if not df.empty:
         st.markdown("### 🗑️ Hapus Data Warga (Pindah / Keluar)")
         st.markdown("Pilih warga yang sudah pindah melalui menu pilihan di bawah ini, lalu klik tombol merah untuk menghapusnya secara permanen dari file Excel server agar tidak muncul kembali.")
 
-        with st.form("form_hapus_warga_langsung_bawah_v2", clear_on_submit=False):
+        with st.form("form_hapus_warga_langsung_bawah_v3", clear_on_submit=False):
             list_warga_pilih = [f"Baris {i+1} | Rumah: {row.get(col_rumah, '-')} | KK: {row.get(col_kk, '-')} | Nama: {row.get(col_nama, '-')}" for i, row in df.iterrows()]
-            target_hapus_str = st.selectbox("Pilih Warga yang Ingin Dihapus:", ["(Pilih warga...)"] + list_warga_pilih, key="select_warga_hapus_dropdown_v9")
+            target_hapus_str = st.selectbox("Pilih Warga yang Ingin Dihapus:", ["(Pilih warga...)"] + list_warga_pilih, key="select_warga_hapus_dropdown_v10")
             
             btn_eksekusi_hapus = st.form_submit_button("🗑️ Hapus Data Warga Ini Secara Permanen")
             
@@ -518,23 +511,23 @@ if not df.empty:
                 if eb not in daftar_blok_lengkap and eb.lower() != 'nan' and eb.strip() != '':
                     daftar_blok_lengkap.append(eb)
 
-        with st.form("form_input_warga_stabil_v11", clear_on_submit=False):
+        with st.form("form_input_warga_stabil_v12", clear_on_submit=False):
             col_f1, col_f2 = st.columns(2)
             tgl_lhr, bln_lhr, thn_lhr = 1, 1, 1995
 
             with col_f1:
-                in_no_rumah = st.selectbox("No. Rumah", sorted(list(set(daftar_blok_lengkap))), key="in_no_rmh_stabil_v11")
-                in_nama_kk = st.text_input("NAMA KEPALA KELUARGA", key="in_nama_kk_stabil_v11")
-                in_nama_anggota = st.text_input("Nama Lengkap Anggota Keluarga", key="in_nama_anggota_stabil_v11")
-                in_jk = st.selectbox("Jenis Kelamin", ["L", "P"], key="in_jk_stabil_v11")
-                in_hub = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"], key="in_hub_stabil_v11")
-                in_tmplhr = st.text_input("Tempat Lahir", key="in_tmplhr_stabil_v11")
+                in_no_rumah = st.selectbox("No. Rumah", sorted(list(set(daftar_blok_lengkap))), key="in_no_rmh_stabil_v12")
+                in_nama_kk = st.text_input("NAMA KEPALA KELUARGA", key="in_nama_kk_stabil_v12")
+                in_nama_anggota = st.text_input("Nama Lengkap Anggota Keluarga", key="in_nama_anggota_stabil_v12")
+                in_jk = st.selectbox("Jenis Kelamin", ["L", "P"], key="in_jk_stabil_v12")
+                in_hub = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"], key="in_hub_stabil_v12")
+                in_tmplhr = st.text_input("Tempat Lahir", key="in_tmplhr_stabil_v12")
                 
                 st.markdown("📅 **Tanggal Lahir:**")
                 c_t1, c_t2, c_t3 = st.columns(3)
-                with c_t1: tgl_lhr = st.number_input("Tgl", min_value=1, max_value=31, value=1, key="in_tgl_v11")
-                with c_t2: bln_lhr = st.number_input("Bln", min_value=1, max_value=12, value=8, key="in_bln_v11")
-                with c_t3: thn_lhr = st.number_input("Thn", min_value=1900, max_value=2026, value=1995, key="in_thn_v11")
+                with c_t1: tgl_lhr = st.number_input("Tgl", min_value=1, max_value=31, value=1, key="in_tgl_v12")
+                with c_t2: bln_lhr = st.number_input("Bln", min_value=1, max_value=12, value=8, key="in_bln_v12")
+                with c_t3: thn_lhr = st.number_input("Thn", min_value=1900, max_value=2026, value=1995, key="in_thn_v12")
                 
                 bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
                 in_tgllhr = f"{int(tgl_lhr):02d} {bulan_indo_nama.get(int(bln_lhr), '')} {int(thn_lhr)}"
@@ -542,17 +535,17 @@ if not df.empty:
             with col_f2:
                 usia_otomatis = 2026 - int(thn_lhr)
                 if usia_otomatis < 0: usia_otomatis = 0
-                in_usia = st.number_input("Usia (Otomatis)", min_value=0, max_value=120, value=int(usia_otomatis), key="in_usia_stabil_v11")
+                in_usia = st.number_input("Usia (Otomatis)", min_value=0, max_value=120, value=int(usia_otomatis), key="in_usia_stabil_v12")
                 
-                in_status_nikah = st.selectbox("Status Perkawinan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"], key="in_status_nikah_stabil_v11")
-                in_agama = st.selectbox("Agama", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"], key="in_agama_stabil_v11")
-                in_goldarah = st.selectbox("Gol. Darah", ["A", "B", "AB", "O", "Tidak Tahu"], key="in_goldarah_stabil_v11")
-                in_suku = st.selectbox("Etnis / Suku", ["Sunda", "Jawa", "Padang", "Batak", "Betawi", "Lainnya"], key="in_suku_stabil_v11")
-                in_pend = st.selectbox("Pendidikan", ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma IV / Strata I", "Sedang SD/sedajerat", "Sedang SLTP/sederajat", "Belum / Tidak Sekolah"], key="in_pend_stabil_v11")
-                in_pek = st.selectbox("Pekerjaan", ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"], key="in_pek_stabil_v11")
+                in_status_nikah = st.selectbox("Status Perkawinan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"], key="in_status_nikah_stabil_v12")
+                in_agama = st.selectbox("Agama", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"], key="in_agama_stabil_v12")
+                in_goldarah = st.selectbox("Gol. Darah", ["A", "B", "AB", "O", "Tidak Tahu"], key="in_goldarah_stabil_v12")
+                in_suku = st.selectbox("Etnis / Suku", ["Sunda", "Jawa", "Padang", "Batak", "Betawi", "Lainnya"], key="in_suku_stabil_v12")
+                in_pend = st.selectbox("Pendidikan", ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma IV / Strata I", "Sedang SD/sedajerat", "Sedang SLTP/sederajat", "Belum / Tidak Sekolah"], key="in_pend_stabil_v12")
+                in_pek = st.selectbox("Pekerjaan", ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"], key="in_pek_stabil_v12")
                 
-                in_status_rumah = st.selectbox("Status Rumah", ["Milik / Tetap", "Sewa/Kontrak", "Kosong"], key="in_status_rumah_stabil_v11")
-                in_status_domisili = st.selectbox("Status Domisili", ["Nanjung Mekar", "luar NM"], key="in_status_domisili_stabil_v11")
+                in_status_rumah = st.selectbox("Status Rumah", ["Milik / Tetap", "Sewa/Kontrak", "Kosong"], key="in_status_rumah_stabil_v12")
+                in_status_domisili = st.selectbox("Status Domisili", ["Nanjung Mekar", "luar NM"], key="in_status_domisili_stabil_v12")
 
             if st.form_submit_button("💾 Masukkan Data ke Database Excel (Auto-Urut)"):
                 try:
@@ -655,7 +648,7 @@ if not df.empty:
                     st.error(f"❌ Gagal menyimpan data: {e}")
 
     elif menu == "🗂️ Cetak Kartu Keluarga (KK)":
-        if st.button("⬅️ Kembali ke Beranda", key="back_kk"):
+        if st.button("⬅️ Kembali ke Beranda", key="back_kk_home"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("🗂️ Cetak Kartu Keluarga (KK)")
@@ -669,7 +662,7 @@ if not df.empty:
         daftar_kk = df_ffill[col_kk].dropna().astype(str).str.strip()
         daftar_kk = sorted(list(set([x for x in daftar_kk if x != "" and x.lower() != "nan" and x.lower() != "none"])))
         
-        pilihan_kk = st.selectbox("Pilih Kepala Keluarga:", daftar_kk, key="select_kk_print")
+        pilihan_kk = st.selectbox("Pilih Kepala Keluarga:", daftar_kk, key="select_kk_print_main")
         
         if pilihan_kk:
             df_keluarga = df_ffill[df_ffill[col_kk].astype(str).str.strip().str.lower() == pilihan_kk.strip().lower()].copy()
@@ -737,11 +730,11 @@ if not df.empty:
                 file_name=f"KK_{pilihan_kk.replace(' ', '_')}.pdf",
                 mime="application/pdf",
                 type="primary",
-                key="dl_pdf_kk_btn"
+                key="dl_pdf_kk_btn_main"
             )
 
     elif menu == "📈 Grafik Demografi":
-        if st.button("⬅️ Kembali ke Beranda", key="back_grafik"):
+        if st.button("⬅️ Kembali ke Beranda", key="back_grafik_home"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("📈 Analisis & Statistik Grafik Demografi Warga")
@@ -759,7 +752,7 @@ if not df.empty:
             fig_jk = px.pie(df_jk, names="Jenis Kelamin", values="Jumlah", hole=0.5, title="👥 Rasio Penduduk Berdasarkan Jenis Kelamin", color_discrete_sequence=px.colors.qualitative.Bold)
             fig_jk.update_traces(textfont_size=18, textinfo="percent+label+value")
             fig_jk.update_layout(font=chart_font, title_font=title_font, legend=dict(font=dict(size=14)))
-            st.plotly_chart(fig_jk, use_container_width=True, key="chart_jk_pie")
+            st.plotly_chart(fig_jk, use_container_width=True, key="chart_jk_pie_main")
 
         if col_status:
             st.markdown("---")
@@ -768,7 +761,7 @@ if not df.empty:
             fig_st = px.bar(df_st, x="Status", y="Jumlah", text="Jumlah", title="💍 Distribusi Status Pernikahan Warga", color="Status", color_discrete_sequence=px.colors.qualitative.Pastel)
             fig_st.update_traces(textfont_size=16, textposition="outside")
             fig_st.update_layout(font=chart_font, title_font=title_font)
-            st.plotly_chart(fig_st, use_container_width=True, key="chart_status_bar")
+            st.plotly_chart(fig_st, use_container_width=True, key="chart_status_bar_main")
 
         if col_pend:
             st.markdown("---")
@@ -777,7 +770,7 @@ if not df.empty:
             fig_pd = px.bar(df_pd, x="Pendidikan", y="Jumlah", text="Jumlah", title="🎓 Tingkat Pendidikan Terakhir Warga", color="Pendidikan", color_discrete_sequence=px.colors.qualitative.Vivid)
             fig_pd.update_traces(textfont_size=16, textposition="outside")
             fig_pd.update_layout(font=chart_font, title_font=title_font)
-            st.plotly_chart(fig_pd, use_container_width=True, key="chart_pend_bar")
+            st.plotly_chart(fig_pd, use_container_width=True, key="chart_pend_bar_main")
 
         if col_pek:
             st.markdown("---")
@@ -786,7 +779,7 @@ if not df.empty:
             fig_pk = px.bar(df_pk, x="Pekerjaan", y="Jumlah", text="Jumlah", title="💼 Distribusi Mata Pencaharian / Pekerjaan Warga", color="Pekerjaan", color_discrete_sequence=px.colors.qualitative.Safe)
             fig_pk.update_traces(textfont_size=16, textposition="outside")
             fig_pk.update_layout(font=chart_font, title_font=title_font)
-            st.plotly_chart(fig_pk, use_container_width=True, key="chart_pek_bar")
+            st.plotly_chart(fig_pk, use_container_width=True, key="chart_pek_bar_main")
 
         if col_usia:
             st.markdown("---")
@@ -809,10 +802,10 @@ if not df.empty:
             fig_usia = px.pie(df_usia_count, names="Kategori Usia", values="Jumlah", hole=0.4, title="👶 Kelompok Rentang Usia Penduduk", color_discrete_sequence=px.colors.qualitative.Set3)
             fig_usia.update_traces(textfont_size=18, textinfo="percent+label+value")
             fig_usia.update_layout(font=chart_font, title_font=title_font)
-            st.plotly_chart(fig_usia, use_container_width=True, key="chart_usia_pie")
+            st.plotly_chart(fig_usia, use_container_width=True, key="chart_usia_pie_main")
 
     elif menu == "📊 Rekapitulasi Administrasi RW":
-        if st.button("⬅️ Kembali ke Beranda", key="back_rw"):
+        if st.button("⬅️ Kembali ke Beranda", key="back_rw_home"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("📊 Rekapitulasi Administrasi RW")
@@ -859,7 +852,7 @@ if not df.empty:
         st.dataframe(df_rekap_rw, use_container_width=True, hide_index=True)
 
     elif menu == "💰 Laporan Kas RT & Sosial (Perelek R6 Sauyunan)":
-        if st.button("⬅️ Kembali ke Beranda", key="back_kas"):
+        if st.button("⬅️ Kembali ke Beranda", key="back_kas_home"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Input & Rekapitulasi Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Sauyunan)")
@@ -1041,7 +1034,7 @@ if not df.empty:
             render_buku_kas_formulir('df_kas_sosial_state', FILE_KAS_SOSIAL, "Buku Kas Sosial / Perelek", "Laporan_Kas_Sosial.pdf", "LAPORAN KAS PERELEK R6 SAUYUNAN", pakai_logo=True)
 
     elif menu == "🖨️ Cetak Rekap PDF":
-        if st.button("⬅️ Kembali ke Beranda", key="back_rekap_pdf"):
+        if st.button("⬅️ Kembali ke Beranda", key="back_rekap_home"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("🖨️ Cetak Rekapitulasi Keseluruhan (PDF)")
@@ -1089,7 +1082,7 @@ if not df.empty:
             file_name="Rekap_Warga_RT06.pdf",
             mime="application/pdf",
             type="primary",
-            key="dl_pdf_rekap_all"
+            key="dl_pdf_rekap_all_main"
         )
 
 else:
