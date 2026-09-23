@@ -219,6 +219,17 @@ def load_data_rt06_direct():
         
         df = df.rename(columns={"STUS RUMAH": "STATUS RUMAH"})
         
+        # Pastikan kolom setelah No. Rumah dinamakan NAMA KEPALA KELUARGA
+        cols = list(df.columns)
+        rumah_idx = -1
+        for i, c in enumerate(cols):
+            if "RUMAH" in c or "ALAMAT" in c:
+                rumah_idx = i
+                break
+        if rumah_idx != -1 and len(cols) > rumah_idx + 1:
+            cols[rumah_idx + 1] = "NAMA KEPALA KELUARGA"
+            df.columns = cols
+        
         def adalah_baris_nomor(row):
             count_angka = 0
             total_kolom = len(row)
@@ -424,12 +435,12 @@ if not df.empty:
         st.rerun()
 
     elif menu == "📋 Data Seluruh Warga":
-        if st.button("⬅️ Kembali ke Beranda", key="back_warga"):
+        if st.button("⬅️ Kembali to Beranda", key="back_warga"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
-        st.subheader("📋 Data Keseluruhan Warga (Kelola, Edit, dan Hapus Langsung di Tabel)")
+        st.subheader("📋 Data Keseluruhan Warga (Kelola, Edit, Sisip Baris, dan Hapus Langsung di Tabel)")
         
-        st.markdown("💡 **Panduan Interaktif:** Pilih No. Rumah melalui menu dropdown di bawah ini, lalu klik **➕ Sisip Baris Kosong** untuk menambahkan data baru tepat di bawah kelompok rumah tersebut.")
+        st.markdown("💡 **Panduan Interaktif:** Pilih No. Rumah melalui menu dropdown di bawah ini, lalu klik **➕ Sisip Baris Kosong** untuk menambahkan baris baru tepat di bawah kelompok rumah tersebut. Anda juga bisa langsung menyalin (*Ctrl+C*) dan menempel (*Ctrl+V*) data seperti di Excel.")
 
         def highlight_luar_nm(row):
             row_str = str(row.values).lower()
@@ -519,22 +530,24 @@ if not df.empty:
 
         if btn_eksekusi_dropdown_insert:
             try:
-                baris_baru_data = {col: "" for col in df.columns}
+                # Ambil data dari tabel yang sedang diedit (edited_df) agar perubahan yang belum disave tidak hilang saat insert
+                df_current_state = edited_df.copy() if isinstance(edited_df, pd.DataFrame) else df.copy()
+                
+                baris_baru_data = {col: "" for col in df_current_state.columns}
                 if col_rumah:
                     baris_baru_data[col_rumah] = pilih_blok_baru
 
-                # Cari posisi terakhir dari blok rumah tersebut untuk menyisipkan tepat di bawahnya
-                insert_idx = len(df)
+                insert_idx = len(df_current_state)
                 if col_rumah:
                     last_match_idx = -1
-                    temp_r_series = df[col_rumah].ffill()
+                    temp_r_series = df_current_state[col_rumah].ffill()
                     for idx_m, val_m in temp_r_series.items():
                         if str(val_m).strip().lower() == pilih_blok_baru.strip().lower():
                             last_match_idx = idx_m
                     if last_match_idx != -1:
                         insert_idx = last_match_idx + 1
 
-                df_updated_insert = pd.concat([df.iloc[:insert_idx], pd.DataFrame([baris_baru_data]), df.iloc[insert_idx:]], ignore_index=True)
+                df_updated_insert = pd.concat([df_current_state.iloc[:insert_idx], pd.DataFrame([baris_baru_data]), df_current_state.iloc[insert_idx:]], ignore_index=True)
 
                 import openpyxl
                 wb = openpyxl.Workbook()
@@ -548,7 +561,7 @@ if not df.empty:
                     ws.append(list(r.values))
                 wb.save(FILE_EXCEL_WARGA)
 
-                st.success(f"✅ Berhasil menyisipkan baris kosong untuk No. Rumah {pilih_blok_baru}! Silakan lengkapi datanya di tabel atas.")
+                st.success(f"✅ Berhasil menyisipkan baris kosong untuk No. Rumah {pilih_blok_baru}!")
                 time.sleep(1)
                 st.rerun()
             except Exception as e:
@@ -600,7 +613,7 @@ if not df.empty:
                 st.error(f"❌ Gagal menyimpan perubahan: {e}")
 
     elif menu == "🗂️ Cetak Kartu Keluarga (KK)":
-        if st.button("⬅️ Kembali ke Beranda", key="back_kk"):
+        if st.button("⬅️ Kembali to Beranda", key="back_kk"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("🗂️ Cetak Kartu Keluarga (KK)")
@@ -686,7 +699,7 @@ if not df.empty:
             )
 
     elif menu == "📈 Grafik Demografi":
-        if st.button("⬅️ Kembali ke Beranda", key="back_grafik"):
+        if st.button("⬅️ Kembali to Beranda", key="back_grafik"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("📈 Analisis & Statistik Grafik Demografi Warga")
@@ -757,7 +770,7 @@ if not df.empty:
             st.plotly_chart(fig_usia, use_container_width=True, key="chart_usia_pie")
 
     elif menu == "📊 Rekapitulasi Administrasi RW":
-        if st.button("⬅️ Kembali ke Beranda", key="back_rw"):
+        if st.button("⬅️ Kembali to Beranda", key="back_rw"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("📊 Rekapitulasi Administrasi RW")
@@ -804,7 +817,7 @@ if not df.empty:
         st.dataframe(df_rekap_rw, use_container_width=True, hide_index=True)
 
     elif menu == "💰 Laporan Kas RT & Sosial (Perelek R6 Sauyunan)":
-        if st.button("⬅️ Kembali ke Beranda", key="back_kas"):
+        if st.button("⬅️ Kembali to Beranda", key="back_kas"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Input & Rekapitulasi Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Sauyunan)")
@@ -986,7 +999,7 @@ if not df.empty:
             render_buku_kas_formulir('df_kas_sosial_state', FILE_KAS_SOSIAL, "Buku Kas Sosial / Perelek", "Laporan_Kas_Sosial.pdf", "LAPORAN KAS PERELEK R6 SAUYUNAN", pakai_logo=True)
 
     elif menu == "🖨️ Cetak Rekap PDF":
-        if st.button("⬅️ Kembali ke Beranda", key="back_rekap_pdf"):
+        if st.button("⬅️ Kembali to Beranda", key="back_rekap_pdf"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("🖨️ Cetak Rekapitulasi Keseluruhan (PDF)")
