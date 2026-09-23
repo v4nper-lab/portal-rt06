@@ -217,6 +217,9 @@ def load_data_rt06_direct():
         df = pd.read_excel(FILE_EXCEL_WARGA, header=3)
         df.columns = df.columns.astype(str).str.strip().str.upper()
         
+        # Ganti nama kolom STUS RUMAH menjadi STATUS RUMAH agar rapi
+        df = df.rename(columns={"STUS RUMAH": "STATUS RUMAH"})
+        
         def adalah_baris_nomor(row):
             count_angka = 0
             total_kolom = len(row)
@@ -240,7 +243,6 @@ def load_data_rt06_direct():
             df[col] = df[col].astype(str).str.strip()
             df.loc[df[col].str.lower() == 'nan', col] = None
         
-        # Pembersihan total format tanggal dari jam 00:00:00
         bulan_indo = {
             1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
             7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
@@ -263,7 +265,6 @@ def load_data_rt06_direct():
                     return val_str
                 df[c] = df[c].apply(format_tgl_bersih)
 
-        # Pengurutan otomatis berdasarkan No. Rumah secara rapi
         col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
         col_kk_sort = next((col for col in df.columns if "KEPALA" in col or "KK" in col), None)
         
@@ -405,7 +406,7 @@ if not df.empty:
                 st.session_state.selected_menu = "📈 Grafik Demografi"
                 st.rerun()
             if st.button("🖨️ Cetak Laporan Rekap PDF", use_container_width=True, key="btn_m7"):
-                st.session_state.selected_menu = "🖨️ Cetak Rekap PDF"
+                st.session_state.selected_menu = "🖨️ Cetak Laporan Rekap PDF"
                 st.rerun()
 
         for _ in range(5):
@@ -429,7 +430,7 @@ if not df.empty:
             st.rerun()
         st.subheader("📋 Data Keseluruhan Warga (Kelola, Edit, dan Hapus Langsung di Tabel)")
         
-        st.markdown("💡 **Panduan Interaktif:** Format tanggal lahir kini bersih tanpa tambahan jam (`00:00:00`). Anda dapat langsung menambah baris baru, mengedit data, atau menghapus baris di tabel bawah ini. Warga dengan status domisili **luar NM** otomatis diberi **warna latar kuning lembut**[cite: 2].")
+        st.markdown("💡 **Panduan Interaktif:** Kolom **STATUS RUMAH** sebelum STATUS DOMISILI kini telah menggunakan menu pilihan (*dropdown*). Warga dengan status domisili **luar NM** otomatis diberi **warna latar kuning lembut**[cite: 2].")
 
         def highlight_luar_nm(row):
             row_str = str(row.values).lower()
@@ -470,9 +471,9 @@ if not df.empty:
         if pek_col:
             column_config[pek_col] = st.column_config.SelectboxColumn("Pekerjaan", options=["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"], required=True)
 
-        st_rmh_col = next((c for c in df.columns if "RUMAH" in c or "STUS" in c), None)
-        if st_rmh_col and st_rmh_col != col_rumah:
-            column_config[st_rmh_col] = st.column_config.SelectboxColumn("Status Rumah", options=["Milik / Tetap", "Sewa/Kontrak", "Kosong"], required=True)
+        # Dropdown untuk kolom STATUS RUMAH
+        if "STATUS RUMAH" in df.columns:
+            column_config["STATUS RUMAH"] = st.column_config.SelectboxColumn("Status Rumah", options=["Milik / Tetap", "Sewa/Kontrak", "Kosong"], required=True)
 
         st_dom_col = next((c for c in df.columns if "DOMISILI" in c), None)
         if st_dom_col:
@@ -957,10 +958,10 @@ if not df.empty:
                 ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#2563eb')),
                 ('ALIGN', (0,0), (-1,-1), 'CENTER'),
                 ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-                ('BOTTOMPADDING', (0,0), (-1,-1), 6),
-                ('TOPPADDING', (0,0), (-1,-1), 6),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+                ('TOPPADDING', (0,0), (-1,-1), 5),
                 ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f9fafb')),
-                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d1d5db')),
+                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
             ]))
             elements.append(t)
             doc.build(elements)
