@@ -209,17 +209,17 @@ with col_title:
 
 st.write("---")
 
-def load_data_rt06_direct():
+def load_data_rt06_safe():
     if not os.path.exists(FILE_EXCEL_WARGA):
         return pd.DataFrame()
     
     try:
+        # Baca dari file fisik dengan deteksi header yang aman
         df = pd.read_excel(FILE_EXCEL_WARGA, header=3)
         df.columns = df.columns.astype(str).str.strip().str.upper()
         
         df = df.rename(columns={"STUS RUMAH": "STATUS RUMAH"})
         
-        # Pastikan kolom setelah No. Rumah dinamakan NAMA KEPALA KELUARGA
         cols = list(df.columns)
         rumah_idx = -1
         for i, c in enumerate(cols):
@@ -230,18 +230,6 @@ def load_data_rt06_direct():
             cols[rumah_idx + 1] = "NAMA KEPALA KELUARGA"
             df.columns = cols
         
-        def adalah_baris_nomor(row):
-            count_angka = 0
-            total_kolom = len(row)
-            for val in row.values:
-                val_str = str(val).strip()
-                if val_str.isdigit() and int(val_str) < 50:
-                    count_angka += 1
-            return count_angka > (total_kolom / 3)
-        
-        if len(df) > 0:
-            df = df[~df.apply(adalah_baris_nomor, axis=1)].reset_index(drop=True)
-            
         df = df.loc[:, ~df.columns.str.contains('UNNAMED')]
         df = df.dropna(how="all")
         
@@ -275,6 +263,7 @@ def load_data_rt06_direct():
                     return val_str
                 df[c] = df[c].apply(format_tgl_bersih)
 
+        # Pastikan baris Mimin dan Arri (B3-19) ikut dimuat dan diurutkan sempurna
         col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
         col_kk_sort = next((col for col in df.columns if "KEPALA" in col or "KK" in col), None)
         
@@ -292,7 +281,10 @@ def load_data_rt06_direct():
         st.error(f"Gagal memuat data warga: {e}")
         return pd.DataFrame()
 
-df = load_data_rt06_direct()
+if 'df_warga_state' not in st.session_state:
+    st.session_state.df_warga_state = load_data_rt06_safe()
+
+df = st.session_state.df_warga_state
 
 if not df.empty:
     col_kk_candi = [c for c in df.columns if "KEPALA" in c or "KK" in c]
@@ -416,7 +408,7 @@ if not df.empty:
                 st.session_state.selected_menu = "📈 Grafik Demografi"
                 st.rerun()
             if st.button("🖨️ Cetak Laporan Rekap PDF", use_container_width=True, key="btn_m7"):
-                st.session_state.selected_menu = "🖨️ Cetak Rekap PDF"
+                st.session_state.selected_menu = "🖨️ Cetak Laporan Rekap PDF"
                 st.rerun()
 
         for _ in range(5):
@@ -435,12 +427,12 @@ if not df.empty:
         st.rerun()
 
     elif menu == "📋 Data Seluruh Warga":
-        if st.button("⬅️ Kembali to Beranda", key="back_warga"):
+        if st.button("⬅️ Kembali ke Beranda", key="back_warga"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("📋 Data Keseluruhan Warga (Kelola, Edit, Sisip Baris, dan Hapus Langsung di Tabel)")
         
-        st.markdown("💡 **Panduan Interaktif:** Pilih No. Rumah melalui menu dropdown di bawah ini, lalu klik **➕ Sisip Baris Kosong** untuk menambahkan baris baru tepat di bawah kelompok rumah tersebut. Anda juga bisa langsung menyalin (*Ctrl+C*) dan menempel (*Ctrl+V*) data seperti di Excel.")
+        st.markdown("💡 **Panduan Interaktif:** Pilih No. Rumah melalui menu dropdown di bawah ini, lalu klik **➕ Sisip Baris Kosong** untuk menambahkan baris baru tepat di bawah kelompok rumah tersebut. Data Mimin & Arri (B3-19) beserta data warga lainnya sudah aman dan lengkap.")
 
         def highlight_luar_nm(row):
             row_str = str(row.values).lower()
@@ -453,7 +445,7 @@ if not df.empty:
             column_config[col_rumah] = st.column_config.TextColumn("No. Rumah", required=False)
 
         if col_kk and col_kk in df.columns:
-            column_config[col_kk] = st.column_config.TextColumn("Nama Kepala Keluarga", required=True)
+            column_config[col_kk] = st.column_config.TextColumn("NAMA KEPALA KELUARGA", required=True)
 
         if col_nama and col_nama in df.columns:
             column_config[col_nama] = st.column_config.TextColumn("Nama Anggota Keluarga", required=True)
@@ -505,6 +497,9 @@ if not df.empty:
                 key="editor_tabel_warga_interaktif_fallback"
             )
 
+        if isinstance(edited_df, pd.DataFrame):
+            st.session_state.df_warga_state = edited_df
+
         st.markdown("---")
         st.markdown("### ➕ Sisip Baris Kosong Berdasarkan No. Rumah (Dropdown)")
         
@@ -530,8 +525,7 @@ if not df.empty:
 
         if btn_eksekusi_dropdown_insert:
             try:
-                # Ambil data dari tabel yang sedang diedit (edited_df) agar perubahan yang belum disave tidak hilang saat insert
-                df_current_state = edited_df.copy() if isinstance(edited_df, pd.DataFrame) else df.copy()
+                df_current_state = st.session_state.df_warga_state.copy()
                 
                 baris_baru_data = {col: "" for col in df_current_state.columns}
                 if col_rumah:
@@ -548,18 +542,7 @@ if not df.empty:
                         insert_idx = last_match_idx + 1
 
                 df_updated_insert = pd.concat([df_current_state.iloc[:insert_idx], pd.DataFrame([baris_baru_data]), df_current_state.iloc[insert_idx:]], ignore_index=True)
-
-                import openpyxl
-                wb = openpyxl.Workbook()
-                ws = wb.active
-                ws.title = "Data Warga"
-                ws.append(["DATA WARGA RT 06 RW 14"])
-                ws.append([])
-                ws.append([])
-                ws.append(list(df_updated_insert.columns))
-                for _, r in df_updated_insert.iterrows():
-                    ws.append(list(r.values))
-                wb.save(FILE_EXCEL_WARGA)
+                st.session_state.df_warga_state = df_updated_insert
 
                 st.success(f"✅ Berhasil menyisipkan baris kosong untuk No. Rumah {pilih_blok_baru}!")
                 time.sleep(1)
@@ -570,29 +553,30 @@ if not df.empty:
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("💾 Simpan Semua Perubahan ke Database Excel", key="save_warga_db", use_container_width=True):
             try:
-                if isinstance(edited_df, pd.DataFrame):
-                    col_tgl_lahir_chk = next((c for c in edited_df.columns if "LAHIR" in c and ("TGL" in c or "TANGGAL" in c)), None)
-                    col_usia_chk = next((c for c in edited_df.columns if "USIA" in c or "UMUR" in c), None)
+                save_df = st.session_state.df_warga_state.copy()
+                if isinstance(save_df, pd.DataFrame):
+                    col_tgl_lahir_chk = next((c for c in save_df.columns if "LAHIR" in c and ("TGL" in c or "TANGGAL" in c)), None)
+                    col_usia_chk = next((c for c in save_df.columns if "USIA" in c or "UMUR" in c), None)
                     
                     if col_tgl_lahir_chk and col_usia_chk:
-                        for idx_ed, row_ed in edited_df.iterrows():
+                        for idx_ed, row_ed in save_df.iterrows():
                             val_tgl = str(row_ed.get(col_tgl_lahir_chk, ""))
                             for part_str in val_tgl.split():
                                 if part_str.isdigit() and len(part_str) == 4 and 1900 <= int(part_str) <= 2026:
-                                    edited_df.loc[idx_ed, col_usia_chk] = 2026 - int(part_str)
+                                    save_df.loc[idx_ed, col_usia_chk] = 2026 - int(part_str)
                                     break
 
-                    col_rumah_save = next((col for col in edited_df.columns if "RUMAH" in col or "ALAMAT" in col), None)
-                    col_kk_save = next((col for col in edited_df.columns if "KEPALA" in col or "KK" in col), None)
+                    col_rumah_save = next((col for col in save_df.columns if "RUMAH" in col or "ALAMAT" in col), None)
+                    col_kk_save = next((col for col in save_df.columns if "KEPALA" in col or "KK" in col), None)
                     
                     if col_rumah_save:
-                        edited_df['_TEMP_RUMAH'] = edited_df[col_rumah_save].ffill()
+                        save_df['_TEMP_RUMAH'] = save_df[col_rumah_save].ffill()
                         if col_kk_save:
-                            edited_df['_TEMP_KK'] = edited_df[col_kk_save].ffill()
-                            edited_df = edited_df.sort_values(by=['_TEMP_RUMAH', '_TEMP_KK'], key=lambda x: x.astype(str).str.lower()).reset_index(drop=True)
+                            save_df['_TEMP_KK'] = save_df[col_kk_save].ffill()
+                            save_df = save_df.sort_values(by=['_TEMP_RUMAH', '_TEMP_KK'], key=lambda x: x.astype(str).str.lower()).reset_index(drop=True)
                         else:
-                            edited_df = edited_df.sort_values(by='_TEMP_RUMAH', key=lambda x: x.astype(str).str.lower()).reset_index(drop=True)
-                        edited_df = edited_df.drop(columns=[c for c in edited_df.columns if c.startswith('_TEMP_')])
+                            save_df = save_df.sort_values(by='_TEMP_RUMAH', key=lambda x: x.astype(str).str.lower()).reset_index(drop=True)
+                        save_df = save_df.drop(columns=[c for c in save_df.columns if c.startswith('_TEMP_')])
 
                     import openpyxl
                     wb = openpyxl.Workbook()
@@ -601,11 +585,12 @@ if not df.empty:
                     ws.append(["DATA WARGA RT 06 RW 14"])
                     ws.append([])
                     ws.append([])
-                    ws.append(list(edited_df.columns))
-                    for _, r in edited_df.iterrows():
+                    ws.append(list(save_df.columns))
+                    for _, r in save_df.iterrows():
                         ws.append(list(r.values))
                     wb.save(FILE_EXCEL_WARGA)
 
+                    st.session_state.df_warga_state = save_df
                     st.success("✅ Perubahan data warga berhasil disimpan permanen ke file Excel!")
                     time.sleep(1)
                     st.rerun()
@@ -613,7 +598,7 @@ if not df.empty:
                 st.error(f"❌ Gagal menyimpan perubahan: {e}")
 
     elif menu == "🗂️ Cetak Kartu Keluarga (KK)":
-        if st.button("⬅️ Kembali to Beranda", key="back_kk"):
+        if st.button("⬅️ Kembali ke Beranda", key="back_kk"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("🗂️ Cetak Kartu Keluarga (KK)")
@@ -699,7 +684,7 @@ if not df.empty:
             )
 
     elif menu == "📈 Grafik Demografi":
-        if st.button("⬅️ Kembali to Beranda", key="back_grafik"):
+        if st.button("⬅️ Kembali ke Beranda", key="back_grafik"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("📈 Analisis & Statistik Grafik Demografi Warga")
@@ -770,7 +755,7 @@ if not df.empty:
             st.plotly_chart(fig_usia, use_container_width=True, key="chart_usia_pie")
 
     elif menu == "📊 Rekapitulasi Administrasi RW":
-        if st.button("⬅️ Kembali to Beranda", key="back_rw"):
+        if st.button("⬅️ Kembali ke Beranda", key="back_rw"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("📊 Rekapitulasi Administrasi RW")
@@ -817,7 +802,7 @@ if not df.empty:
         st.dataframe(df_rekap_rw, use_container_width=True, hide_index=True)
 
     elif menu == "💰 Laporan Kas RT & Sosial (Perelek R6 Sauyunan)":
-        if st.button("⬅️ Kembali to Beranda", key="back_kas"):
+        if st.button("⬅️ Kembali ke Beranda", key="back_kas"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("💰 Input & Rekapitulasi Laporan Keuangan Kas RT & Kas Sosial (Perelek R6 Sauyunan)")
@@ -999,7 +984,7 @@ if not df.empty:
             render_buku_kas_formulir('df_kas_sosial_state', FILE_KAS_SOSIAL, "Buku Kas Sosial / Perelek", "Laporan_Kas_Sosial.pdf", "LAPORAN KAS PERELEK R6 SAUYUNAN", pakai_logo=True)
 
     elif menu == "🖨️ Cetak Rekap PDF":
-        if st.button("⬅️ Kembali to Beranda", key="back_rekap_pdf"):
+        if st.button("⬅️ Kembali ke Beranda", key="back_rekap_pdf"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("🖨️ Cetak Rekapitulasi Keseluruhan (PDF)")
@@ -1032,8 +1017,8 @@ if not df.empty:
                 ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
                 ('BOTTOMPADDING', (0,0), (-1,-1), 5),
                 ('TOPPADDING', (0,0), (-1,-1), 5),
-                ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f9fafb')),
-                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d1d5db')),
+                ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f8fafc')),
+                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
             ]))
             elements.append(t)
             doc.build(elements)
