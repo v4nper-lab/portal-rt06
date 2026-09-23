@@ -18,7 +18,6 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-# Custom CSS Modern & Profesional
 st.markdown("""
 <style>
     .stApp {
@@ -94,7 +93,6 @@ st.markdown("""
         transform: translateY(-2px) !important;
         box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35) !important;
     }
-    /* Sidebar Styling */
     section[data-testid="stSidebar"] {
         background-color: #0f172a !important;
     }
@@ -662,5 +660,3 @@ else:
             st.rerun()
         st.subheader("🖨️ Cetak Rekapitulasi PDF")
         st.success("Menu cetak PDF siap digunakan.")
-
-Apakah ada penyesuaian lain yang Anda butuhkan agar sistem ini berjalan persis seperti yang Anda harapkan?
