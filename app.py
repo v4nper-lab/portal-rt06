@@ -214,7 +214,6 @@ def load_data_rt06_safe():
         return pd.DataFrame()
     
     try:
-        # Baca dari file fisik dengan deteksi header yang aman
         df = pd.read_excel(FILE_EXCEL_WARGA, header=3)
         df.columns = df.columns.astype(str).str.strip().str.upper()
         
@@ -263,7 +262,6 @@ def load_data_rt06_safe():
                     return val_str
                 df[c] = df[c].apply(format_tgl_bersih)
 
-        # Pastikan baris Mimin dan Arri (B3-19) ikut dimuat dan diurutkan sempurna
         col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
         col_kk_sort = next((col for col in df.columns if "KEPALA" in col or "KK" in col), None)
         
@@ -281,6 +279,7 @@ def load_data_rt06_safe():
         st.error(f"Gagal memuat data warga: {e}")
         return pd.DataFrame()
 
+# Inisialisasi state agar data yang diedit/ditambahkan tidak hilang
 if 'df_warga_state' not in st.session_state:
     st.session_state.df_warga_state = load_data_rt06_safe()
 
@@ -432,7 +431,7 @@ if not df.empty:
             st.rerun()
         st.subheader("📋 Data Keseluruhan Warga (Kelola, Edit, Sisip Baris, dan Hapus Langsung di Tabel)")
         
-        st.markdown("💡 **Panduan Interaktif:** Pilih No. Rumah melalui menu dropdown di bawah ini, lalu klik **➕ Sisip Baris Kosong** untuk menambahkan baris baru tepat di bawah kelompok rumah tersebut. Data Mimin & Arri (B3-19) beserta data warga lainnya sudah aman dan lengkap.")
+        st.markdown("💡 **Panduan Interaktif:** Sesi data Anda dikunci aman di memori browser. Anda dapat mengedit, menyalin-menempel (*Ctrl+C / Ctrl+V*), atau menyisipkan baris baru menggunakan dropdown di bawah ini.")
 
         def highlight_luar_nm(row):
             row_str = str(row.values).lower()
