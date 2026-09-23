@@ -406,7 +406,7 @@ if not df.empty:
             st.rerun()
         st.subheader("📋 Data Keseluruhan Warga (Kelola, Edit, dan Hapus Langsung di Tabel)")
         
-        st.markdown("💡 **Panduan Interaktif:** Kolom-kolom disesuaikan persis dengan file Excel Anda. Anda dapat langsung menambah baris baru, mengedit data, atau menghapus baris di tabel bawah ini. Warga dengan status domisili **luar NM** otomatis diberi **warna latar kuning lembut**[cite: 2]. Kolom usia akan otomatis dihitung jika Anda memasukkan tanggal lahir dengan format tahun yang benar.")
+        st.markdown("💡 **Panduan Interaktif:** Kolom nomor rumah dan seluruh kolom lainnya kini tampil lengkap persis sesuai file Excel Anda. Anda dapat langsung menambah baris baru, mengedit data, atau menghapus baris di tabel bawah ini. Warga dengan status domisili **luar NM** otomatis diberi **warna latar kuning lembut**[cite: 2].")
 
         def highlight_luar_nm(row):
             row_str = str(row.values).lower()
@@ -415,6 +415,15 @@ if not df.empty:
             return [''] * len(row)
 
         column_config = {}
+        if col_rumah and col_rumah in df.columns:
+            column_config[col_rumah] = st.column_config.TextColumn("No. Rumah", required=False)
+
+        if col_kk and col_kk in df.columns:
+            column_config[col_kk] = st.column_config.TextColumn("Nama Kepala Keluarga", required=True)
+
+        if col_nama and col_nama in df.columns:
+            column_config[col_nama] = st.column_config.TextColumn("Nama Anggota Keluarga", required=True)
+
         if col_jk and col_jk in df.columns:
             column_config[col_jk] = st.column_config.SelectboxColumn("Jenis Kelamin", options=["L", "P"], required=True)
         
@@ -439,7 +448,7 @@ if not df.empty:
             column_config[pek_col] = st.column_config.SelectboxColumn("Pekerjaan", options=["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"], required=True)
 
         st_rmh_col = next((c for c in df.columns if "RUMAH" in c or "STUS" in c), None)
-        if st_rmh_col:
+        if st_rmh_col and st_rmh_col != col_rumah:
             column_config[st_rmh_col] = st.column_config.SelectboxColumn("Status Rumah", options=["Milik / Tetap", "Sewa/Kontrak", "Kosong"], required=True)
 
         st_dom_col = next((c for c in df.columns if "DOMISILI" in c), None)
@@ -466,7 +475,6 @@ if not df.empty:
         if st.button("💾 Simpan Perubahan ke Database Excel", key="save_warga_db"):
             try:
                 if isinstance(edited_df, pd.DataFrame):
-                    # Otomatis hitung ulang usia jika ada kolom tanggal lahir & usia
                     col_tgl_lahir_chk = next((c for c in edited_df.columns if "LAHIR" in c and ("TGL" in c or "TANGGAL" in c)), None)
                     col_usia_chk = next((c for c in edited_df.columns if "USIA" in c or "UMUR" in c), None)
                     
