@@ -427,9 +427,9 @@ if not df.empty:
         if st.button("⬅️ Kembali ke Beranda", key="back_warga"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
-        st.subheader("📋 Data Keseluruhan Warga (Sisip Baris, Edit, dan Hapus Langsung di Tabel)")
+        st.subheader("📋 Data Keseluruhan Warga (Kelola, Edit, dan Hapus Langsung di Tabel)")
         
-        st.markdown("💡 **Panduan Interaktif:** Anda dapat langsung mengedit sel, menghapus baris, atau menekan tombol **➕ Tambah Baris / Sisip Warga Baru** di bawah tabel untuk menambahkan data warga baru. Data dijamin tersimpan permanen dan terurut otomatis.")
+        st.markdown("💡 **Panduan Interaktif:** Pilih lokasi No. Rumah di bawah ini lalu klik **Sisip Baris Baru** untuk menambah baris kosong di antara baris yang sudah ada. Anda juga bisa mengedit langsung di tabel dan menyimpannya secara permanen.")
 
         def highlight_luar_nm(row):
             row_str = str(row.values).lower()
@@ -494,58 +494,74 @@ if not df.empty:
                 key="editor_tabel_warga_interaktif_fallback"
             )
 
-        col_btn1, col_btn2 = st.columns([2, 2])
-        with col_btn1:
-            if st.button("💾 Simpan Perubahan ke Database Excel", key="save_warga_db", use_container_width=True):
-                try:
-                    if isinstance(edited_df, pd.DataFrame):
-                        col_tgl_lahir_chk = next((c for c in edited_df.columns if "LAHIR" in c and ("TGL" in c or "TANGGAL" in c)), None)
-                        col_usia_chk = next((c for c in edited_df.columns if "USIA" in c or "UMUR" in c), None)
-                        
-                        if col_tgl_lahir_chk and col_usia_chk:
-                            for idx_ed, row_ed in edited_df.iterrows():
-                                val_tgl = str(row_ed.get(col_tgl_lahir_chk, ""))
-                                for part_str in val_tgl.split():
-                                    if part_str.isdigit() and len(part_str) == 4 and 1900 <= int(part_str) <= 2026:
-                                        edited_df.loc[idx_ed, col_usia_chk] = 2026 - int(part_str)
-                                        break
+        st.markdown("---")
+        st.markdown("### ➕ Sisip Baris Baru di Antara Data Warga")
+        col_ins1, col_ins2 = st.columns([2, 1])
+        with col_ins1:
+            list_rumah_tersedia = df[col_rumah].dropna().astype(str).tolist() if col_rumah else []
+            list_rumah_unik = sorted(list(set([x for x in list_rumah_tersedia if x.lower() != 'nan' and x.strip() != ''])))
+            target_sisip_rumah = st.selectbox("Sisip baris baru di bawah No. Rumah / Blok:", ["(Paling Bawah / Akhir Tabel)"] + list_rumah_unik, key="select_target_rumah_sisip")
+        with col_ins2:
+            st.markdown("<br>", unsafe_allow_html=True)
+            btn_eksekusi_sisip = st.button("➕ Sisip Baris Kosong", use_container_width=True)
 
-                        col_rumah_save = next((col for col in edited_df.columns if "RUMAH" in col or "ALAMAT" in col), None)
-                        col_kk_save = next((col for col in edited_df.columns if "KEPALA" in col or "KK" in col), None)
-                        
-                        if col_rumah_save:
-                            edited_df['_TEMP_RUMAH'] = edited_df[col_rumah_save].ffill()
-                            if col_kk_save:
-                                edited_df['_TEMP_KK'] = edited_df[col_kk_save].ffill()
-                                edited_df = edited_df.sort_values(by=['_TEMP_RUMAH', '_TEMP_KK'], key=lambda x: x.astype(str).str.lower()).reset_index(drop=True)
-                            else:
-                                edited_df = edited_df.sort_values(by='_TEMP_RUMAH', key=lambda x: x.astype(str).str.lower()).reset_index(drop=True)
-                            edited_df = edited_df.drop(columns=[c for c in edited_df.columns if c.startswith('_TEMP_')])
+        if btn_eksekusi_sisip:
+            try:
+                # Tentukan posisi sisip berdasarkan baris terakhir dari rumah terpilih
+                idx_insert = len(df)
+                if target_sisip_rumah != "(Paling Bawah / Akhir Tabel)" and col_rumah:
+                    for i_r, r_val in df.iterrows():
+                        if str(r_val.get(col_rumah, "")).strip().lower() == target_sisip_rumah.strip().lower():
+                            idx_insert = i_r + 1 # Sisip setelah baris tersebut
 
-                        import openpyxl
-                        wb = openpyxl.Workbook()
-                        ws = wb.active
-                        ws.title = "Data Warga"
-                        ws.append(["DATA WARGA RT 06 RW 14"])
-                        ws.append([])
-                        ws.append([])
-                        ws.append(list(edited_df.columns))
-                        for _, r in edited_df.iterrows():
-                            ws.append(list(r.values))
-                        wb.save(FILE_EXCEL_WARGA)
+                baris_kosong = {col: "" for col in df.columns}
+                df_baru_sisip = pd.concat([df.iloc[:idx_insert], pd.DataFrame([baris_kosong]), df.iloc[idx_insert:]], ignore_index=True)
 
-                        st.success("✅ Perubahan data warga berhasil disimpan permanen ke file Excel!")
-                        time.sleep(1)
-                        st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Gagal menyimpan perubahan: {e}")
+                import openpyxl
+                wb = openpyxl.Workbook()
+                ws = wb.active
+                ws.title = "Data Warga"
+                ws.append(["DATA WARGA RT 06 RW 14"])
+                ws.append([])
+                ws.append([])
+                ws.append(list(df_baru_sisip.columns))
+                for _, r in df_baru_sisip.iterrows():
+                    ws.append(list(r.values))
+                wb.save(FILE_EXCEL_WARGA)
 
-        with col_btn2:
-            if st.button("➕ Tambah Baris / Sisip Warga Baru", key="btn_sisip_baris", use_container_width=True):
-                try:
-                    baris_kosong = {col: "" for col in df.columns}
-                    df_baru = pd.concat([df, pd.DataFrame([baris_kosong])], ignore_index=True)
+                st.success(f"✅ Berhasil menyisipkan baris baru di bawah No. Rumah {target_sisip_rumah}!")
+                time.sleep(1)
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Gagal menyisipkan baris: {e}")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("💾 Simpan Semua Perubahan ke Database Excel", key="save_warga_db", use_container_width=True):
+            try:
+                if isinstance(edited_df, pd.DataFrame):
+                    col_tgl_lahir_chk = next((c for c in edited_df.columns if "LAHIR" in c and ("TGL" in c or "TANGGAL" in c)), None)
+                    col_usia_chk = next((c for c in edited_df.columns if "USIA" in c or "UMUR" in c), None)
                     
+                    if col_tgl_lahir_chk and col_usia_chk:
+                        for idx_ed, row_ed in edited_df.iterrows():
+                            val_tgl = str(row_ed.get(col_tgl_lahir_chk, ""))
+                            for part_str in val_tgl.split():
+                                if part_str.isdigit() and len(part_str) == 4 and 1900 <= int(part_str) <= 2026:
+                                    edited_df.loc[idx_ed, col_usia_chk] = 2026 - int(part_str)
+                                    break
+
+                    col_rumah_save = next((col for col in edited_df.columns if "RUMAH" in col or "ALAMAT" in col), None)
+                    col_kk_save = next((col for col in edited_df.columns if "KEPALA" in col or "KK" in col), None)
+                    
+                    if col_rumah_save:
+                        edited_df['_TEMP_RUMAH'] = edited_df[col_rumah_save].ffill()
+                        if col_kk_save:
+                            edited_df['_TEMP_KK'] = edited_df[col_kk_save].ffill()
+                            edited_df = edited_df.sort_values(by=['_TEMP_RUMAH', '_TEMP_KK'], key=lambda x: x.astype(str).str.lower()).reset_index(drop=True)
+                        else:
+                            edited_df = edited_df.sort_values(by='_TEMP_RUMAH', key=lambda x: x.astype(str).str.lower()).reset_index(drop=True)
+                        edited_df = edited_df.drop(columns=[c for c in edited_df.columns if c.startswith('_TEMP_')])
+
                     import openpyxl
                     wb = openpyxl.Workbook()
                     ws = wb.active
@@ -553,16 +569,16 @@ if not df.empty:
                     ws.append(["DATA WARGA RT 06 RW 14"])
                     ws.append([])
                     ws.append([])
-                    ws.append(list(df_baru.columns))
-                    for _, r in df_baru.iterrows():
+                    ws.append(list(edited_df.columns))
+                    for _, r in edited_df.iterrows():
                         ws.append(list(r.values))
                     wb.save(FILE_EXCEL_WARGA)
 
-                    st.success("✅ Baris baru berhasil disisipkan! Silakan isi data di tabel atas lalu klik Simpan.")
+                    st.success("✅ Perubahan data warga berhasil disimpan permanen ke file Excel!")
                     time.sleep(1)
                     st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Gagal menyisipkan baris: {e}")
+            except Exception as e:
+                st.error(f"❌ Gagal menyimpan perubahan: {e}")
 
     elif menu == "🗂️ Cetak Kartu Keluarga (KK)":
         if st.button("⬅️ Kembali ke Beranda", key="back_kk"):
@@ -985,7 +1001,7 @@ if not df.empty:
                 ('BOTTOMPADDING', (0,0), (-1,-1), 5),
                 ('TOPPADDING', (0,0), (-1,-1), 5),
                 ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f9fafb')),
-                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d1d5db')),
+                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
             ]))
             elements.append(t)
             doc.build(elements)
