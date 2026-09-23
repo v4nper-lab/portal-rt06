@@ -274,7 +274,7 @@ def load_data_rt06_stable():
                     return val_str
                 df[c] = df[c].apply(format_tgl_bersih)
 
-        col_usia_candi = next((c for c in df.columns if "USIA" in c or "UMUR" in c), None)
+       col_usia_candi = next((c for c in df.columns if "USIA" in c or "UMUR" in c), None)
         col_tgl_lahir_candi = next((c for c in df.columns if "LAHIR" in c and ("TGL" in c or "TANGGAL" in c)), None)
         
         if col_usia_candi:
@@ -282,7 +282,7 @@ def load_data_rt06_stable():
             for idx_u, row_u in df.iterrows():
                 usia_final = 30
                 
-                # Hitung mutlak dari Tanggal Lahir
+                # Hitung mutlak dan bersih sebagai integer murni dari tanggal lahir
                 if col_tgl_lahir_candi:
                     tgl_str = str(row_u.get(col_tgl_lahir_candi, ""))
                     try:
@@ -301,7 +301,7 @@ def load_data_rt06_stable():
                             if p_str.isdigit() and len(p_str) == 4 and 1900 <= int(p_str) <= 2026:
                                 calc_age_y = 2026 - int(p_str)
                                 if 0 <= calc_age_y <= 120:
-                                    usia_final = calc_age_y
+                                    usia_final = int(calc_age_y)
                                     found_y = True
                                     break
                         if not found_y:
@@ -309,14 +309,14 @@ def load_data_rt06_stable():
                                 val_raw = row_u.get(col_usia_candi)
                                 num_u = int(float(str(val_raw).strip()))
                                 if 0 <= num_u <= 120:
-                                    usia_final = num_u
+                                    usia_final = int(num_u)
                             except:
                                 usia_final = 30
                 else:
                     usia_final = 30
                             
-                # PAKSA FORMAT TAMPILAN MENJADI STRING BILANGAN BULAT TANPA DESIMAL
-                df.loc[idx_u, col_usia_candi] = str(int(usia_final))
+                # PAKSA DIUBAH MENJADI INTEGER MURNI TANPA TITIK DESIMAL (.000000)
+                df.loc[idx_u, col_usia_candi] = int(usia_final)
 
         col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
         col_kk_sort = next((col for col in df.columns if "KEPALA" in col or "KK" in col), None)
