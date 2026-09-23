@@ -287,7 +287,9 @@ def load_data_rt06_stable():
                     try:
                         dt_lahir = pd.to_datetime(tgl_str, errors='coerce')
                         if pd.notnull(dt_lahir):
-                            usia_bersih = current_date.year - dt_lahir.year - ((current_date.month, current_date.day) < (dt_lahir.month, dt_lahir.day))
+                            # Hitung usia akurat sebagai integer tanpa desimal
+                            calc_age = current_date.year - dt_lahir.year - ((current_date.month, current_date.day) < (dt_lahir.month, dt_lahir.day))
+                            usia_bersih = int(calc_age)
                         else:
                             raise ValueError()
                     except:
@@ -302,7 +304,8 @@ def load_data_rt06_stable():
                                 if p_str.isdigit() and len(p_str) == 4 and 1900 <= int(p_str) <= 2026:
                                     usia_bersih = 2026 - int(p_str)
                                     break
-                df.loc[idx_u, col_usia_candi] = usia_bersih
+                # Pastikan selalu disimpan sebagai Integer murni agar tidak muncul desimal .000000[cite: 2]
+                df.loc[idx_u, col_usia_candi] = int(usia_bersih)
 
         col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
         col_kk_sort = next((col for col in df.columns if "KEPALA" in col or "KK" in col), None)
@@ -426,23 +429,23 @@ else:
         
         col_m1, col_m2 = st.columns(2)
         with col_m1:
-            if st.button("📋 Data Seluruh Warga", use_container_width=True, key="btn_main_warga_v4"):
+            if st.button("📋 Data Seluruh Warga", use_container_width=True, key="btn_main_warga_v5"):
                 st.session_state.selected_menu = "📋 Data Seluruh Warga"
                 st.rerun()
-            if st.button("🗂️ Cetak Kartu Keluarga (KK)", use_container_width=True, key="btn_main_kk_v4"):
+            if st.button("🗂️ Cetak Kartu Keluarga (KK)", use_container_width=True, key="btn_main_kk_v5"):
                 st.session_state.selected_menu = "🗂️ Cetak Kartu Keluarga (KK)"
                 st.rerun()
-            if st.button("📊 Rekapitulasi Administrasi RW", use_container_width=True, key="btn_main_rw_v4"):
+            if st.button("📊 Rekapitulasi Administrasi RW", use_container_width=True, key="btn_main_rw_v5"):
                 st.session_state.selected_menu = "📊 Rekapitulasi Administrasi RW"
                 st.rerun()
         with col_m2:
-            if st.button("📈 Grafik Demografi", use_container_width=True, key="btn_main_grafik_v4"):
+            if st.button("📈 Grafik Demografi", use_container_width=True, key="btn_main_grafik_v5"):
                 st.session_state.selected_menu = "📈 Grafik Demografi"
                 st.rerun()
-            if st.button("💰 Laporan Kas RT & Sosial", use_container_width=True, key="btn_main_kas_v4"):
+            if st.button("💰 Laporan Kas RT & Sosial", use_container_width=True, key="btn_main_kas_v5"):
                 st.session_state.selected_menu = "💰 Laporan Kas RT & Sosial (Perelek R6 Sauyunan)"
                 st.rerun()
-            if st.button("🖨️ Cetak Laporan Rekap PDF", use_container_width=True, key="btn_main_pdf_v4"):
+            if st.button("🖨️ Cetak Laporan Rekap PDF", use_container_width=True, key="btn_main_pdf_v5"):
                 st.session_state.selected_menu = "🖨️ Cetak Rekap PDF"
                 st.rerun()
 
@@ -462,7 +465,7 @@ else:
         st.rerun()
 
     elif menu == "📋 Data Seluruh Warga":
-        if st.button("⬅️ Kembali ke Beranda", key="back_from_warga_v4"):
+        if st.button("⬅️ Kembali ke Beranda", key="back_from_warga_v5"):
             st.session_state.selected_menu = "Beranda / Dashboard"
             st.rerun()
         st.subheader("📋 Data Keseluruhan Warga, Hapus Warga, & Input Stabil")
@@ -481,9 +484,9 @@ else:
         st.markdown("---")
         st.markdown("### 🗑️ Hapus Data Warga (Pindah / Keluar)")
         
-        with st.form("form_hapus_warga_stabil_bawah_v4", clear_on_submit=False):
+        with st.form("form_hapus_warga_stabil_bawah_v5", clear_on_submit=False):
             list_warga_pilih = [f"Baris {i+1} | Rumah: {row.get(col_rumah, '-')} | KK: {row.get(col_kk, '-')} | Nama: {row.get(col_nama, '-')}" for i, row in df.iterrows()]
-            target_hapus_str = st.selectbox("Pilih Warga yang Ingin Dihapus:", ["(Pilih warga...)"] + list_warga_pilih, key="sel_hapus_bawah_v4")
+            target_hapus_str = st.selectbox("Pilih Warga yang Ingin Dihapus:", ["(Pilih warga...)"] + list_warga_pilih, key="sel_hapus_bawah_v5")
             
             btn_eksekusi_hapus = st.form_submit_button("🗑️ Hapus Data Warga Ini Secara Permanen")
             
@@ -515,7 +518,7 @@ else:
                         st.error(f"❌ Gagal menghapus data: {e}")
 
         st.markdown("---")
-        st.markdown("### ➕ Form Input Warga Baru / Anggota Keluarga (Tanggal Lahir Lengkap & Usia Otomatis)")
+        st.markdown("### ➕ Form Input Warga Baru / Anggota Keluarga (Lengkap dengan Gol. Darah & Suku)")
 
         daftar_blok_lengkap = [
             "B3-01", "B3-02", "B3-03", "B3-04", "B3-05", "B3-06", "B3-07", "B3-08", "B3-09", "B3-10",
@@ -530,39 +533,40 @@ else:
                 if eb not in daftar_blok_lengkap and eb.lower() != 'nan' and eb.strip() != '':
                     daftar_blok_lengkap.append(eb)
 
-        with st.form("form_input_warga_lengkap_v1", clear_on_submit=False):
+        with st.form("form_input_warga_lengkap_v2", clear_on_submit=False):
             col_f1, col_f2 = st.columns(2)
             with col_f1:
-                in_no_rumah = st.selectbox("No. Rumah", sorted(list(set(daftar_blok_lengkap))), key="in_no_rumah_full")
-                in_nama_kk = st.text_input("NAMA KEPALA KELUARGA", key="in_nama_kk_full")
-                in_nama_anggota = st.text_input("Nama Lengkap Anggota Keluarga", key="in_nama_anggota_full")
-                in_jk = st.selectbox("Jenis Kelamin", ["L", "P"], key="in_jk_full")
-                in_hub = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"], key="in_hub_full")
-                in_tmplhr = st.text_input("Tempat Lahir", key="in_tmplhr_full")
+                in_no_rumah = st.selectbox("No. Rumah", sorted(list(set(daftar_blok_lengkap))), key="in_no_rumah_full_v2")
+                in_nama_kk = st.text_input("NAMA KEPALA KELUARGA", key="in_nama_kk_full_v2")
+                in_nama_anggota = st.text_input("Nama Lengkap Anggota Keluarga", key="in_nama_anggota_full_v2")
+                in_jk = st.selectbox("Jenis Kelamin", ["L", "P"], key="in_jk_full_v2")
+                in_hub = st.selectbox("Hubungan Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"], key="in_hub_full_v2")
+                in_tmplhr = st.text_input("Tempat Lahir", key="in_tmplhr_full_v2")
                 
                 st.markdown("📅 **Tanggal Lahir (Tgl, Bulan, Tahun):**")
                 c_t1, c_t2, c_t3 = st.columns(3)
-                with c_t1: in_tgl = st.number_input("Tgl", min_value=1, max_value=31, value=1, key="in_tgl_lahir_val")
-                with c_t2: in_bln = st.number_input("Bln", min_value=1, max_value=12, value=1, key="in_bln_lahir_val")
-                with c_t3: in_thn = st.number_input("Thn", min_value=1900, max_value=2026, value=1995, key="in_thn_lahir_val")
+                with c_t1: in_tgl = st.number_input("Tgl", min_value=1, max_value=31, value=1, key="in_tgl_v2")
+                with c_t2: in_bln = st.number_input("Bln", min_value=1, max_value=12, value=1, key="in_bln_v2")
+                with c_t3: in_thn = st.number_input("Thn", min_value=1900, max_value=2026, value=1995, key="in_thn_v2")
                 
                 bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
                 tanggal_lahir_lengkap_str = f"{int(in_tgl):02d} {bulan_indo_nama.get(int(in_bln), 'Januari')} {int(in_thn)}"
                 
-                # Hitung usia otomatis secara real-time
                 current_dt = datetime.now(ZoneInfo("Asia/Jakarta"))
-                usia_otomatis = current_dt.year - int(in_thn) - ((current_dt.month, current_dt.day) < (int(in_bln), int(in_tgl)))
+                usia_otomatis = int(current_dt.year - int(in_thn) - ((current_dt.month, current_dt.day) < (int(in_bln), int(in_tgl))))
                 if usia_otomatis < 0: usia_otomatis = 0
                 
-                st.info(f"💡 Tanggal Lahir Terbentuk: **{tanggal_lahir_lengkap_str}** | Usia Otomatis: **{usia_otomatis} Tahun**")
+                st.info(f"💡 Tgl Lahir: **{tanggal_lahir_lengkap_str}** | Usia Otomatis: **{usia_otomatis} Tahun**")
 
             with col_f2:
-                in_status_nikah = st.selectbox("Status Perkawinan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"], key="in_status_nikah_full")
-                in_agama = st.selectbox("Agama", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"], key="in_agama_full")
-                in_pend = st.selectbox("Pendidikan", ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma IV / Strata I", "Sedang SD/sedajerat", "Sedang SLTP/sederajat", "Belum / Tidak Sekolah"], key="in_pend_full")
-                in_pek = st.selectbox("Pekerjaan", ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"], key="in_pek_full")
-                in_status_rumah = st.selectbox("Status Rumah", ["Milik / Tetap", "Sewa/Kontrak", "Kosong"], key="in_status_rumah_full")
-                in_status_domisili = st.selectbox("Status Domisili", ["Nanjung Mekar", "luar NM"], key="in_status_domisili_full")
+                in_status_nikah = st.selectbox("Status Perkawinan", ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"], key="in_status_nikah_full_v2")
+                in_agama = st.selectbox("Agama", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"], key="in_agama_full_v2")
+                in_goldarah = st.selectbox("Gol. Darah", ["A", "B", "AB", "O", "Tidak Tahu"], key="in_goldarah_full_v2")
+                in_suku = st.selectbox("Etnis / Suku", ["Sunda", "Jawa", "Padang", "Batak", "Betawi", "Lainnya"], key="in_suku_full_v2")
+                in_pend = st.selectbox("Pendidikan", ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma IV / Strata I", "Sedang SD/sedajerat", "Sedang SLTP/sederajat", "Belum / Tidak Sekolah"], key="in_pend_full_v2")
+                in_pek = st.selectbox("Pekerjaan", ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"], key="in_pek_full_v2")
+                in_status_rumah = st.selectbox("Status Rumah", ["Milik / Tetap", "Sewa/Kontrak", "Kosong"], key="in_status_rumah_full_v2")
+                in_status_domisili = st.selectbox("Status Domisili", ["Nanjung Mekar", "luar NM"], key="in_status_domisili_full_v2")
 
             if st.form_submit_button("💾 Masukkan Data ke Database Excel"):
                 try:
@@ -599,11 +603,15 @@ else:
                         elif "LAHIR" in c_up and ("TGL" in c_up or "TANGGAL" in c_up):
                             baris_baru_dict[col_excel] = tanggal_lahir_lengkap_str
                         elif "USIA" in c_up or "UMUR" in c_up:
-                            baris_baru_dict[col_excel] = usia_otomatis
+                            baris_baru_dict[col_excel] = int(usia_otomatis)
                         elif c_up == "STATUS" or "KAWIN" in c_up or "NIKAH" in c_up:
                             baris_baru_dict[col_excel] = in_status_nikah
                         elif "AGAMA" in c_up:
                             baris_baru_dict[col_excel] = in_agama
+                        elif "DARAH" in c_up or "GOL" in c_up:
+                            baris_baru_dict[col_excel] = in_goldarah
+                        elif "SUKU" in c_up or "ETNIS" in c_up:
+                            baris_baru_dict[col_excel] = in_suku
                         elif "PENDIDIKAN" in c_up:
                             baris_baru_dict[col_excel] = in_pend
                         elif "PEKERJAAN" in c_up:
@@ -637,7 +645,7 @@ else:
                     wb.save(FILE_EXCEL_WARGA)
 
                     st.session_state.df_warga_state = load_data_rt06_stable()
-                    st.success("✅ Data warga baru lengkap dengan tanggal lahir dan usia otomatis berhasil disimpan!")
+                    st.success("✅ Data warga baru lengkap dengan Gol. Darah dan Suku berhasil disimpan!")
                     time.sleep(1)
                     st.rerun()
                 except Exception as e:
