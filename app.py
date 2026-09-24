@@ -759,7 +759,8 @@ if not df.empty:
             df_sr = df[col_status_rumah].dropna().value_counts().reset_index()
             if not df_sr.empty:
                 df_sr.columns = ["Status Rumah", "Jumlah"]
-                fig_sr = px.bar(df_sr, x="Status Rumah", y="Jumlah", text="Jumlah", title="🏠 Distribusi Status Kepemilikan Rumah Warga", color="Status Rumah", color_discrete_sequence=px.colors.qualitative.Teal)
+                # Diperbaiki dari px.colors.qualitative.Teal menjadi px.colors.qualitative.Safe agar valid
+                fig_sr = px.bar(df_sr, x="Status Rumah", y="Jumlah", text="Jumlah", title="🏠 Distribusi Status Kepemilikan Rumah Warga", color="Status Rumah", color_discrete_sequence=px.colors.qualitative.Safe)
                 fig_sr.update_traces(textfont_size=16, textposition="outside")
                 fig_sr.update_layout(font=chart_font, title_font=title_font)
                 st.plotly_chart(fig_sr, use_container_width=True, key="chart_status_rumah_bar")
