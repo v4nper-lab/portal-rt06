@@ -656,7 +656,7 @@ if not df.empty:
             st.session_state.selected_menu = "Dashboard Eksekutif Kependudukan"
             st.rerun()
         st.subheader("✏️ Layanan Pemutakhiran & Koreksi Data Penduduk")
-        st.markdown("💡 Pilih data warga yang memerlukan perbaikan. Isian form koreksi menggunakan pilihan menu dropdown yang seragam. Perubahan data anggota keluarga (seperti anak) dijamin aman 100% dan tidak akan merubah atau merusak baris warga lainnya. Status rumah untuk anggota keluarga otomatis dikosongkan (None).")
+        st.markdown("💡 Pilih data warga yang memerlukan perbaikan. Form koreksi menggunakan pilihan menu dropdown yang seragam. Perubahan data anggota keluarga (seperti anak) dijamin aman 100% dan tidak akan merubah atau merusak baris warga lainnya. Status rumah untuk anggota keluarga otomatis dikosongkan (None).")
 
         list_warga_edit = [f"Baris {i+1} | KK: {row.get(col_kk, '-')} | Nama: {row.get(col_nama, '-')}" for i, row in df.iterrows()]
         pilih_warga_edit = st.selectbox("Pilih Penduduk untuk Koreksi Data:", ["(Pilih penduduk...)"] + list_warga_edit, key="select_warga_edit_dropdown")
@@ -1181,7 +1181,8 @@ if not df.empty:
                 buffer.seek(0)
                 return buffer.getvalue()
 
-            pdf_bytes = buat_pdf_standar_akuntansi(df_lap, judul_pdf)
+            # PERBAIKAN: Menggunakan st.session_state[state_key] alih-alih df_lap
+            pdf_bytes = buat_pdf_standar_akuntansi(st.session_state[state_key], judul_pdf)
             st.download_button(
                 label=f"📥 Unduh Laporan Keuangan {judul_buku} (PDF)",
                 data=pdf_bytes,
@@ -1234,7 +1235,7 @@ if not df.empty:
                 ('BOTTOMPADDING', (0,0), (-1,-1), 5),
                 ('TOPPADDING', (0,0), (-1,-1), 5),
                 ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f9fafb')),
-                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d1d5db')),
+                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
             ]))
             elements.append(t)
             doc.build(elements)
