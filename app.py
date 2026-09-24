@@ -262,6 +262,51 @@ def load_data_rt06_stable():
                     return val_str
                 df[c] = df[c].apply(format_tgl_bersih)
 
+        # Auto-patch untuk memastikan ARRI FERDHIAN masuk sebagai anggota keluarga MIMIN di B3-19
+        col_nama_check = next((c for c in df.columns if "NAMA" in c or "ANGGOTA" in c), None)
+        col_kk_check = next((c for c in df.columns if "KEPALA" in c or "KK" in c), None)
+        if col_nama_check and col_kk_check:
+            nama_list = [str(n).strip().upper() for n in df[col_nama_check].dropna().tolist()]
+            if "ARRI FERDHIAN" not in nama_list:
+                new_row = {}
+                for col in df.columns:
+                    c_up = col.upper()
+                    if "RUMAH" in c_up or "ALAMAT" in c_up:
+                        new_row[col] = None
+                    elif "KEPALA" in c_up or "KK" in c_up:
+                        new_row[col] = "MIMIN"
+                    elif "NAMA" in c_up or "ANGGOTA" in c_up:
+                        new_row[col] = "ARRI FERDHIAN"
+                    elif "HUBUNGAN" in c_up:
+                        new_row[col] = "Anak Kandung"
+                    elif "JK" in c_up or "KELAMIN" in c_up:
+                        new_row[col] = "L"
+                    else:
+                        new_row[col] = "-"
+                
+                insert_pos = len(df)
+                for idx, row in df.iterrows():
+                    if str(row.get(col_kk_check, "")).strip().upper() == "MIMIN":
+                        insert_pos = idx + 1
+                
+                df = pd.concat([df.iloc[:insert_pos], pd.DataFrame([new_row]), df.iloc[insert_pos:]], ignore_index=True)
+                
+                # Simpan otomatis ke Excel secara permanen
+                try:
+                    import openpyxl
+                    wb = openpyxl.Workbook()
+                    ws = wb.active
+                    ws.title = "Data Warga"
+                    ws.append(["DATA WARGA RT 06 RW 14"])
+                    ws.append([])
+                    ws.append([])
+                    ws.append(list(df.columns))
+                    for _, r in df.iterrows():
+                        ws.append(list(r.values))
+                    wb.save(FILE_EXCEL_WARGA)
+                except:
+                    pass
+
         col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
         col_kk_sort = next((col for col in df.columns if "KEPALA" in col or "KK" in col), None)
         
@@ -279,7 +324,7 @@ def load_data_rt06_stable():
         st.error(f"Gagal memuat data warga: {e}")
         return pd.DataFrame()
 
-# Selalu muat data terbaru secara realtime setiap kali aplikasi dijalankan/di-refresh
+# Selalu muat data realtime
 st.session_state.df_warga_state = load_data_rt06_stable()
 df = st.session_state.df_warga_state
 
@@ -474,7 +519,6 @@ if not df.empty:
                         ws.append(list(r.values))
                     wb.save(FILE_EXCEL_WARGA)
 
-                    # Update realtime di session_state
                     st.session_state.df_warga_state = load_data_rt06_stable()
                     st.success("✅ Data warga berhasil dihapus secara permanen dan tidak akan kembali lagi!")
                     time.sleep(1)
@@ -627,7 +671,6 @@ if not df.empty:
                         ws.append(list(r.values))
                     wb.save(FILE_EXCEL_WARGA)
 
-                    # Update realtime di session_state
                     st.session_state.df_warga_state = load_data_rt06_stable()
                     st.success("✅ Data warga baru berhasil dimasukkan dan otomatis tersusun rapi berurutan berdasarkan nomor rumah!")
                     time.sleep(1)
