@@ -263,7 +263,36 @@ def load_data_rt06_stable():
                     return val_str
                 df[c] = df[c].apply(format_tgl_bersih)
 
-        col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
+        # Koreksi otomatis khusus untuk Lilik Lestari agar selalu berada di kelompok B3-17
+        col_rumah_db = next((c for c in df.columns if "RUMAH" in c or "ALAMAT" in c), None)
+        col_nama_db = next((c for c in df.columns if "NAMA" in c or "ANGGOTA" in c), None)
+        if col_rumah_db and col_nama_db:
+            updated_excel_needed = False
+            for idx, row in df.iterrows():
+                nama_val = str(row.get(col_nama_db, "")).strip().upper()
+                if "LILIK LESTARI" in nama_val:
+                    curr_rmh = str(row.get(col_rumah_db, "")).strip().upper()
+                    if curr_rmh != "B3-17":
+                        df.at[idx, col_rumah_db] = "B3-17"
+                        updated_excel_needed = True
+            
+            if updated_excel_needed:
+                try:
+                    import openpyxl
+                    wb = openpyxl.Workbook()
+                    ws = wb.active
+                    ws.title = "Data Warga"
+                    ws.append(["DATA WARGA RT 06 RW 14"])
+                    ws.append([])
+                    ws.append([])
+                    ws.append(list(df.columns))
+                    for _, r in df.iterrows():
+                        ws.append(list(r.values))
+                    wb.save(FILE_EXCEL_WARGA)
+                except:
+                    pass
+
+        col_rumah_sort = col_rumah_db
         col_kk_sort = next((col for col in df.columns if "KEPALA" in col or "KK" in col), None)
         
         if col_rumah_sort:
@@ -1057,7 +1086,7 @@ if not df.empty:
                 else:
                     elements.append(Paragraph(f"<b>{judul}</b>", style_judul_pusat))
                     elements.append(Spacer(1, 3))
-                    elements.append(Paragraph("<b>PERUM GRIYA PERMATA RAYA - DESA NANJUNG MEKAR (PERIODE TAHUN 2026)</b>", style_subjudul_pusat))
+                    elements.append(Paragraph("<b>PERUM GRIYA PERMATA RAYA - DESA NANJUNG MEKAR (PERIODE TAHUN 2026</b>", style_subjudul_pusat))
                 
                 elements.append(Spacer(1, 15))
                 
@@ -1112,7 +1141,7 @@ if not df.empty:
                 buffer.seek(0)
                 return buffer.getvalue()
 
-            pdf_bytes = buat_pdf_standar_akuntansi(st.session_state[state_key], judul_pdf)
+            pdf_bytes = buat_pdf_standar_akuntansi(df_lap, judul_pdf)
             st.download_button(
                 label=f"📥 Unduh Laporan Keuangan {judul_buku} (PDF)",
                 data=pdf_bytes,
