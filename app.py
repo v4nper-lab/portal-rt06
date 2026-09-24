@@ -279,9 +279,8 @@ def load_data_rt06_stable():
         st.error(f"Gagal memuat data warga: {e}")
         return pd.DataFrame()
 
-if 'df_warga_state' not in st.session_state:
-    st.session_state.df_warga_state = load_data_rt06_stable()
-
+# Selalu muat data terbaru secara realtime setiap kali aplikasi dijalankan/di-refresh
+st.session_state.df_warga_state = load_data_rt06_stable()
 df = st.session_state.df_warga_state
 
 if not df.empty:
@@ -475,6 +474,7 @@ if not df.empty:
                         ws.append(list(r.values))
                     wb.save(FILE_EXCEL_WARGA)
 
+                    # Update realtime di session_state
                     st.session_state.df_warga_state = load_data_rt06_stable()
                     st.success("✅ Data warga berhasil dihapus secara permanen dan tidak akan kembali lagi!")
                     time.sleep(1)
@@ -627,6 +627,7 @@ if not df.empty:
                         ws.append(list(r.values))
                     wb.save(FILE_EXCEL_WARGA)
 
+                    # Update realtime di session_state
                     st.session_state.df_warga_state = load_data_rt06_stable()
                     st.success("✅ Data warga baru berhasil dimasukkan dan otomatis tersusun rapi berurutan berdasarkan nomor rumah!")
                     time.sleep(1)
@@ -726,7 +727,6 @@ if not df.empty:
             st.rerun()
         st.subheader("📈 Analisis & Statistik Grafik Demografi Warga")
         
-        # Pengecekan nama kolom yang aman untuk grafik
         col_pend = next((c for c in df.columns if "PENDIDIKAN" in c), None)
         col_pek = next((c for c in df.columns if "PEKERJAAN" in c), None)
         
@@ -759,7 +759,6 @@ if not df.empty:
             df_sr = df[col_status_rumah].dropna().value_counts().reset_index()
             if not df_sr.empty:
                 df_sr.columns = ["Status Rumah", "Jumlah"]
-                # Diperbaiki dari px.colors.qualitative.Teal menjadi px.colors.qualitative.Safe agar valid
                 fig_sr = px.bar(df_sr, x="Status Rumah", y="Jumlah", text="Jumlah", title="🏠 Distribusi Status Kepemilikan Rumah Warga", color="Status Rumah", color_discrete_sequence=px.colors.qualitative.Safe)
                 fig_sr.update_traces(textfont_size=16, textposition="outside")
                 fig_sr.update_layout(font=chart_font, title_font=title_font)
