@@ -262,34 +262,9 @@ def load_data_rt06_stable():
                     return val_str
                 df[c] = df[c].apply(format_tgl_bersih)
 
-        # Penyesuaian khusus untuk memastikan Mimin (B3-19) memiliki rumah dan status yang benar,
-        # dan Arri Ferdhian dipastikan sebagai anggota keluarga di bawah Mimin tanpa mengisi No. Rumah lagi.
-        col_rumah_db = next((c for c in df.columns if "RUMAH" in c or "ALAMAT" in c), None)
-        col_kk_db = next((c for c in df.columns if "KEPALA" in c or "KK" in c), None)
-        col_nama_db = next((c for c in df.columns if "NAMA" in c or "ANGGOTA" in c), None)
-        col_hub_db = next((c for c in df.columns if "HUBUNGAN" in c), None)
-        col_sr_db = next((c for c in df.columns if "STATUS RUMAH" in c or ("STATUS" in c and "RUMAH" in c)), None)
-
-        if col_rumah_db and col_kk_db and col_nama_db:
-            for idx, row in df.iterrows():
-                nama_val = str(row.get(col_nama_db, "")).strip().upper()
-                kk_val = str(row.get(col_kk_db, "")).strip().upper()
-                
-                if "MIMIN" in nama_val or "MIMIN" in kk_val:
-                    df.at[idx, col_rumah_db] = "B3-19"
-                    df.at[idx, col_kk_db] = "MIMIN"
-                    if col_hub_db:
-                        df.at[idx, col_hub_db] = "Kepala Keluarga"
-                elif "ARRI FERDHIAN" in nama_val:
-                    df.at[idx, col_kk_db] = "MIMIN"
-                    df.at[idx, col_rumah_db] = None # Anggota keluarga tidak menampilkan No. Rumah secara mandiri
-                    if col_hub_db:
-                        df.at[idx, col_hub_db] = "Anak Kandung"
-                    if col_sr_db:
-                        df.at[idx, col_sr_db] = None # Status rumah anggota keluarga dikosongkan (None)
-
-        col_rumah_sort = col_rumah_db
-        col_kk_sort = col_kk_db
+        # Murni membaca dan menyortir data dari Excel (Tanpa aturan paksa/auto-patch yang memunculkan data lama)
+        col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
+        col_kk_sort = next((col for col in df.columns if "KEPALA" in col or "KK" in col), None)
         
         if col_rumah_sort:
             df['_TEMP_RUMAH'] = df[col_rumah_sort].ffill()
@@ -581,7 +556,7 @@ if not df.empty:
                         if col_excel == "NO" or col_excel == "NO.":
                             continue
                         elif ("RUMAH" in c_up and "STATUS" not in c_up) or "ALAMAT" in c_up:
-                            # Kepala Keluarga wajib isi nomor rumah, Anggota Keluarga diisi None (kosong/None) agar diwakilkan
+                            # Jika Kepala Keluarga, isi nomor rumah. Jika Anggota Keluarga, isi None agar bersih dan terwakili.
                             if in_hub.lower() == "kepala keluarga":
                                 baris_baru_dict[col_excel] = in_no_rumah
                             else:
@@ -613,7 +588,6 @@ if not df.empty:
                         elif "PEKERJAAN" in c_up:
                             baris_baru_dict[col_excel] = in_pek
                         elif "STATUS RUMAH" in c_up:
-                            # Status rumah hanya diisi untuk Kepala Keluarga, anggota keluarga dikosongkan (None)
                             if in_hub.lower() == "kepala keluarga":
                                 baris_baru_dict[col_excel] = in_status_rumah
                             else:
