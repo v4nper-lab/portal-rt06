@@ -262,7 +262,7 @@ def load_data_rt06_stable():
                     return val_str
                 df[c] = df[c].apply(format_tgl_bersih)
 
-        # Murni membaca dan menyortir data dari Excel (Tanpa aturan paksa/auto-patch yang memunculkan data lama)
+        # Murni membaca data dari file Excel tanpa injeksi data otomatis apa pun
         col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
         col_kk_sort = next((col for col in df.columns if "KEPALA" in col or "KK" in col), None)
         
@@ -556,7 +556,7 @@ if not df.empty:
                         if col_excel == "NO" or col_excel == "NO.":
                             continue
                         elif ("RUMAH" in c_up and "STATUS" not in c_up) or "ALAMAT" in c_up:
-                            # Jika Kepala Keluarga, isi nomor rumah. Jika Anggota Keluarga, isi None agar bersih dan terwakili.
+                            # Jika Kepala Keluarga baru, catat No Rumah. Jika anggota keluarga, kosongkan (None) agar terwakili.
                             if in_hub.lower() == "kepala keluarga":
                                 baris_baru_dict[col_excel] = in_no_rumah
                             else:
