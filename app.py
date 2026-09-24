@@ -297,6 +297,20 @@ if not df.empty:
     col_jk = next((c for c in df.columns if "JK" in c or "KELAMIN" in c or "GENDER" in c), None)
     col_usia = next((c for c in df.columns if "USIA" in c or "UMUR" in c), None)
 
+    # Definisi Global daftar blok rumah untuk digunakan di seluruh menu
+    daftar_blok_lengkap = [
+        "B3-01", "B3-02", "B3-03", "B3-04", "B3-05", "B3-06", "B3-07", "B3-08", "B3-09", "B3-10",
+        "B3-11", "B3-12", "B3-13", "B3-14", "B3-15", "B3-16", "B3-17", "B3-18", "B3-19", "B3-20",
+        "B4-01", "B4-02", "B4-03", "B4-04", "B4-05", "B4-06", "B4-07", "B4-08", "B4-09", "B4-10"
+    ]
+    if col_rumah and not df.empty:
+        df_temp_b = df.copy()
+        df_temp_b['_TEMP_R'] = df_temp_b[col_rumah].ffill()
+        existing_blocks = sorted(list(set(df_temp_b['_TEMP_R'].dropna().astype(str).tolist())))
+        for eb in existing_blocks:
+            if eb not in daftar_blok_lengkap and eb.lower() != 'nan' and eb.strip() != '':
+                daftar_blok_lengkap.append(eb)
+
     st.sidebar.markdown("### 🧭 Navigasi Menu Administrasi")
     daftar_menu_pilihan = [
         "Dashboard Eksekutif Kependudukan",
@@ -489,19 +503,6 @@ if not df.empty:
         st.markdown("---")
         st.markdown("### ➕ Formulir Registrasi Penduduk & Anggota Keluarga Baru")
 
-        daftar_blok_lengkap = [
-            "B3-01", "B3-02", "B3-03", "B3-04", "B3-05", "B3-06", "B3-07", "B3-08", "B3-09", "B3-10",
-            "B3-11", "B3-12", "B3-13", "B3-14", "B3-15", "B3-16", "B3-17", "B3-18", "B3-19", "B3-20",
-            "B4-01", "B4-02", "B4-03", "B4-04", "B4-05", "B4-06", "B4-07", "B4-08", "B4-09", "B4-10"
-        ]
-        if col_rumah and not df.empty:
-            df_temp_b = df.copy()
-            df_temp_b['_TEMP_R'] = df_temp_b[col_rumah].ffill()
-            existing_blocks = sorted(list(set(df_temp_b['_TEMP_R'].dropna().astype(str).tolist())))
-            for eb in existing_blocks:
-                if eb not in daftar_blok_lengkap and eb.lower() != 'nan' and eb.strip() != '':
-                    daftar_blok_lengkap.append(eb)
-
         with st.form("form_input_warga_stabil_v2", clear_on_submit=False):
             col_f1, col_f2 = st.columns(2)
             tgl_lhr, bln_lhr, thn_lhr = 1, 1, 1995
@@ -649,7 +650,7 @@ if not df.empty:
             st.session_state.selected_menu = "Dashboard Eksekutif Kependudukan"
             st.rerun()
         st.subheader("✏️ Layanan Pemutakhiran & Koreksi Data Penduduk")
-        st.markdown("💡 Pilih data warga yang memerlukan perbaikan. Form koreksi menggunakan pilihan menu dropdown yang seragam agar akurat, dan pemutakhiran hanya berdampak pada baris data tersebut tanpa mengganggu baris keluarga lainnya.")
+        st.markdown("💡 Pilih data warga yang memerlukan perbaikan. Isian form koreksi kini menggunakan menu dropdown yang seragam. Perubahan data anggota keluarga (seperti anak) dijamin aman dan tidak akan merubah atau merusak baris warga lainnya.")
 
         list_warga_edit = [f"Baris {i+1} | KK: {row.get(col_kk, '-')} | Nama: {row.get(col_nama, '-')}" for i, row in df.iterrows()]
         pilih_warga_edit = st.selectbox("Pilih Penduduk untuk Koreksi Data:", ["(Pilih penduduk...)"] + list_warga_edit, key="select_warga_edit_dropdown")
@@ -728,12 +729,12 @@ if not df.empty:
 
                 if st.form_submit_button("💾 Perbarui Data Secara Real-Time"):
                     try:
+                        # Muat ulang dataframe raw excel untuk menjaga integritas baris secara presisi
                         df_raw_edit = pd.read_excel(FILE_EXCEL_WARGA, header=3, dtype=str)
                         df_raw_edit.columns = df_raw_edit.columns.astype(str).str.strip().str.upper()
-                        
                         df_raw_edit = df_raw_edit.rename(columns={"STUS RUMAH": "STATUS RUMAH"})
                         
-                        # Hanya memperbarui indeks baris tepat yang dipilih tanpa menggeser/mengganggu baris warga lain
+                        # Pastikan baris target di Excel sesuai dengan idx_edit
                         for c_key, c_val in kolom_form_edit.items():
                             if c_key in df_raw_edit.columns:
                                 df_raw_edit.at[idx_edit, c_key] = c_val if c_val != "" else None
