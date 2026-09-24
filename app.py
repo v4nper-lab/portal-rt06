@@ -263,7 +263,7 @@ def load_data_rt06_stable():
                     return val_str
                 df[c] = df[c].apply(format_tgl_bersih)
 
-        # Simpan indeks asli excel sebelum diurutkan agar koreksi data tidak pernah salah baris
+        # Simpan indeks asli excel untuk akurasi koreksi baris mutlak
         df['_ORIGINAL_IDX'] = df.index
 
         col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
@@ -452,7 +452,7 @@ if not df.empty:
         
         st.markdown("💡 **Panduan Administratif:** Gunakan formulir di bawah untuk menambah data penduduk baru. Gunakan fitur **Mutasi Keluar / Penghapusan Data** jika terdapat warga yang pindah atau keluar wilayah.")
 
-        # Tabel referensi utama (sembunyikan kolom _ORIGINAL_IDX dari tampilan web)
+        # Tabel referensi utama (sembunyikan _ORIGINAL_IDX)
         st.markdown("#### 📊 Tabel Master Data Penduduk Aktif:")
         def highlight_luar_nm(row):
             row_str = str(row.values).lower()
@@ -656,7 +656,7 @@ if not df.empty:
             st.session_state.selected_menu = "Dashboard Eksekutif Kependudukan"
             st.rerun()
         st.subheader("✏️ Layanan Pemutakhiran & Koreksi Data Penduduk")
-        st.markdown("💡 Pilih data warga yang memerlukan perbaikan. Form koreksi menggunakan pilihan menu dropdown yang seragam. Perubahan pada anggota keluarga (seperti anak) dijamin aman 100% dan tidak akan merubah atau merusak baris warga lainnya.")
+        st.markdown("💡 Pilih data warga yang memerlukan perbaikan. Isian form koreksi menggunakan pilihan menu dropdown yang seragam. Perubahan data anggota keluarga (seperti anak) dijamin aman 100% dan tidak akan merubah atau merusak baris warga lainnya.")
 
         list_warga_edit = [f"Baris {i+1} | KK: {row.get(col_kk, '-')} | Nama: {row.get(col_nama, '-')}" for i, row in df.iterrows()]
         pilih_warga_edit = st.selectbox("Pilih Penduduk untuk Koreksi Data:", ["(Pilih penduduk...)"] + list_warga_edit, key="select_warga_edit_dropdown")
@@ -740,10 +740,19 @@ if not df.empty:
                         df_raw_edit.columns = df_raw_edit.columns.astype(str).str.strip().str.upper()
                         df_raw_edit = df_raw_edit.rename(columns={"STUS RUMAH": "STATUS RUMAH"})
                         
-                        # Targetkan secara presisi baris asli berdasarkan original_row_idx di file Excel
+                        # Perbarui atribut pada baris asli secara presisi menggunakan original_row_idx
                         for c_key, c_val in kolom_form_edit.items():
                             if c_key in df_raw_edit.columns:
                                 df_raw_edit.at[original_row_idx, c_key] = c_val if c_val != "" else None
+
+                        # Aturan Kependudukan: Jika bukan Kepala Keluarga, status rumah otomatis None (kosong)
+                        col_hub_edit = next((c for c in df_raw_edit.columns if "HUBUNGAN" in c), None)
+                        col_sr_edit = next((c for c in df_raw_edit.columns if "STATUS RUMAH" in c or ("STATUS" in c and "RUMAH" in c)), None)
+                        
+                        if col_hub_edit and col_sr_edit:
+                            hub_val = str(df_raw_edit.at[original_row_idx, col_hub_edit]).strip().lower()
+                            if hub_val != "kepala keluarga":
+                                df_raw_edit.at[original_row_idx, col_sr_edit] = None
 
                         import openpyxl
                         wb = openpyxl.Workbook()
@@ -1201,7 +1210,7 @@ if not df.empty:
             elements.append(Paragraph("Kecamatan Rancaekek - Perum Griya Permata Raya - Desa Nanjung Mekar", ParagraphStyle('Sub', parent=styles['Normal'], alignment=1, fontSize=11, textColor=colors.gray)))
             elements.append(Spacer(1, 15))
             
-            kolom_tampil = list(data_df.columns)
+            kolom_tampil = [c for c in data_df.columns if c != '_ORIGINAL_IDX']
             cell_style = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=6.5, leading=7.5, alignment=1)
             header_style = ParagraphStyle('HeaderCell', parent=styles['Normal'], fontSize=7, leading=8.5, textColor=colors.whitesmoke, fontName='Helvetica-Bold', alignment=1)
             
@@ -1221,7 +1230,7 @@ if not df.empty:
                 ('BOTTOMPADDING', (0,0), (-1,-1), 5),
                 ('TOPPADDING', (0,0), (-1,-1), 5),
                 ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f9fafb')),
-                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d1d5db')),
+                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
             ]))
             elements.append(t)
             doc.build(elements)
