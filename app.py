@@ -656,7 +656,7 @@ if not df.empty:
             st.session_state.selected_menu = "Dashboard Eksekutif Kependudukan"
             st.rerun()
         st.subheader("✏️ Layanan Pemutakhiran & Koreksi Data Penduduk")
-        st.markdown("💡 Pilih data warga yang memerlukan perbaikan. Isian form koreksi menggunakan pilihan menu dropdown yang seragam. Perubahan data anggota keluarga (seperti anak) dijamin aman 100% dan tidak akan merubah atau merusak baris warga lainnya.")
+        st.markdown("💡 Pilih data warga yang memerlukan perbaikan. Isian form koreksi menggunakan pilihan menu dropdown yang seragam. Perubahan data anggota keluarga (seperti anak) dijamin aman 100% dan tidak akan merubah atau merusak baris warga lainnya. Status rumah untuk anggota keluarga otomatis dikosongkan (None).")
 
         list_warga_edit = [f"Baris {i+1} | KK: {row.get(col_kk, '-')} | Nama: {row.get(col_nama, '-')}" for i, row in df.iterrows()]
         pilih_warga_edit = st.selectbox("Pilih Penduduk untuk Koreksi Data:", ["(Pilih penduduk...)"] + list_warga_edit, key="select_warga_edit_dropdown")
@@ -745,14 +745,18 @@ if not df.empty:
                             if c_key in df_raw_edit.columns:
                                 df_raw_edit.at[original_row_idx, c_key] = c_val if c_val != "" else None
 
-                        # Aturan Kependudukan: Jika bukan Kepala Keluarga, status rumah otomatis None (kosong)
+                        # Aturan Kependudukan: Jika bukan Kepala Keluarga, status rumah & nomor rumah otomatis dikosongkan (None)
                         col_hub_edit = next((c for c in df_raw_edit.columns if "HUBUNGAN" in c), None)
                         col_sr_edit = next((c for c in df_raw_edit.columns if "STATUS RUMAH" in c or ("STATUS" in c and "RUMAH" in c)), None)
+                        col_rmh_edit = next((c for c in df_raw_edit.columns if ("RUMAH" in c and "STATUS" not in c) or "ALAMAT" in c), None)
                         
-                        if col_hub_edit and col_sr_edit:
+                        if col_hub_edit:
                             hub_val = str(df_raw_edit.at[original_row_idx, col_hub_edit]).strip().lower()
                             if hub_val != "kepala keluarga":
-                                df_raw_edit.at[original_row_idx, col_sr_edit] = None
+                                if col_sr_edit:
+                                    df_raw_edit.at[original_row_idx, col_sr_edit] = None
+                                if col_rmh_edit:
+                                    df_raw_edit.at[original_row_idx, col_rmh_edit] = None
 
                         import openpyxl
                         wb = openpyxl.Workbook()
@@ -1230,7 +1234,7 @@ if not df.empty:
                 ('BOTTOMPADDING', (0,0), (-1,-1), 5),
                 ('TOPPADDING', (0,0), (-1,-1), 5),
                 ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f9fafb')),
-                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
+                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d1d5db')),
             ]))
             elements.append(t)
             doc.build(elements)
