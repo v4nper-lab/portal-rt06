@@ -263,6 +263,9 @@ def load_data_rt06_stable():
                     return val_str
                 df[c] = df[c].apply(format_tgl_bersih)
 
+        # Simpan indeks asli excel sebelum diurutkan agar koreksi data tidak pernah salah baris
+        df['_ORIGINAL_IDX'] = df.index
+
         col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
         col_kk_sort = next((col for col in df.columns if "KEPALA" in col or "KK" in col), None)
         
@@ -297,7 +300,6 @@ if not df.empty:
     col_jk = next((c for c in df.columns if "JK" in c or "KELAMIN" in c or "GENDER" in c), None)
     col_usia = next((c for c in df.columns if "USIA" in c or "UMUR" in c), None)
 
-    # Definisi Global daftar blok rumah untuk digunakan di seluruh menu
     daftar_blok_lengkap = [
         "B3-01", "B3-02", "B3-03", "B3-04", "B3-05", "B3-06", "B3-07", "B3-08", "B3-09", "B3-10",
         "B3-11", "B3-12", "B3-13", "B3-14", "B3-15", "B3-16", "B3-17", "B3-18", "B3-19", "B3-20",
@@ -450,7 +452,7 @@ if not df.empty:
         
         st.markdown("💡 **Panduan Administratif:** Gunakan formulir di bawah untuk menambah data penduduk baru. Gunakan fitur **Mutasi Keluar / Penghapusan Data** jika terdapat warga yang pindah atau keluar wilayah.")
 
-        # Tabel referensi utama
+        # Tabel referensi utama (sembunyikan kolom _ORIGINAL_IDX dari tampilan web)
         st.markdown("#### 📊 Tabel Master Data Penduduk Aktif:")
         def highlight_luar_nm(row):
             row_str = str(row.values).lower()
@@ -459,9 +461,10 @@ if not df.empty:
             return [''] * len(row)
 
         try:
-            st.dataframe(df.style.apply(highlight_luar_nm, axis=1), use_container_width=True, hide_index=True)
+            df_show = df.drop(columns=['_ORIGINAL_IDX'], errors='ignore')
+            st.dataframe(df_show.style.apply(highlight_luar_nm, axis=1), use_container_width=True, hide_index=True)
         except:
-            st.dataframe(df, use_container_width=True, hide_index=True)
+            st.dataframe(df.drop(columns=['_ORIGINAL_IDX'], errors='ignore'), use_container_width=True, hide_index=True)
 
         st.markdown("---")
         st.markdown("### 🗑️ Mutasi Keluar / Penghapusan Data Penduduk")
@@ -478,8 +481,11 @@ if not df.empty:
                 st.warning("⚠️ Silakan pilih data penduduk terlebih dahulu dari daftar.")
             else:
                 try:
-                    idx_hapus = int(target_hapus_str.split("|")[0].replace("Baris", "").strip()) - 1
-                    df_setelah_hapus = df.drop(index=idx_hapus).reset_index(drop=True)
+                    selected_row = df.iloc[int(target_hapus_str.split("|")[0].replace("Baris", "").strip()) - 1]
+                    original_del_idx = int(selected_row['_ORIGINAL_IDX'])
+
+                    df_raw_del = pd.read_excel(FILE_EXCEL_WARGA, header=3, dtype=str)
+                    df_setelah_hapus = df_raw_del.drop(index=original_del_idx).reset_index(drop=True)
 
                     import openpyxl
                     wb = openpyxl.Workbook()
@@ -650,14 +656,15 @@ if not df.empty:
             st.session_state.selected_menu = "Dashboard Eksekutif Kependudukan"
             st.rerun()
         st.subheader("✏️ Layanan Pemutakhiran & Koreksi Data Penduduk")
-        st.markdown("💡 Pilih data warga yang memerlukan perbaikan. Isian form koreksi kini menggunakan menu dropdown yang seragam. Perubahan data anggota keluarga (seperti anak) dijamin aman dan tidak akan merubah atau merusak baris warga lainnya.")
+        st.markdown("💡 Pilih data warga yang memerlukan perbaikan. Form koreksi menggunakan pilihan menu dropdown yang seragam. Perubahan pada anggota keluarga (seperti anak) dijamin aman 100% dan tidak akan merubah atau merusak baris warga lainnya.")
 
         list_warga_edit = [f"Baris {i+1} | KK: {row.get(col_kk, '-')} | Nama: {row.get(col_nama, '-')}" for i, row in df.iterrows()]
         pilih_warga_edit = st.selectbox("Pilih Penduduk untuk Koreksi Data:", ["(Pilih penduduk...)"] + list_warga_edit, key="select_warga_edit_dropdown")
 
         if pilih_warga_edit != "(Pilih penduduk...)":
-            idx_edit = int(pilih_warga_edit.split("|")[0].replace("Baris", "").strip()) - 1
-            row_data = df.iloc[idx_edit]
+            idx_display = int(pilih_warga_edit.split("|")[0].replace("Baris", "").strip()) - 1
+            row_data = df.iloc[idx_display]
+            original_row_idx = int(row_data['_ORIGINAL_IDX'])
 
             with st.form("form_edit_warga_realtime"):
                 st.markdown(f"#### 📝 Lembar Koreksi Data: **{row_data.get(col_nama, '-')}**")
@@ -665,7 +672,7 @@ if not df.empty:
                 kolom_form_edit = {}
                 col_e1, col_e2 = st.columns(2)
                 
-                cols_to_skip = ['_TEMP_RUMAH', '_TEMP_KK', 'NO', 'NO.']
+                cols_to_skip = ['_ORIGINAL_IDX', '_TEMP_RUMAH', '_TEMP_KK', 'NO', 'NO.']
                 all_cols = [c for c in df.columns if c not in cols_to_skip]
 
                 half_len = len(all_cols) // 2
@@ -682,62 +689,61 @@ if not df.empty:
                         if "JK" in c_up or "KELAMIN" in c_up:
                             opts = ["L", "P"]
                             idx_opt = opts.index(current_val) if current_val in opts else 0
-                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_edit}_{col_name}")
+                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_display}_{col_name}")
                         elif "HUBUNGAN" in c_up:
                             opts = ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"]
                             idx_opt = opts.index(current_val) if current_val in opts else 0
-                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_edit}_{col_name}")
+                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_display}_{col_name}")
                         elif "STATUS" in c_up and ("KAWIN" in c_up or "NIKAH" in c_up):
                             opts = ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"]
                             idx_opt = opts.index(current_val) if current_val in opts else 0
-                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_edit}_{col_name}")
+                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_display}_{col_name}")
                         elif "AGAMA" in c_up:
                             opts = ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"]
                             idx_opt = opts.index(current_val) if current_val in opts else 0
-                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_edit}_{col_name}")
+                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_display}_{col_name}")
                         elif "DARAH" in c_up or "GOL" in c_up:
                             opts = ["A", "B", "AB", "O", "Tidak Tahu"]
                             idx_opt = opts.index(current_val) if current_val in opts else 0
-                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_edit}_{col_name}")
+                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_display}_{col_name}")
                         elif "SUKU" in c_up or "ETNIS" in c_up:
                             opts = ["Sunda", "Jawa", "Padang", "Batak", "Betawi", "Lainnya"]
                             idx_opt = opts.index(current_val) if current_val in opts else 0
-                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_edit}_{col_name}")
+                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_display}_{col_name}")
                         elif "PENDIDIKAN" in c_up:
                             opts = ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma IV / Strata I", "Sedang SD/sedajerat", "Sedang SLTP/sederajat", "Belum / Tidak Sekolah"]
                             idx_opt = opts.index(current_val) if current_val in opts else 0
-                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_edit}_{col_name}")
+                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_display}_{col_name}")
                         elif "PEKERJAAN" in c_up:
                             opts = ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"]
                             idx_opt = opts.index(current_val) if current_val in opts else 0
-                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_edit}_{col_name}")
+                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_display}_{col_name}")
                         elif "STATUS RUMAH" in c_up:
                             opts = ["Milik / Tetap", "Sewa/Kontrak", "Kosong"]
                             idx_opt = opts.index(current_val) if current_val in opts else 0
-                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_edit}_{col_name}")
+                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_display}_{col_name}")
                         elif "DOMISILI" in c_up:
                             opts = ["Nanjung Mekar", "luar NM"]
                             idx_opt = opts.index(current_val) if current_val in opts else 0
-                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_edit}_{col_name}")
+                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_display}_{col_name}")
                         elif ("RUMAH" in c_up and "STATUS" not in c_up) or "ALAMAT" in c_up:
                             opts = sorted(list(set(daftar_blok_lengkap)))
                             if current_val and current_val not in opts:
                                 opts.append(current_val)
-                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", [""] + opts, index=(opts.index(current_val)+1) if current_val in opts else 0, key=f"edit_{idx_edit}_{col_name}")
+                            kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", [""] + opts, index=(opts.index(current_val)+1) if current_val in opts else 0, key=f"edit_{idx_display}_{col_name}")
                         else:
-                            kolom_form_edit[col_name] = st.text_input(f"Atribut: {col_name}", value=current_val, key=f"edit_{idx_edit}_{col_name}")
+                            kolom_form_edit[col_name] = st.text_input(f"Atribut: {col_name}", value=current_val, key=f"edit_{idx_display}_{col_name}")
 
                 if st.form_submit_button("💾 Perbarui Data Secara Real-Time"):
                     try:
-                        # Muat ulang dataframe raw excel untuk menjaga integritas baris secara presisi
                         df_raw_edit = pd.read_excel(FILE_EXCEL_WARGA, header=3, dtype=str)
                         df_raw_edit.columns = df_raw_edit.columns.astype(str).str.strip().str.upper()
                         df_raw_edit = df_raw_edit.rename(columns={"STUS RUMAH": "STATUS RUMAH"})
                         
-                        # Pastikan baris target di Excel sesuai dengan idx_edit
+                        # Targetkan secara presisi baris asli berdasarkan original_row_idx di file Excel
                         for c_key, c_val in kolom_form_edit.items():
                             if c_key in df_raw_edit.columns:
-                                df_raw_edit.at[idx_edit, c_key] = c_val if c_val != "" else None
+                                df_raw_edit.at[original_row_idx, c_key] = c_val if c_val != "" else None
 
                         import openpyxl
                         wb = openpyxl.Workbook()
@@ -779,7 +785,7 @@ if not df.empty:
             df_keluarga = df_ffill[df_ffill[col_kk].astype(str).str.strip().str.lower() == pilihan_kk.strip().lower()].copy()
             no_rmh = str(df_keluarga[col_rumah].dropna().iloc[0]) if col_rumah and not df_keluarga[df_keluarga[col_rumah].notna()].empty else "-"
             
-            cols_tampilan_web = [c for c in df_keluarga.columns if c != col_kk and "URUT" not in c and c != "NO"]
+            cols_tampilan_web = [c for c in df_keluarga.columns if c != col_kk and "URUT" not in c and c != "NO" and c != "_ORIGINAL_IDX"]
             
             st.markdown(f"""
             <div style="background: #ffffff; border: 2px solid #2563eb; border-radius: 12px; padding: 12px; margin-bottom: 12px;">
@@ -805,7 +811,7 @@ if not df.empty:
                 elements.append(Paragraph(f"<b>Kepala Keluarga:</b> {kepala}", styles['Normal']))
                 elements.append(Spacer(1, 10))
                 
-                kolom_pdf = [c for c in keluarga_df.columns if c != col_kk and "URUT" not in c and c != "NO"]
+                kolom_pdf = [c for c in keluarga_df.columns if c != col_kk and "URUT" not in c and c != "NO" and c != "_ORIGINAL_IDX"]
                 
                 cell_style = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=7, leading=8, alignment=1)
                 header_style = ParagraphStyle('HeaderCell', parent=styles['Normal'], fontSize=7.5, leading=9, textColor=colors.whitesmoke, fontName='Helvetica-Bold', alignment=1)
