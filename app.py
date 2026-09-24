@@ -86,6 +86,7 @@ st.markdown("""
     div.stButton:nth-of-type(5) button { background: linear-gradient(135deg, #d97706, #b45309) !important; }
     div.stButton:nth-of-type(6) button { background: linear-gradient(135deg, #7c3aed, #6d28d9) !important; }
     div.stButton:nth-of-type(7) button { background: linear-gradient(135deg, #ea580c, #c2410c) !important; }
+    div.stButton:nth-of-type(8) button { background: linear-gradient(135deg, #0d9488, #0f766e) !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -262,7 +263,6 @@ def load_data_rt06_stable():
                     return val_str
                 df[c] = df[c].apply(format_tgl_bersih)
 
-        # Murni membaca data dari file Excel tanpa injeksi data otomatis apa pun
         col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
         col_kk_sort = next((col for col in df.columns if "KEPALA" in col or "KK" in col), None)
         
@@ -301,6 +301,7 @@ if not df.empty:
     daftar_menu_pilihan = [
         "Beranda / Dashboard",
         "📋 Data Seluruh Warga",
+        "✏️ Koreksi / Edit Data Warga",
         "🗂️ Cetak Kartu Keluarga (KK)", 
         "📈 Grafik Demografi", 
         "📊 Rekapitulasi Administrasi RW",
@@ -391,6 +392,9 @@ if not df.empty:
         with col_m1:
             if st.button("📋 Data Seluruh Warga", use_container_width=True, key="btn_m1"):
                 st.session_state.selected_menu = "📋 Data Seluruh Warga"
+                st.rerun()
+            if st.button("✏️ Koreksi / Edit Data Warga", use_container_width=True, key="btn_m1_edit"):
+                st.session_state.selected_menu = "✏️ Koreksi / Edit Data Warga"
                 st.rerun()
             if st.button("🗂️ Cetak Kartu Keluarga (KK)", use_container_width=True, key="btn_m2"):
                 st.session_state.selected_menu = "🗂️ Cetak Kartu Keluarga (KK)"
@@ -556,7 +560,6 @@ if not df.empty:
                         if col_excel == "NO" or col_excel == "NO.":
                             continue
                         elif ("RUMAH" in c_up and "STATUS" not in c_up) or "ALAMAT" in c_up:
-                            # Jika Kepala Keluarga baru, catat No Rumah. Jika anggota keluarga, kosongkan (None) agar terwakili.
                             if in_hub.lower() == "kepala keluarga":
                                 baris_baru_dict[col_excel] = in_no_rumah
                             else:
@@ -640,6 +643,71 @@ if not df.empty:
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Gagal menyimpan data: {e}")
+
+    elif menu == "✏️ Koreksi / Edit Data Warga":
+        if st.button("⬅️ Kembali ke Beranda", key="back_edit"):
+            st.session_state.selected_menu = "Beranda / Dashboard"
+            st.rerun()
+        st.subheader("✏️ Menu Koreksi / Perbaikan Data Warga")
+        st.markdown("💡 Pilih warga yang ingin dikoreksi datanya. Hasil perubahan akan langsung tersimpan secara permanen dan real-time.")
+
+        list_warga_edit = [f"Baris {i+1} | KK: {row.get(col_kk, '-')} | Nama: {row.get(col_nama, '-')}" for i, row in df.iterrows()]
+        pilih_warga_edit = st.selectbox("Pilih Warga yang Ingin Dikoreksi:", ["(Pilih warga...)"] + list_warga_edit, key="select_warga_edit_dropdown")
+
+        if pilih_warga_edit != "(Pilih warga...)":
+            idx_edit = int(pilih_warga_edit.split("|")[0].replace("Baris", "").strip()) - 1
+            row_data = df.iloc[idx_edit]
+
+            with st.form("form_edit_warga_realtime"):
+                st.markdown(f"#### 📝 Mengedit Data: **{row_data.get(col_nama, '-')}**")
+                
+                kolom_form_edit = {}
+                col_e1, col_e2 = st.columns(2)
+                
+                cols_to_skip = ['_TEMP_RUMAH', '_TEMP_KK', 'NO', 'NO.']
+                all_cols = [c for c in df.columns if c not in cols_to_skip]
+
+                half_len = len(all_cols) // 2
+                
+                for i, col_name in enumerate(all_cols):
+                    current_val = str(row_data.get(col_name, ""))
+                    if current_val.lower() == 'nan' or current_val == 'None':
+                        current_val = ""
+                        
+                    target_col = col_e1 if i < half_len else col_e2
+                    with target_col:
+                        kolom_form_edit[col_name] = st.text_input(f"Kolom: {col_name}", value=current_val, key=f"edit_{idx_edit}_{col_name}")
+
+                if st.form_submit_button("💾 Simpan Perubahan Secara Real-Time"):
+                    try:
+                        df_raw_edit = pd.read_excel(FILE_EXCEL_WARGA, header=3, dtype=str)
+                        df_raw_edit.columns = df_raw_edit.columns.astype(str).str.strip().str.upper()
+                        
+                        df_raw_edit = df_raw_edit.rename(columns={"STUS RUMAH": "STATUS RUMAH"})
+                        
+                        # Update baris sesuai idx_edit
+                        for c_key, c_val in kolom_form_edit.items():
+                            if c_key in df_raw_edit.columns:
+                                df_raw_edit.at[idx_edit, c_key] = c_val if c_val != "" else None
+
+                        import openpyxl
+                        wb = openpyxl.Workbook()
+                        ws = wb.active
+                        ws.title = "Data Warga"
+                        ws.append(["DATA WARGA RT 06 RW 14"])
+                        ws.append([])
+                        ws.append([])
+                        ws.append(list(df_raw_edit.columns))
+                        for _, r in df_raw_edit.iterrows():
+                            ws.append(list(r.values))
+                        wb.save(FILE_EXCEL_WARGA)
+
+                        st.session_state.df_warga_state = load_data_rt06_stable()
+                        st.success("✅ Perbaikan data warga berhasil disimpan secara permanen dan real-time!")
+                        time.sleep(1)
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Gagal menyimpan koreksi data: {e}")
 
     elif menu == "🗂️ Cetak Kartu Keluarga (KK)":
         if st.button("⬅️ Kembali ke Beranda", key="back_kk"):
