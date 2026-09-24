@@ -214,7 +214,7 @@ def load_data_rt06_stable():
         return pd.DataFrame()
     
     try:
-        df = pd.read_excel(FILE_EXCEL_WARGA, header=3)
+        df = pd.read_excel(FILE_EXCEL_WARGA, header=3, dtype=str)
         df.columns = df.columns.astype(str).str.strip().str.upper()
         
         df = df.rename(columns={"STUS RUMAH": "STATUS RUMAH"})
@@ -536,7 +536,7 @@ if not df.empty:
 
             if st.form_submit_button("💾 Masukkan Data ke Database Excel (Auto-Urut)"):
                 try:
-                    df_raw_excel = pd.read_excel(FILE_EXCEL_WARGA, header=3)
+                    df_raw_excel = pd.read_excel(FILE_EXCEL_WARGA, header=3, dtype=str)
                     df_raw_excel.columns = df_raw_excel.columns.astype(str).str.strip().str.upper()
                     
                     df_raw_excel = df_raw_excel.rename(columns={"STUS RUMAH": "STATUS RUMAH"})
@@ -729,6 +729,8 @@ if not df.empty:
         col_pend = next((c for c in df.columns if "PENDIDIKAN" in c), None)
         col_pek = next((c for c in df.columns if "PEKERJAAN" in c), None)
         col_status = next((c for c in df.columns if "STATUS" in c and "KAWIN" in c) or (c for c in df.columns if "STATUS" in c), None)
+        col_status_rumah = next((c for c in df.columns if "STATUS RUMAH" in c or ("STATUS" in c and "RUMAH" in c)), None)
+        col_status_domisili = next((c for c in df.columns if "DOMISILI" in c or ("STATUS" in c and "DOMISILI" in c)), None)
         
         chart_font = dict(size=15, family="Arial, sans-serif")
         title_font = dict(size=20, family="Arial, sans-serif")
@@ -740,6 +742,24 @@ if not df.empty:
             fig_jk.update_traces(textfont_size=18, textinfo="percent+label+value")
             fig_jk.update_layout(font=chart_font, title_font=title_font, legend=dict(font=dict(size=14)))
             st.plotly_chart(fig_jk, use_container_width=True, key="chart_jk_pie")
+
+        if col_status_rumah:
+            st.markdown("---")
+            df_sr = df[col_status_rumah].dropna().value_counts().reset_index()
+            df_sr.columns = ["Status Rumah", "Jumlah"]
+            fig_sr = px.bar(df_sr, x="Status Rumah", y="Jumlah", text="Jumlah", title="🏠 Distribusi Status Kepemilikan Rumah Warga", color="Status Rumah", color_discrete_sequence=px.colors.qualitative.Teal)
+            fig_sr.update_traces(textfont_size=16, textposition="outside")
+            fig_sr.update_layout(font=chart_font, title_font=title_font)
+            st.plotly_chart(fig_sr, use_container_width=True, key="chart_status_rumah_bar")
+
+        if col_status_domisili:
+            st.markdown("---")
+            df_sd = df[col_status_domisili].dropna().value_counts().reset_index()
+            df_sd.columns = ["Status Domisili", "Jumlah"]
+            fig_sd = px.pie(df_sd, names="Status Domisili", values="Jumlah", hole=0.5, title="📍 Rasio Status Domisili Penduduk (Lokal vs Luar NM)", color_discrete_sequence=px.colors.qualitative.Prism)
+            fig_sd.update_traces(textfont_size=18, textinfo="percent+label+value")
+            fig_sd.update_layout(font=chart_font, title_font=title_font, legend=dict(font=dict(size=14)))
+            st.plotly_chart(fig_sd, use_container_width=True, key="chart_status_domisili_pie")
 
         if col_status:
             st.markdown("---")
