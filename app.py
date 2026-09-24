@@ -262,8 +262,56 @@ def load_data_rt06_stable():
                     return val_str
                 df[c] = df[c].apply(format_tgl_bersih)
 
-        col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
-        col_kk_sort = next((col for col in df.columns if "KEPALA" in col or "KK" in col), None)
+        # Temukan nama kolom kunci secara dinamis
+        col_rumah_db = next((c for c in df.columns if "RUMAH" in c or "ALAMAT" in c), None)
+        col_kk_db = next((c for c in df.columns if "KEPALA" in c or "KK" in c), None)
+        col_nama_db = next((c for c in df.columns if "NAMA" in c or "ANGGOTA" in c), None)
+        col_hub_db = next((c for c in df.columns if "HUBUNGAN" in c), None)
+
+        # Perbaikan Khusus / Anchor untuk Mimin di B3-19 dan Arri Ferdhian agar tidak nyasar ke B3-11
+        if col_rumah_db and col_kk_db and col_nama_db:
+            has_mimin = False
+            has_arri = False
+            for idx, row in df.iterrows():
+                kk_val = str(row.get(col_kk_db, "")).strip().upper()
+                nama_val = str(row.get(col_nama_db, "")).strip().upper()
+                if kk_val == "MIMIN" or nama_val == "MIMIN":
+                    has_mimin = True
+                    df.at[idx, col_rumah_db] = "B3-19"
+                    df.at[idx, col_kk_db] = "MIMIN"
+                if "ARRI FERDHIAN" in nama_val:
+                    has_arri = True
+                    df.at[idx, col_kk_db] = "MIMIN"
+                    if col_hub_db:
+                        df.at[idx, col_hub_db] = "Anak Kandung"
+
+            # Jika Mimin ada tapi Arri belum ada di dalam baris dataframe, tambahkan secara presisi di bawah Mimin
+            if has_mimin and not has_arri:
+                new_row = {}
+                for col in df.columns:
+                    c_up = col.upper()
+                    if "RUMAH" in c_up or "ALAMAT" in c_up:
+                        new_row[col] = None  # Biarkan kosong agar ffill mengisi B3-19 dengan benar dari baris Mimin
+                    elif "KEPALA" in c_up or "KK" in c_up:
+                        new_row[col] = "MIMIN"
+                    elif "NAMA" in c_up or "ANGGOTA" in c_up:
+                        new_row[col] = "ARRI FERDHIAN"
+                    elif "HUBUNGAN" in c_up:
+                        new_row[col] = "Anak Kandung"
+                    elif "JK" in c_up or "KELAMIN" in c_up:
+                        new_row[col] = "L"
+                    else:
+                        new_row[col] = "-"
+                
+                insert_idx = len(df)
+                for idx, row in df.iterrows():
+                    if str(row.get(col_kk_db, "")).strip().upper() == "MIMIN":
+                        insert_idx = idx + 1
+                
+                df = pd.concat([df.iloc[:insert_idx], pd.DataFrame([new_row]), df.iloc[insert_idx:]], ignore_index=True)
+
+        col_rumah_sort = col_rumah_db
+        col_kk_sort = col_kk_db
         
         if col_rumah_sort:
             df['_TEMP_RUMAH'] = df[col_rumah_sort].ffill()
@@ -555,10 +603,12 @@ if not df.empty:
                         if col_excel == "NO" or col_excel == "NO.":
                             continue
                         elif ("RUMAH" in c_up and "STATUS" not in c_up) or "ALAMAT" in c_up:
-                            if in_hub.lower() != "kepala keluarga":
-                                baris_baru_dict[col_excel] = None
-                            else:
+                            # Jika Kepala Keluarga baru, catat nomor rumahnya secara eksplisit. 
+                            # Jika anggota keluarga (anak/istri), kosongkan agar ffill mengambil nomor rumah kepala keluarganya.
+                            if in_hub.lower() == "kepala keluarga":
                                 baris_baru_dict[col_excel] = in_no_rumah
+                            else:
+                                baris_baru_dict[col_excel] = None
                         elif "KEPALA" in c_up or "KK" in c_up:
                             baris_baru_dict[col_excel] = in_nama_kk
                         elif "ANGGOTA" in c_up or "NAMA" in c_up:
