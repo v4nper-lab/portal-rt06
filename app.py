@@ -206,7 +206,7 @@ with col_logo:
 with col_title:
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown('<div class="jumbo-title">SISTEM INFORMASI ADMINISTRASI KEPENDUDUKAN (SIAK)</div>', unsafe_allow_html=True)
-    st.markdown('<div class="jumbo-subtitle">Rukun Tetangga 06 / Rukun Warga 14 • Desa Nanjung Mekar, Rancaekek</div>', unsafe_allow_html=True)
+    st.markdown('<div class="jumbo-subtitle">Rukun Tetangga 06 / Rukun Warga 14 • Perum Griya Permata Raya • Desa Nanjung Mekar, Rancaekek</div>', unsafe_allow_html=True)
 
 st.write("---")
 
@@ -747,7 +747,7 @@ if not df.empty:
                 styles = getSampleStyleSheet()
                 
                 elements.append(Paragraph("PEMERINTAH KABUPATEN BANDUNG", ParagraphStyle('Sub1', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
-                elements.append(Paragraph("KECAMATAN RANCAAEKEK - DESA NANJUNG MEKAR", ParagraphStyle('Sub2', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
+                elements.append(Paragraph("KECAMATAN RANCAAEKEK - PERUM GRIYA PERMATA RAYA - DESA NANJUNG MEKAR", ParagraphStyle('Sub2', parent=styles['Normal'], alignment=1, fontSize=10, textColor=colors.gray)))
                 elements.append(Paragraph("KARTU KELUARGA (KK) RT 06 / RW 14", ParagraphStyle('Title', parent=styles['Heading1'], fontSize=15, alignment=1, textColor=colors.HexColor('#1f2937'))))
                 elements.append(Spacer(1, 10))
                 
@@ -1034,7 +1034,7 @@ if not df.empty:
                         logo_file = "logo_perelek.jpg"
                     
                     p_judul = Paragraph(f"<b>{judul}</b>", style_judul_pusat)
-                    p_sub = Paragraph("<b>PERIODE TAHUN 2026</b>", style_subjudul_pusat)
+                    p_sub = Paragraph("<b>PERUM GRIYA PERMATA RAYA - DESA NANJUNG MEKAR (PERIODE TAHUN 2026)</b>", style_subjudul_pusat)
                     
                     if os.path.exists(logo_file):
                         try:
@@ -1057,7 +1057,7 @@ if not df.empty:
                 else:
                     elements.append(Paragraph(f"<b>{judul}</b>", style_judul_pusat))
                     elements.append(Spacer(1, 3))
-                    elements.append(Paragraph("<b>PERIODE TAHUN 2026</b>", style_subjudul_pusat))
+                    elements.append(Paragraph("<b>PERUM GRIYA PERMATA RAYA - DESA NANJUNG MEKAR (PERIODE TAHUN 2026)</b>", style_subjudul_pusat))
                 
                 elements.append(Spacer(1, 15))
                 
@@ -1142,7 +1142,7 @@ if not df.empty:
             styles = getSampleStyleSheet()
             
             elements.append(Paragraph("REKAPITULASI KESELURUHAN DATA KEPENDUDUKAN RT 06 / RW 14", ParagraphStyle('Title', parent=styles['Heading1'], fontSize=16, alignment=1, textColor=colors.HexColor('#1f2937'))))
-            elements.append(Paragraph("Kecamatan Rancaekek - Desa Nanjung Mekar", ParagraphStyle('Sub', parent=styles['Normal'], alignment=1, fontSize=11, textColor=colors.gray)))
+            elements.append(Paragraph("Kecamatan Rancaekek - Perum Griya Permata Raya - Desa Nanjung Mekar", ParagraphStyle('Sub', parent=styles['Normal'], alignment=1, fontSize=11, textColor=colors.gray)))
             elements.append(Spacer(1, 15))
             
             kolom_tampil = list(data_df.columns)
