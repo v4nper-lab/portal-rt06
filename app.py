@@ -118,7 +118,37 @@ if 'df_kas_rt_state' not in st.session_state:
     st.session_state.df_kas_rt_state = muat_data_kas(FILE_KAS_RT, default_rt)
 
 if 'df_kas_sosial_state' not in st.session_state:
-    default_sosial = pd.DataFrame(columns=["Tanggal", "Uraian / Keterangan Transaksi", "Debet (Masuk)", "Kredit (Keluar)"])
+    default_sosial = pd.DataFrame([
+        {"Tanggal": "01/01/2026", "Uraian / Keterangan Transaksi": "Saldo Kas Perelek Akhir Desember 2025", "Debet (Masuk)": 350000.0, "Kredit (Keluar)": 0.0},
+        {"Tanggal": "10/01/2026", "Uraian / Keterangan Transaksi": "Menjenguk B3 No.17 (dirawat di RS,operasi )", "Debet (Masuk)": 0.0, "Kredit (Keluar)": 200000.0},
+        {"Tanggal": "12/01/2026", "Uraian / Keterangan Transaksi": "Menjenguk B3 No.27 (istrinya sakit, tangannya kena air panas)", "Debet (Masuk)": 0.0, "Kredit (Keluar)": 100000.0},
+        {"Tanggal": "25/01/2026", "Uraian / Keterangan Transaksi": "Hasil penarikan perelek ke 48", "Debet (Masuk)": 250000.0, "Kredit (Keluar)": 0.0},
+        {"Tanggal": "27/01/2026", "Uraian / Keterangan Transaksi": "Menjenguk B3 No.12 (anaknya dirawat di RS,operasi )", "Debet (Masuk)": 0.0, "Kredit (Keluar)": 200000.0},
+        {"Tanggal": "25/02/2026", "Uraian / Keterangan Transaksi": "Hasil penarikan perelek ke 49", "Debet (Masuk)": 300000.0, "Kredit (Keluar)": 0.0},
+        {"Tanggal": "07/03/2026", "Uraian / Keterangan Transaksi": "Menjenguk Ust.Burhan (Dirawat di RS, DBD)", "Debet (Masuk)": 0.0, "Kredit (Keluar)": 100000.0},
+        {"Tanggal": "07/03/2026", "Uraian / Keterangan Transaksi": "Santunan anak yatim PHBI Nuzulul Quran di masjid UBK", "Debet (Masuk)": 0.0, "Kredit (Keluar)": 200000.0},
+        {"Tanggal": "30/03/2026", "Uraian / Keterangan Transaksi": "Hasil penarikan perelek ke 50", "Debet (Masuk)": 300000.0, "Kredit (Keluar)": 0.0},
+        {"Tanggal": "26/04/2026", "Uraian / Keterangan Transaksi": "Menjenguk B6 No.08 ( ibunya dirawat di RS,operasi tangan )", "Debet (Masuk)": 0.0, "Kredit (Keluar)": 200000.0},
+        {"Tanggal": "27/04/2026", "Uraian / Keterangan Transaksi": "Hasil penarikan perelek ke 51", "Debet (Masuk)": 250000.0, "Kredit (Keluar)": 0.0},
+        {"Tanggal": "25/05/2026", "Uraian / Keterangan Transaksi": "Hasil penarikan perelek ke 52", "Debet (Masuk)": 150000.0, "Kredit (Keluar)": 0.0},
+        {"Tanggal": "24/06/2026", "Uraian / Keterangan Transaksi": "Menjenguk B5 No.12 (sakit selama 4 hari )", "Debet (Masuk)": 0.0, "Kredit (Keluar)": 100000.0},
+        {"Tanggal": "26/06/2026", "Uraian / Keterangan Transaksi": "Menjenguk B3 No.18 (anaknys dirawat di RS, sakit typhus )", "Debet (Masuk)": 0.0, "Kredit (Keluar)": 200000.0},
+        {"Tanggal": "27/06/2026", "Uraian / Keterangan Transaksi": "Hasil penarikan perelek ke 53", "Debet (Masuk)": 250000.0, "Kredit (Keluar)": 0.0},
+        {"Tanggal": "08/07/2025", "Uraian / Keterangan Transaksi": "Menjenguk B3 No.25 (istrinya sakit selama 3 hari )", "Debet (Masuk)": 0.0, "Kredit (Keluar)": 100000.0},
+        {"Tanggal": "08/07/2026", "Uraian / Keterangan Transaksi": "Menjenguk B3 No.17 (sakit selama 3 hari)", "Debet (Masuk)": 0.0, "Kredit (Keluar)": 100000.0},
+        {"Tanggal": "09/07/2026", "Uraian / Keterangan Transaksi": "Takziah ke rumah B3 No.21 ( org tua meninggal dunia)", "Debet (Masuk)": 0.0, "Kredit (Keluar)": 200000.0},
+        {"Tanggal": "23/07/2026", "Uraian / Keterangan Transaksi": "Menjenguk B5 No.01 (Bpk mertua sakit, akibat jatuh dari motor )", "Debet (Masuk)": 0.0, "Kredit (Keluar)": 100000.0},
+        {"Tanggal": "29/07/2026", "Uraian / Keterangan Transaksi": "Hasil penarikan perelek ke 54", "Debet (Masuk)": 250000.0, "Kredit (Keluar)": 0.0},
+        {"Tanggal": "02/08/2026", "Uraian / Keterangan Transaksi": "Menjenguk B5 No.11 ( istrinya dirawat di RS,operasi )", "Debet (Masuk)": 0.0, "Kredit (Keluar)": 200000.0},
+        {"Tanggal": "16/08/2026", "Uraian / Keterangan Transaksi": "Takziah ke rumah B3 No..14 ( org tua meninggal dunia)", "Debet (Masuk)": 0.0, "Kredit (Keluar)": 200000.0},
+        {"Tanggal": "18/08/2026", "Uraian / Keterangan Transaksi": "Menjenguk B5 No.12 (sakit selama 3 hari)", "Debet (Masuk)": 0.0, "Kredit (Keluar)": 100000.0},
+        {"Tanggal": "21/08/2026", "Uraian / Keterangan Transaksi": "Menjenguk B3 No.06 (istrinya sakit selama 3 hari)", "Debet (Masuk)": 0.0, "Kredit (Keluar)": 100000.0},
+        {"Tanggal": "21/08/2026", "Uraian / Keterangan Transaksi": "Menjenguk B3 No.34 (istrinya sakit selama 3 hari)", "Debet (Masuk)": 0.0, "Kredit (Keluar)": 100000.0},
+        {"Tanggal": "24/08/2026", "Uraian / Keterangan Transaksi": "KAS RT 06", "Debet (Masuk)": 400000.0, "Kredit (Keluar)": 0.0},
+        {"Tanggal": "25/08/2026", "Uraian / Keterangan Transaksi": "Hasil penarikan perelek ke 55", "Debet (Masuk)": 200000.0, "Kredit (Keluar)": 0.0},
+        {"Tanggal": "30/08/2026", "Uraian / Keterangan Transaksi": "Menjenguk B5 No.07 ( istrinya dirawat di RS )", "Debet (Masuk)": 0.0, "Kredit (Keluar)": 100000.0},
+        {"Tanggal": "07/09/2026", "Uraian / Keterangan Transaksi": "Takziah ke rumah B6 No. 03 ( anaknya meninggal dunia)", "Debet (Masuk)": 0.0, "Kredit (Keluar)": 100000.0}
+    ])
     st.session_state.df_kas_sosial_state = muat_data_kas(FILE_KAS_SOSIAL, default_sosial)
 
 def parsing_angka_aman(val):
@@ -263,7 +293,6 @@ def load_data_rt06_stable():
                     return val_str
                 df[c] = df[c].apply(format_tgl_bersih)
 
-        # Simpan indeks asli excel untuk akurasi koreksi baris mutlak
         df['_ORIGINAL_IDX'] = df.index
 
         col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
@@ -283,7 +312,6 @@ def load_data_rt06_stable():
         st.error(f"Gagal memuat database kependudukan: {e}")
         return pd.DataFrame()
 
-# Muat data real-time langsung dari file Excel disk
 st.session_state.df_warga_state = load_data_rt06_stable()
 df = st.session_state.df_warga_state
 
@@ -452,7 +480,6 @@ if not df.empty:
         
         st.markdown("💡 **Panduan Administratif:** Gunakan formulir di bawah untuk menambah data penduduk baru. Gunakan fitur **Mutasi Keluar / Penghapusan Data** jika terdapat warga yang pindah atau keluar wilayah.")
 
-        # Tabel referensi utama (sembunyikan _ORIGINAL_IDX)
         st.markdown("#### 📊 Tabel Master Data Penduduk Aktif:")
         def highlight_luar_nm(row):
             row_str = str(row.values).lower()
@@ -656,7 +683,7 @@ if not df.empty:
             st.session_state.selected_menu = "Dashboard Eksekutif Kependudukan"
             st.rerun()
         st.subheader("✏️ Layanan Pemutakhiran & Koreksi Data Penduduk")
-        st.markdown("💡 Pilih data warga yang memerlukan perbaikan. Form koreksi menggunakan pilihan menu dropdown yang seragam. Perubahan data anggota keluarga (seperti anak) dijamin aman 100% dan tidak akan merubah atau merusak baris warga lainnya. Status rumah untuk anggota keluarga otomatis dikosongkan (None).")
+        st.markdown("💡 Pilih data warga yang memerlukan perbaikan. Isian form koreksi menggunakan pilihan menu dropdown yang seragam. Perubahan data anggota keluarga dijamin aman 100% dan tidak akan merusak baris warga lainnya. Status rumah untuk anggota keluarga otomatis dikosongkan (None).")
 
         list_warga_edit = [f"Baris {i+1} | KK: {row.get(col_kk, '-')} | Nama: {row.get(col_nama, '-')}" for i, row in df.iterrows()]
         pilih_warga_edit = st.selectbox("Pilih Penduduk untuk Koreksi Data:", ["(Pilih penduduk...)"] + list_warga_edit, key="select_warga_edit_dropdown")
@@ -740,12 +767,10 @@ if not df.empty:
                         df_raw_edit.columns = df_raw_edit.columns.astype(str).str.strip().str.upper()
                         df_raw_edit = df_raw_edit.rename(columns={"STUS RUMAH": "STATUS RUMAH"})
                         
-                        # Perbarui atribut pada baris asli secara presisi menggunakan original_row_idx
                         for c_key, c_val in kolom_form_edit.items():
                             if c_key in df_raw_edit.columns:
                                 df_raw_edit.at[original_row_idx, c_key] = c_val if c_val != "" else None
 
-                        # Aturan Kependudukan: Jika bukan Kepala Keluarga, status rumah & nomor rumah otomatis dikosongkan (None)
                         col_hub_edit = next((c for c in df_raw_edit.columns if "HUBUNGAN" in c), None)
                         col_sr_edit = next((c for c in df_raw_edit.columns if "STATUS RUMAH" in c or ("STATUS" in c and "RUMAH" in c)), None)
                         col_rmh_edit = next((c for c in df_raw_edit.columns if ("RUMAH" in c and "STATUS" not in c) or "ALAMAT" in c), None)
@@ -1181,7 +1206,6 @@ if not df.empty:
                 buffer.seek(0)
                 return buffer.getvalue()
 
-            # PERBAIKAN: Menggunakan st.session_state[state_key] alih-alih df_lap
             pdf_bytes = buat_pdf_standar_akuntansi(st.session_state[state_key], judul_pdf)
             st.download_button(
                 label=f"📥 Unduh Laporan Keuangan {judul_buku} (PDF)",
@@ -1235,7 +1259,7 @@ if not df.empty:
                 ('BOTTOMPADDING', (0,0), (-1,-1), 5),
                 ('TOPPADDING', (0,0), (-1,-1), 5),
                 ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f9fafb')),
-                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
+                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d1d5db')),
             ]))
             elements.append(t)
             doc.build(elements)
