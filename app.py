@@ -102,14 +102,23 @@ def muat_data_kas(file_path, default_df):
         try:
             df_disk = pd.read_csv(file_path)
             if not df_disk.empty:
+                df_disk['_dt_sort'] = pd.to_datetime(df_disk['Tanggal'], format='%d/%m/%Y', errors='coerce')
+                df_disk = df_disk.sort_values(by='_dt_sort').drop(columns=['_dt_sort']).reset_index(drop=True)
                 return df_disk
         except:
             pass
+    if not default_df.empty:
+        default_df['_dt_sort'] = pd.to_datetime(default_df['Tanggal'], format='%d/%m/%Y', errors='coerce')
+        default_df = default_df.sort_values(by='_dt_sort').drop(columns=['_dt_sort']).reset_index(drop=True)
     return default_df
 
 def simpan_data_kas(file_path, df):
     try:
-        df.to_csv(file_path, index=False)
+        df_s = df.copy()
+        if not df_s.empty:
+            df_s['_dt_sort'] = pd.to_datetime(df_s['Tanggal'], format='%d/%m/%Y', errors='coerce')
+            df_s = df_s.sort_values(by='_dt_sort').drop(columns=['_dt_sort']).reset_index(drop=True)
+        df_s.to_csv(file_path, index=False)
     except:
         pass
 
@@ -185,8 +194,11 @@ def hitung_dan_tampilkan_tabel_tunggal(df_input):
         return pd.DataFrame(columns=["Tanggal", "Uraian / Keterangan Transaksi", "Debet (Masuk)", "Kredit (Keluar)", "Saldo (Rp)"])
         
     df = df_input.copy()
+    # Urutkan berdasarkan tanggal kronologis
+    df['_dt_sort'] = pd.to_datetime(df['Tanggal'], format='%d/%m/%Y', errors='coerce')
+    df = df.sort_values(by='_dt_sort').drop(columns=['_dt_sort']).reset_index(drop=True)
+
     curr = 0.0
-    
     tanggal_list, uraian_list, debet_val, kredit_val, saldo_formatted = [], [], [], [], []
     
     for idx, row in df.iterrows():
@@ -293,7 +305,6 @@ def load_data_rt06_stable():
                     return val_str
                 df[c] = df[c].apply(format_tgl_bersih)
 
-        # Simpan indeks asli excel untuk akurasi koreksi baris mutlak
         df['_ORIGINAL_IDX'] = df.index
 
         col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
@@ -313,7 +324,6 @@ def load_data_rt06_stable():
         st.error(f"Gagal memuat database kependudukan: {e}")
         return pd.DataFrame()
 
-# Muat data real-time langsung dari file Excel disk
 st.session_state.df_warga_state = load_data_rt06_stable()
 df = st.session_state.df_warga_state
 
