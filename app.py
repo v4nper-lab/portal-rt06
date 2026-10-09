@@ -194,7 +194,7 @@ def hitung_dan_tampilkan_tabel_tunggal(df_input):
         return pd.DataFrame(columns=["Tanggal", "Uraian / Keterangan Transaksi", "Debet (Masuk)", "Kredit (Keluar)", "Saldo (Rp)"])
         
     df = df_input.copy()
-    # Urutkan berdasarkan tanggal kronologis
+    # Urutkan secara kronologis berdasarkan tanggal
     df['_dt_sort'] = pd.to_datetime(df['Tanggal'], format='%d/%m/%Y', errors='coerce')
     df = df.sort_values(by='_dt_sort').drop(columns=['_dt_sort']).reset_index(drop=True)
 
@@ -1093,6 +1093,9 @@ if not df.empty:
                             "Kredit (Keluar)": [float(kredit_input)]
                         })
                         df_updated = pd.concat([df_cur, baris_baru], ignore_index=True)
+                        if not df_updated.empty:
+                            df_updated['_dt_sort'] = pd.to_datetime(df_updated['Tanggal'], format='%d/%m/%Y', errors='coerce')
+                            df_updated = df_updated.sort_values(by='_dt_sort').drop(columns=['_dt_sort']).reset_index(drop=True)
                         st.session_state[state_key] = df_updated
                         simpan_data_kas(file_path, df_updated)
                         st.success(f"✅ Transaksi '**{uraian_input}**' berhasil dicatat ke pembukuan!")
@@ -1100,21 +1103,62 @@ if not df.empty:
 
             st.markdown(f"### 📊 Rekapitulasi Pembukuan: {judul_buku}")
             df_sumber = st.session_state[state_key].copy()
+            
+            if not df_sumber.empty:
+                df_sumber['_dt_sort'] = pd.to_datetime(df_sumber['Tanggal'], format='%d/%m/%Y', errors='coerce')
+                df_sumber = df_sumber.sort_values(by='_dt_sort').drop(columns=['_dt_sort']).reset_index(drop=True)
+
             df_tampil_live = hitung_dan_tampilkan_tabel_tunggal(df_sumber)
 
             if df_tampil_live.empty:
                 st.info("ℹ️ Belum ada transaksi tercatat pada buku ini.")
             else:
-                col_aksi1, col_aksi2 = st.columns([2, 2])
-                with col_aksi1:
-                    if st.button(f"🗑️ Batalkan Transaksi Terakhir ({judul_buku})", key=f"del_{state_key}"):
-                        if len(df_sumber) > 0:
-                            df_sumber = df_sumber.iloc[:-1].reset_index(drop=True)
+                # Fitur Edit dan Hapus Spesifik Transaksi Kas
+                st.markdown("---")
+                st.markdown(f"#### ✏️ Koreksi / Hapus Transaksi Spesifik ({judul_buku})")
+                
+                list_trx_pilih = [f"Trx #{i+1} | Tgl: {row.get('Tanggal', '')} | Uraian: {row.get('Uraian / Keterangan Transaksi', '')} | Masuk: {format_Rupiah(row.get('Debet (Masuk)', 0))} | Keluar: {format_Rupiah(row.get('Kredit (Keluar)', 0))}" for i, row in df_sumber.iterrows()]
+                
+                selected_trx_str = st.selectbox("Pilih Transaksi yang Ingin Diedit atau Dihapus:", ["(Pilih transaksi...)"] + list_trx_pilih, key=f"select_trx_{state_key}")
+                
+                if selected_trx_str != "(Pilih transaksi...)":
+                    trx_idx = int(selected_trx_str.split("|")[0].replace("Trx #", "").strip()) - 1
+                    trx_row = df_sumber.iloc[trx_idx]
+                    
+                    col_act1, col_act2 = st.columns(2)
+                    with col_act1:
+                        if st.button(f"🗑️ Hapus Transaksi Terpilih Ini", key=f"del_trx_{state_key}", use_container_width=True):
+                            df_sumber = df_sumber.drop(index=trx_idx).reset_index(drop=True)
                             st.session_state[state_key] = df_sumber
                             simpan_data_kas(file_path, df_sumber)
-                            st.success("✅ Transaksi terakhir berhasil dibatalkan!")
+                            st.success("✅ Transaksi berhasil dihapus secara permanen!")
+                            time.sleep(1)
                             st.rerun()
+                            
+                    with col_act2:
+                        with st.expander("📝 Edit Detail Transaksi Ini", expanded=True):
+                            with st.form(f"form_edit_trx_{state_key}"):
+                                edit_tgl = st.text_input("Tanggal Transaksi", value=str(trx_row.get("Tanggal", "")), key=f"edit_tgl_{state_key}")
+                                edit_uraian = st.text_input("Uraian / Keterangan", value=str(trx_row.get("Uraian / Keterangan Transaksi", "")), key=f"edit_uraian_{state_key}")
+                                edit_debet = st.number_input("Debet / Masuk (Rp)", min_value=0.0, step=1000.0, value=float(parsing_angka_aman(trx_row.get("Debet (Masuk)", 0))), key=f"edit_deb_{state_key}")
+                                edit_kredit = st.number_input("Kredit / Keluar (Rp)", min_value=0.0, step=1000.0, value=float(parsing_angka_aman(trx_row.get("Kredit (Keluar)", 0))), key=f"edit_kre_{state_key}")
+                                
+                                if st.form_submit_button("💾 Simpan Perubahan Transaksi"):
+                                    df_sumber.at[trx_idx, 'Tanggal'] = edit_tgl
+                                    df_sumber.at[trx_idx, 'Uraian / Keterangan Transaksi'] = edit_uraian
+                                    df_sumber.at[trx_idx, 'Debet (Masuk)'] = float(edit_debet)
+                                    df_sumber.at[trx_idx, 'Kredit (Keluar)'] = float(edit_kredit)
+                                    
+                                    df_sumber['_dt_sort'] = pd.to_datetime(df_sumber['Tanggal'], format='%d/%m/%Y', errors='coerce')
+                                    df_sumber = df_sumber.sort_values(by='_dt_sort').drop(columns=['_dt_sort']).reset_index(drop=True)
+                                    
+                                    st.session_state[state_key] = df_sumber
+                                    simpan_data_kas(file_path, df_sumber)
+                                    st.success("✅ Perubahan transaksi berhasil disimpan secara real-time!")
+                                    time.sleep(1)
+                                    st.rerun()
 
+                st.markdown("---")
                 st.dataframe(df_tampil_live, use_container_width=True, hide_index=True)
 
             def format_rupiah_pdf(num):
