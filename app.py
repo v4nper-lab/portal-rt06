@@ -293,6 +293,7 @@ def load_data_rt06_stable():
                     return val_str
                 df[c] = df[c].apply(format_tgl_bersih)
 
+        # Simpan indeks asli excel untuk akurasi koreksi baris mutlak
         df['_ORIGINAL_IDX'] = df.index
 
         col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
@@ -312,6 +313,7 @@ def load_data_rt06_stable():
         st.error(f"Gagal memuat database kependudukan: {e}")
         return pd.DataFrame()
 
+# Muat data real-time langsung dari file Excel disk
 st.session_state.df_warga_state = load_data_rt06_stable()
 df = st.session_state.df_warga_state
 
@@ -683,7 +685,7 @@ if not df.empty:
             st.session_state.selected_menu = "Dashboard Eksekutif Kependudukan"
             st.rerun()
         st.subheader("✏️ Layanan Pemutakhiran & Koreksi Data Penduduk")
-        st.markdown("💡 Pilih data warga yang memerlukan perbaikan. Isian form koreksi menggunakan pilihan menu dropdown yang seragam. Perubahan data anggota keluarga dijamin aman 100% dan tidak akan merusak baris warga lainnya. Status rumah untuk anggota keluarga otomatis dikosongkan (None).")
+        st.markdown("💡 Pilih data warga yang memerlukan perbaikan. Isian form koreksi menggunakan pilihan menu dropdown yang seragam. Perubahan data anggota keluarga dijamin aman 100% dan tidak akan merubah atau merusak baris warga lainnya. Status rumah untuk anggota keluarga otomatis dikosongkan (None).")
 
         list_warga_edit = [f"Baris {i+1} | KK: {row.get(col_kk, '-')} | Nama: {row.get(col_nama, '-')}" for i, row in df.iterrows()]
         pilih_warga_edit = st.selectbox("Pilih Penduduk untuk Koreksi Data:", ["(Pilih penduduk...)"] + list_warga_edit, key="select_warga_edit_dropdown")
