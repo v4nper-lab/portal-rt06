@@ -194,7 +194,7 @@ def hitung_dan_tampilkan_tabel_tunggal(df_input):
         return pd.DataFrame(columns=["Tanggal", "Uraian / Keterangan Transaksi", "Debet (Masuk)", "Kredit (Keluar)", "Saldo (Rp)"])
         
     df = df_input.copy()
-    # Urutkan secara kronologis berdasarkan tanggal
+    # Urutkan secara kronologis berdasarkan tanggal (terlama ke terbaru)
     df['_dt_sort'] = pd.to_datetime(df['Tanggal'], format='%d/%m/%Y', errors='coerce')
     df = df.sort_values(by='_dt_sort').drop(columns=['_dt_sort']).reset_index(drop=True)
 
