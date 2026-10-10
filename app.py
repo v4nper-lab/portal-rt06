@@ -393,11 +393,18 @@ if not df.empty:
         total_jiwa = len(df)
         total_kk = df_ffill[col_kk].nunique() if col_kk in df_ffill.columns else 0
         
+        # Perhitungan Laki-laki dan Perempuan yang akurat dan sinkron dengan Total Jiwa
         jml_l = 0
         jml_p = 0
         if col_jk:
-            jml_l = len(df[df[col_jk].astype(str).str.upper().str.contains("L")])
-            jml_p = len(df[df[col_jk].astype(str).str.upper().str.contains("P")])
+            jk_series = df[col_jk].fillna("").astype(str).str.upper().str.strip()
+            jml_p = len(df[jk_series.str.contains("P", regex=False)])
+            jml_l_raw = len(df[jk_series.str.contains("L", regex=False)])
+            unassigned = total_jiwa - (jml_p + jml_l_raw)
+            jml_l = jml_l_raw + max(0, unassigned)
+        else:
+            jml_l = total_jiwa
+            jml_p = 0
 
         jml_balita = 0
         jml_lansia = 0
@@ -578,14 +585,12 @@ if not df.empty:
                 in_goldarah = st.selectbox("Golongan Darah", ["A", "B", "AB", "O", "Tidak Tahu"], key="in_goldarah_stabil_v2")
                 in_suku = st.selectbox("Etnis / Suku", ["Sunda", "Jawa", "Padang", "Batak", "Betawi", "Lainnya"], key="in_suku_stabil_v2")
                 
-                # Dinamis ambil opsi pendidikan unik dari Excel + default
                 col_pend_candi = next((c for c in df.columns if "PENDIDIKAN" in c), "PENDIDIKAN")
                 def_pend = ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma IV / Strata I", "Sedang SD/sedajerat", "Sedang SLTP/sederajat", "Belum / Tidak Sekolah"]
                 excel_pend = df[col_pend_candi].dropna().astype(str).str.strip().unique().tolist() if col_pend_candi in df.columns else []
                 opts_pend = sorted(list(set(def_pend + excel_pend)))
                 in_pend = st.selectbox("Pendidikan Terakhir", opts_pend, key="in_pend_stabil_v2")
 
-                # Dinamis ambil opsi pekerjaan unik dari Excel + default
                 col_pek_candi = next((c for c in df.columns if "PEKERJAAN" in c), "PEKERJAAN")
                 def_pek = ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"]
                 excel_pek = df[col_pek_candi].dropna().astype(str).str.strip().unique().tolist() if col_pek_candi in df.columns else []
@@ -706,7 +711,7 @@ if not df.empty:
             st.session_state.selected_menu = "Dashboard Eksekutif Kependudukan"
             st.rerun()
         st.subheader("✏️ Layanan Pemutakhiran & Koreksi Data Penduduk")
-        st.markdown("💡 Pilih data warga yang memerlukan perbaikan. Isian form koreksi menggunakan pilihan menu dropdown yang secara otomatis mencakup seluruh variasi penulisan dari Excel Anda. Perubahan data anggota keluarga dijamin aman 100% dan tidak mengganggu baris warga lainnya.")
+        st.markdown("💡 Pilih data warga yang memerlukan perbaikan. Isian form koreksi menggunakan pilihan menu dropdown yang secara dinamis mendeteksi penulisan dari Excel Anda. Perubahan data anggota keluarga dijamin aman 100% dan tidak mengganggu baris warga lainnya. Status rumah untuk anggota keluarga otomatis dikosongkan (None).")
 
         list_warga_edit = [f"Baris {i+1} | KK: {row.get(col_kk, '-')} | Nama: {row.get(col_nama, '-')}" for i, row in df.iterrows()]
         pilih_warga_edit = st.selectbox("Pilih Penduduk untuk Koreksi Data:", ["(Pilih penduduk...)"] + list_warga_edit, key="select_warga_edit_dropdown")
@@ -734,10 +739,8 @@ if not df.empty:
                         
                     target_col = col_e1 if i < half_len else col_e2
                     c_up = col_name.upper()
-                    
-                    # Ambil nilai unik yang ada di kolom ini dari seluruh dataframe Excel
                     col_values_in_df = df[col_name].dropna().astype(str).str.strip().tolist() if col_name in df.columns else []
-
+                    
                     with target_col:
                         if "JK" in c_up or "KELAMIN" in c_up:
                             opts = sorted(list(set(["L", "P"] + col_values_in_df)))
@@ -1041,8 +1044,14 @@ if not df.empty:
 
         total_kk_rw = df_ffill_rw[col_kk].nunique() if col_kk in df_ffill_rw.columns else 0
         total_jiwa_rw = len(df)
-        jml_l_rw = len(df[df[col_jk].astype(str).str.upper().str.contains("L")]) if col_jk else 0
-        jml_p_rw = len(df[df[col_jk].astype(str).str.upper().str.contains("P")]) if col_jk else 0
+        
+        if col_jk:
+            jk_s_rw = df[col_jk].fillna("").astype(str).str.upper().str.strip()
+            jml_p_rw = len(df[jk_s_rw.str.contains("P", regex=False)])
+            jml_l_rw = (total_jiwa_rw - jml_p_rw)
+        else:
+            jml_l_rw = total_jiwa_rw
+            jml_p_rw = 0
         
         balita_rw, lansia_rw = 0, 0
         if col_usia:
