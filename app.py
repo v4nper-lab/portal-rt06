@@ -194,7 +194,6 @@ def hitung_dan_tampilkan_tabel_tunggal(df_input):
         return pd.DataFrame(columns=["Tanggal", "Uraian / Keterangan Transaksi", "Debet (Masuk)", "Kredit (Keluar)", "Saldo (Rp)"])
         
     df = df_input.copy()
-    # Urutkan secara kronologis berdasarkan tanggal (terlama ke terbaru)
     df['_dt_sort'] = pd.to_datetime(df['Tanggal'], format='%d/%m/%Y', errors='coerce')
     df = df.sort_values(by='_dt_sort').drop(columns=['_dt_sort']).reset_index(drop=True)
 
@@ -578,8 +577,20 @@ if not df.empty:
                 in_agama = st.selectbox("Agama", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"], key="in_agama_stabil_v2")
                 in_goldarah = st.selectbox("Golongan Darah", ["A", "B", "AB", "O", "Tidak Tahu"], key="in_goldarah_stabil_v2")
                 in_suku = st.selectbox("Etnis / Suku", ["Sunda", "Jawa", "Padang", "Batak", "Betawi", "Lainnya"], key="in_suku_stabil_v2")
-                in_pend = st.selectbox("Pendidikan Terakhir", ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma IV / Strata I", "Sedang SD/sedajerat", "Sedang SLTP/sederajat", "Belum / Tidak Sekolah"], key="in_pend_stabil_v2")
-                in_pek = st.selectbox("Jenis Pekerjaan", ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"], key="in_pek_stabil_v2")
+                
+                # Dinamis ambil opsi pendidikan unik dari Excel + default
+                col_pend_candi = next((c for c in df.columns if "PENDIDIKAN" in c), "PENDIDIKAN")
+                def_pend = ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma IV / Strata I", "Sedang SD/sedajerat", "Sedang SLTP/sederajat", "Belum / Tidak Sekolah"]
+                excel_pend = df[col_pend_candi].dropna().astype(str).str.strip().unique().tolist() if col_pend_candi in df.columns else []
+                opts_pend = sorted(list(set(def_pend + excel_pend)))
+                in_pend = st.selectbox("Pendidikan Terakhir", opts_pend, key="in_pend_stabil_v2")
+
+                # Dinamis ambil opsi pekerjaan unik dari Excel + default
+                col_pek_candi = next((c for c in df.columns if "PEKERJAAN" in c), "PEKERJAAN")
+                def_pek = ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"]
+                excel_pek = df[col_pek_candi].dropna().astype(str).str.strip().unique().tolist() if col_pek_candi in df.columns else []
+                opts_pek = sorted(list(set(def_pek + excel_pek)))
+                in_pek = st.selectbox("Jenis Pekerjaan", opts_pek, key="in_pek_stabil_v2")
                 
                 in_status_rumah = st.selectbox("Status Kepemilikan Rumah", ["Milik / Tetap", "Sewa/Kontrak", "Kosong"], key="in_status_rumah_stabil_v2")
                 in_status_domisili = st.selectbox("Status Wilayah Domisili", ["Nanjung Mekar", "luar NM"], key="in_status_domisili_stabil_v2")
@@ -695,7 +706,7 @@ if not df.empty:
             st.session_state.selected_menu = "Dashboard Eksekutif Kependudukan"
             st.rerun()
         st.subheader("✏️ Layanan Pemutakhiran & Koreksi Data Penduduk")
-        st.markdown("💡 Pilih data warga yang memerlukan perbaikan. Isian form koreksi menggunakan pilihan menu dropdown yang seragam. Perubahan data anggota keluarga dijamin aman 100% dan tidak akan merubah atau merusak baris warga lainnya. Status rumah untuk anggota keluarga otomatis dikosongkan (None).")
+        st.markdown("💡 Pilih data warga yang memerlukan perbaikan. Isian form koreksi menggunakan pilihan menu dropdown yang secara otomatis mencakup seluruh variasi penulisan dari Excel Anda. Perubahan data anggota keluarga dijamin aman 100% dan tidak mengganggu baris warga lainnya.")
 
         list_warga_edit = [f"Baris {i+1} | KK: {row.get(col_kk, '-')} | Nama: {row.get(col_nama, '-')}" for i, row in df.iterrows()]
         pilih_warga_edit = st.selectbox("Pilih Penduduk untuk Koreksi Data:", ["(Pilih penduduk...)"] + list_warga_edit, key="select_warga_edit_dropdown")
@@ -724,49 +735,58 @@ if not df.empty:
                     target_col = col_e1 if i < half_len else col_e2
                     c_up = col_name.upper()
                     
+                    # Ambil nilai unik yang ada di kolom ini dari seluruh dataframe Excel
+                    col_values_in_df = df[col_name].dropna().astype(str).str.strip().tolist() if col_name in df.columns else []
+
                     with target_col:
                         if "JK" in c_up or "KELAMIN" in c_up:
-                            opts = ["L", "P"]
+                            opts = sorted(list(set(["L", "P"] + col_values_in_df)))
                             idx_opt = opts.index(current_val) if current_val in opts else 0
                             kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_display}_{col_name}")
                         elif "HUBUNGAN" in c_up:
-                            opts = ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"]
+                            opts = sorted(list(set(["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"] + col_values_in_df)))
                             idx_opt = opts.index(current_val) if current_val in opts else 0
                             kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_display}_{col_name}")
                         elif "STATUS" in c_up and ("KAWIN" in c_up or "NIKAH" in c_up):
-                            opts = ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"]
+                            opts = sorted(list(set(["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"] + col_values_in_df)))
                             idx_opt = opts.index(current_val) if current_val in opts else 0
                             kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_display}_{col_name}")
                         elif "AGAMA" in c_up:
-                            opts = ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"]
+                            opts = sorted(list(set(["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"] + col_values_in_df)))
                             idx_opt = opts.index(current_val) if current_val in opts else 0
                             kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_display}_{col_name}")
                         elif "DARAH" in c_up or "GOL" in c_up:
-                            opts = ["A", "B", "AB", "O", "Tidak Tahu"]
+                            opts = sorted(list(set(["A", "B", "AB", "O", "Tidak Tahu"] + col_values_in_df)))
                             idx_opt = opts.index(current_val) if current_val in opts else 0
                             kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_display}_{col_name}")
                         elif "SUKU" in c_up or "ETNIS" in c_up:
-                            opts = ["Sunda", "Jawa", "Padang", "Batak", "Betawi", "Lainnya"]
+                            opts = sorted(list(set(["Sunda", "Jawa", "Padang", "Batak", "Betawi", "Lainnya"] + col_values_in_df)))
                             idx_opt = opts.index(current_val) if current_val in opts else 0
                             kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_display}_{col_name}")
                         elif "PENDIDIKAN" in c_up:
-                            opts = ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma IV / Strata I", "Sedang SD/sedajerat", "Sedang SLTP/sederajat", "Belum / Tidak Sekolah"]
+                            def_opts = ["Tamat SLTA/sederajat", "Tamat SLTP/sederajat", "Tamat SD/sederajat", "Diploma IV / Strata I", "Sedang SD/sedajerat", "Sedang SLTP/sederajat", "Belum / Tidak Sekolah"]
+                            opts = sorted(list(set(def_opts + col_values_in_df)))
+                            if current_val and current_val not in opts:
+                                opts.append(current_val)
                             idx_opt = opts.index(current_val) if current_val in opts else 0
                             kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_display}_{col_name}")
                         elif "PEKERJAAN" in c_up:
-                            opts = ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"]
+                            def_opts = ["Karyawan Swasta", "Wiraswasta", "Mengurus Rumah Tangga", "Belum Bekerja", "Pelajar", "PNS / TNI / Polri"]
+                            opts = sorted(list(set(def_opts + col_values_in_df)))
+                            if current_val and current_val not in opts:
+                                opts.append(current_val)
                             idx_opt = opts.index(current_val) if current_val in opts else 0
                             kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_display}_{col_name}")
                         elif "STATUS RUMAH" in c_up:
-                            opts = ["Milik / Tetap", "Sewa/Kontrak", "Kosong"]
+                            opts = sorted(list(set(["Milik / Tetap", "Sewa/Kontrak", "Kosong"] + col_values_in_df)))
                             idx_opt = opts.index(current_val) if current_val in opts else 0
                             kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_display}_{col_name}")
                         elif "DOMISILI" in c_up:
-                            opts = ["Nanjung Mekar", "luar NM"]
+                            opts = sorted(list(set(["Nanjung Mekar", "luar NM"] + col_values_in_df)))
                             idx_opt = opts.index(current_val) if current_val in opts else 0
                             kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", opts, index=idx_opt, key=f"edit_{idx_display}_{col_name}")
                         elif ("RUMAH" in c_up and "STATUS" not in c_up) or "ALAMAT" in c_up:
-                            opts = sorted(list(set(daftar_blok_lengkap)))
+                            opts = sorted(list(set(daftar_blok_lengkap + col_values_in_df)))
                             if current_val and current_val not in opts:
                                 opts.append(current_val)
                             kolom_form_edit[col_name] = st.selectbox(f"Atribut: {col_name}", [""] + opts, index=(opts.index(current_val)+1) if current_val in opts else 0, key=f"edit_{idx_display}_{col_name}")
@@ -1113,7 +1133,6 @@ if not df.empty:
             if df_tampil_live.empty:
                 st.info("ℹ️ Belum ada transaksi tercatat pada buku ini.")
             else:
-                # Fitur Edit dan Hapus Spesifik Transaksi Kas
                 st.markdown("---")
                 st.markdown(f"#### ✏️ Koreksi / Hapus Transaksi Spesifik ({judul_buku})")
                 
