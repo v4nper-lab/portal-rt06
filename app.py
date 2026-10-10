@@ -944,8 +944,12 @@ if not df.empty:
         chart_font = dict(size=15, family="Arial, sans-serif")
         title_font = dict(size=20, family="Arial, sans-serif")
 
+        # Sinkronisasi Grafik Rasio Jenis Kelamin agar jumlahnya pas dengan Total Jiwa (234/235)
         if col_jk and col_jk in df.columns:
-            df_jk = df[col_jk].fillna("Tidak Diketahui").value_counts().reset_index()
+            df_jk_chart = df.copy()
+            jk_series_chart = df_jk_chart[col_jk].fillna("").astype(str).str.upper().str.strip()
+            df_jk_chart['JK_STANDAR'] = jk_series_chart.apply(lambda x: "Perempuan" if "P" in x else "Laki-laki")
+            df_jk = df_jk_chart['JK_STANDAR'].value_counts().reset_index()
             if not df_jk.empty:
                 df_jk.columns = ["Jenis Kelamin", "Jumlah"]
                 fig_jk = px.pie(df_jk, names="Jenis Kelamin", values="Jumlah", hole=0.5, title="👥 Rasio Penduduk Berdasarkan Jenis Kelamin", color_discrete_sequence=px.colors.qualitative.Bold)
