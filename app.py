@@ -306,4 +306,194 @@ def load_data_rt06_stable():
 
         df['_ORIGINAL_IDX'] = df.index
 
-        col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT"
+        col_rumah_sort = next((col for col in df.columns if "RUMAH" in col or "ALAMAT" in col), None)
+        col_kk_sort = next((col for col in df.columns if "KEPALA" in col or "KK" in col), None)
+        
+        if col_rumah_sort:
+            df['_TEMP_RUMAH'] = df[col_rumah_sort].ffill()
+            if col_kk_sort:
+                df['_TEMP_KK'] = df[col_kk_sort].ffill()
+                df = df.sort_values(by=['_TEMP_RUMAH', '_TEMP_KK'], key=lambda x: x.astype(str).str.lower()).reset_index(drop=True)
+            else:
+                df = df.sort_values(by='_TEMP_RUMAH', key=lambda x: x.astype(str).str.lower()).reset_index(drop=True)
+            df = df.drop(columns=[c for c in df.columns if c.startswith('_TEMP_')])
+            
+        return df
+    except Exception as e:
+        st.error(f"Gagal memuat database kependudukan: {e}")
+        return pd.DataFrame()
+
+st.session_state.df_warga_state = load_data_rt06_stable()
+df = st.session_state.df_warga_state
+
+if not df.empty:
+    col_kk_candi = [c for c in df.columns if "KEPALA" in c or "KK" in c]
+    col_kk = col_kk_candi[0] if col_kk_candi else df.columns[1]
+    
+    col_nama_candi = [c for c in df.columns if "ANGGOTA" in c or "NAMA" in c]
+    col_nama = col_nama_candi[0] if col_nama_candi else (df.columns[2] if len(df.columns) > 2 else df.columns[0])
+    
+    col_rumah_candi = [c for c in df.columns if "RUMAH" in c or "ALAMAT" in c]
+    col_rumah = col_rumah_candi[0] if col_rumah_candi else None
+
+    col_jk = next((c for c in df.columns if "JK" in c or "KELAMIN" in c or "GENDER" in c), None)
+    col_usia = next((c for c in df.columns if "USIA" in c or "UMUR" in c), None)
+
+    daftar_blok_lengkap = [
+        "B3-01", "B3-02", "B3-03", "B3-04", "B3-05", "B3-06", "B3-07", "B3-08", "B3-09", "B3-10",
+        "B3-11", "B3-12", "B3-13", "B3-14", "B3-15", "B3-16", "B3-17", "B3-18", "B3-19", "B3-20",
+        "B4-01", "B4-02", "B4-03", "B4-04", "B4-05", "B4-06", "B4-07", "B4-08", "B4-09", "B4-10"
+    ]
+    if col_rumah and not df.empty:
+        df_temp_b = df.copy()
+        df_temp_b['_TEMP_R'] = df_temp_b[col_rumah].ffill()
+        existing_blocks = sorted(list(set(df_temp_b['_TEMP_R'].dropna().astype(str).tolist())))
+        for eb in existing_blocks:
+            if eb not in daftar_blok_lengkap and eb.lower() != 'nan' and eb.strip() != '':
+                daftar_blok_lengkap.append(eb)
+
+    st.sidebar.markdown("### 🧭 Navigasi Menu Administrasi")
+    daftar_menu_pilihan = [
+        "Dashboard Eksekutif Kependudukan",
+        "📋 Database Kependudukan & Demografi",
+        "✏️ Pemutakhiran & Koreksi Data Penduduk",
+        "🗂️ Layanan Arsip Kartu Keluarga (KK)", 
+        "📈 Analisis & Statistik Demografi", 
+        "📊 Laporan Rekapitulasi Administrasi",
+        "💰 Administrasi Keuangan RT & Sosial",
+        "🖨️ Pusat Dokumen & Ekspor Laporan"
+    ]
+
+    def update_menu_pilihan():
+        st.session_state.selected_menu = st.session_state.widget_nav_selectbox
+
+    selected_sidebar = st.sidebar.selectbox(
+        "Pilih Modul Layanan:", 
+        daftar_menu_pilihan, 
+        index=daftar_menu_pilihan.index(st.session_state.selected_menu) if st.session_state.selected_menu in daftar_menu_pilihan else 0,
+        key="widget_nav_selectbox",
+        on_change=update_menu_pilihan
+    )
+
+    menu = st.session_state.selected_menu
+
+    if menu == "Dashboard Eksekutif Kependudukan":
+        col_jam1, col_jam2 = st.columns([2, 2])
+        with col_jam1:
+            st.subheader("📊 Dashboard Eksekutif Kependudukan")
+        with col_jam2:
+            placeholder_waktu = st.empty()
+
+        df_ffill = df.copy()
+        if col_kk:
+            df_ffill[col_kk] = df_ffill[col_kk].replace('', pd.NA).ffill()
+        if col_rumah:
+            df_ffill[col_rumah] = df_ffill[col_rumah].replace('', pd.NA).ffill()
+
+        total_jiwa = len(df)
+        total_kk = df_ffill[col_kk].nunique() if col_kk in df_ffill.columns else 0
+        
+        jml_l = 0
+        jml_p = 0
+        if col_jk:
+            jk_series = df[col_jk].fillna("").astype(str).str.upper().str.strip()
+            jml_p = len(df[jk_series.str.contains("P", regex=False)])
+            jml_l = total_jiwa - jml_p
+        else:
+            jml_l = total_jiwa
+            jml_p = 0
+
+        jml_balita = 0
+        jml_lansia = 0
+        if col_usia:
+            def hitung_kategori(u):
+                try:
+                    return int(u)
+                except:
+                    return -1
+            usia_series = df[col_usia].apply(hitung_kategori)
+            jml_balita = len(usia_series[(usia_series >= 0) & (usia_series <= 5)])
+            jml_lansia = len(usia_series[usia_series > 60])
+
+        st.markdown(f"""
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 10px; margin-bottom: 25px;">
+            <div class="metric-card" style="border-left: 6px solid #2563eb;">
+                <div class="metric-title">Jumlah KK</div>
+                <div class="metric-value" style="color: #1e3a8a;">{total_kk} <span style="font-size: 16px; font-weight: 600; color: #64748b;">KK</span></div>
+            </div>
+            <div class="metric-card" style="border-left: 6px solid #0d9488;">
+                <div class="metric-title">Total Jiwa</div>
+                <div class="metric-value" style="color: #0f766e;">{total_jiwa} <span style="font-size: 16px; font-weight: 600; color: #64748b;">Jiwa</span></div>
+            </div>
+            <div class="metric-card" style="border-left: 6px solid #059669;">
+                <div class="metric-title">Laki-laki</div>
+                <div class="metric-value" style="color: #065f46;">{jml_l} <span style="font-size: 16px; font-weight: 600; color: #64748b;">Orang</span></div>
+            </div>
+            <div class="metric-card" style="border-left: 6px solid #0284c7;">
+                <div class="metric-title">Perempuan</div>
+                <div class="metric-value" style="color: #0369a1;">{jml_p} <span style="font-size: 16px; font-weight: 600; color: #64748b;">Orang</span></div>
+            </div>
+            <div class="metric-card" style="border-left: 6px solid #db2777;">
+                <div class="metric-title">Balita (0-5 th)</div>
+                <div class="metric-value" style="color: #9d174d;">{jml_balita} <span style="font-size: 16px; font-weight: 600; color: #64748b;">Jiwa</span></div>
+            </div>
+            <div class="metric-card" style="border-left: 6px solid #d97706;">
+                <div class="metric-title">Lansia (>60 th)</div>
+                <div class="metric-value" style="color: #b45309;">{jml_lansia} <span style="font-size: 16px; font-weight: 600; color: #64748b;">Jiwa</span></div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.write("---")
+        st.markdown("### 🚀 Panel Navigasi Utama SIAK")
+        
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            if st.button("📋 Database Kependudukan & Demografi", use_container_width=True, key="btn_m1"):
+                st.session_state.selected_menu = "📋 Database Kependudukan & Demografi"
+                st.rerun()
+            if st.button("✏️ Pemutakhiran & Koreksi Data Penduduk", use_container_width=True, key="btn_m1_edit"):
+                st.session_state.selected_menu = "✏️ Pemutakhiran & Koreksi Data Penduduk"
+                st.rerun()
+            if st.button("🗂️ Layanan Arsip Kartu Keluarga (KK)", use_container_width=True, key="btn_m2"):
+                st.session_state.selected_menu = "🗂️ Layanan Arsip Kartu Keluarga (KK)"
+                st.rerun()
+            if st.button("📊 Laporan Rekapitulasi Administrasi", use_container_width=True, key="btn_m3"):
+                st.session_state.selected_menu = "📊 Laporan Rekapitulasi Administrasi"
+                st.rerun()
+        with col_m2:
+            if st.button("📈 Analisis & Statistik Demografi", use_container_width=True, key="btn_m5"):
+                st.session_state.selected_menu = "📈 Analisis & Statistik Demografi"
+                st.rerun()
+            if st.button("💰 Administrasi Keuangan RT & Sosial", use_container_width=True, key="btn_m4"):
+                st.session_state.selected_menu = "💰 Administrasi Keuangan RT & Sosial"
+                st.rerun()
+            if st.button("🖨️ Pusat Dokumen & Ekspor Laporan", use_container_width=True, key="btn_m7"):
+                st.session_state.selected_menu = "🖨️ Pusat Dokumen & Ekspor Laporan"
+                st.rerun()
+
+        for _ in range(5):
+            waktu_sekarang = datetime.now(ZoneInfo("Asia/Jakarta"))
+            bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
+            tgl_str = f"{waktu_sekarang.day:02d} {bulan_indo_nama.get(waktu_sekarang.month, '')} {waktu_sekarang.year}"
+            jam_str = waktu_sekarang.strftime("%H:%M:%S")
+            
+            placeholder_waktu.markdown(f"""
+            <div style="background: rgba(255, 255, 255, 0.9); border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 10px; text-align: right;">
+                <span style="font-size: 10px; color: #64748b;">🕒 Sinkronisasi Real-Time (WIB):</span><br>
+                <strong style="font-size: 12px; color: #0f172a;">{tgl_str} | {jam_str} WIB</strong>
+            </div>
+            """, unsafe_allow_html=True)
+            time.sleep(1)
+        st.rerun()
+
+    elif menu == "📋 Database Kependudukan & Demografi":
+        if st.button("⬅️ Kembali ke Dashboard", key="back_warga"):
+            st.session_state.selected_menu = "Dashboard Eksekutif Kependudukan"
+            st.rerun()
+        st.subheader("📋 Database Keseluruhan Warga & Manajemen Mutasi")
+        
+        st.markdown("💡 **Panduan Administratif:** Gunakan formulir di bawah untuk menambah data penduduk baru. Gunakan fitur **Mutasi Keluar / Penghapusan Data** jika terdapat warga yang pindah atau keluar wilayah.")
+
+        st.markdown("#### 📊 Tabel Master Data Penduduk Aktif:")
+        def highlight_luar_nm(
