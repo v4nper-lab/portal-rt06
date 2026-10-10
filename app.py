@@ -462,38 +462,4 @@ if not df.empty:
                 st.session_state.selected_menu = "📊 Laporan Rekapitulasi Administrasi"
                 st.rerun()
         with col_m2:
-            if st.button("📈 Analisis & Statistik Demografi", use_container_width=True, key="btn_m5"):
-                st.session_state.selected_menu = "📈 Analisis & Statistik Demografi"
-                st.rerun()
-            if st.button("💰 Administrasi Keuangan RT & Sosial", use_container_width=True, key="btn_m4"):
-                st.session_state.selected_menu = "💰 Administrasi Keuangan RT & Sosial"
-                st.rerun()
-            if st.button("🖨️ Pusat Dokumen & Ekspor Laporan", use_container_width=True, key="btn_m7"):
-                st.session_state.selected_menu = "🖨️ Pusat Dokumen & Ekspor Laporan"
-                st.rerun()
-
-        for _ in range(5):
-            waktu_sekarang = datetime.now(ZoneInfo("Asia/Jakarta"))
-            bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
-            tgl_str = f"{waktu_sekarang.day:02d} {bulan_indo_nama.get(waktu_sekarang.month, '')} {waktu_sekarang.year}"
-            jam_str = waktu_sekarang.strftime("%H:%M:%S")
-            
-            placeholder_waktu.markdown(f"""
-            <div style="background: rgba(255, 255, 255, 0.9); border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 10px; text-align: right;">
-                <span style="font-size: 10px; color: #64748b;">🕒 Sinkronisasi Real-Time (WIB):</span><br>
-                <strong style="font-size: 12px; color: #0f172a;">{tgl_str} | {jam_str} WIB</strong>
-            </div>
-            """, unsafe_allow_html=True)
-            time.sleep(1)
-        st.rerun()
-
-    elif menu == "📋 Database Kependudukan & Demografi":
-        if st.button("⬅️ Kembali ke Dashboard", key="back_warga"):
-            st.session_state.selected_menu = "Dashboard Eksekutif Kependudukan"
-            st.rerun()
-        st.subheader("📋 Database Keseluruhan Warga & Manajemen Mutasi")
-        
-        st.markdown("💡 **Panduan Administratif:** Gunakan formulir di bawah untuk menambah data penduduk baru. Gunakan fitur **Mutasi Keluar / Penghapusan Data** jika terdapat warga yang pindah atau keluar wilayah.")
-
-        st.markdown("#### 📊 Tabel Master Data Penduduk Aktif:")
-        def highlight_luar_nm(
+            if st.button("📈 Analisis & Statistik Demografi", use_container_width=True,
