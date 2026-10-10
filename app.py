@@ -462,4 +462,102 @@ if not df.empty:
                 st.session_state.selected_menu = "📊 Laporan Rekapitulasi Administrasi"
                 st.rerun()
         with col_m2:
-            if st.button("📈 Analisis & Statistik Demografi", use_container_width=True,
+            if st.button("📈 Analisis & Statistik Demografi", use_container_width=True, key="btn_m5"):
+                st.session_state.selected_menu = "📈 Analisis & Statistik Demografi"
+                st.rerun()
+            if st.button("💰 Administrasi Keuangan RT & Sosial", use_container_width=True, key="btn_m4"):
+                st.session_state.selected_menu = "💰 Administrasi Keuangan RT & Sosial"
+                st.rerun()
+            if st.button("🖨️ Pusat Dokumen & Ekspor Laporan", use_container_width=True, key="btn_m7"):
+                st.session_state.selected_menu = "🖨️ Pusat Dokumen & Ekspor Laporan"
+                st.rerun()
+
+        for _ in range(5):
+            waktu_sekarang = datetime.now(ZoneInfo("Asia/Jakarta"))
+            bulan_indo_nama = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
+            tgl_str = f"{waktu_sekarang.day:02d} {bulan_indo_nama.get(waktu_sekarang.month, '')} {waktu_sekarang.year}"
+            jam_str = waktu_sekarang.strftime("%H:%M:%S")
+            
+            placeholder_waktu.markdown(f"""
+            <div style="background: rgba(255, 255, 255, 0.9); border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 10px; text-align: right;">
+                <span style="font-size: 10px; color: #64748b;">🕒 Sinkronisasi Real-Time (WIB):</span><br>
+                <strong style="font-size: 12px; color: #0f172a;">{tgl_str} | {jam_str} WIB</strong>
+            </div>
+            """, unsafe_allow_html=True)
+            time.sleep(1)
+        st.rerun()
+
+    elif menu == "📋 Database Kependudukan & Demografi":
+        if st.button("⬅️ Kembali ke Dashboard", key="back_warga"):
+            st.session_state.selected_menu = "Dashboard Eksekutif Kependudukan"
+            st.rerun()
+        st.subheader("📋 Database Keseluruhan Warga & Manajemen Mutasi")
+        
+        st.markdown("💡 **Panduan Administratif:** Gunakan formulir di bawah untuk menambah data penduduk baru. Gunakan fitur **Mutasi Keluar / Penghapusan Data** jika terdapat warga yang pindah atau keluar wilayah.")
+
+        st.markdown("#### 📊 Tabel Master Data Penduduk Aktif:")
+        def highlight_luar_nm(row):
+            row_str = str(row.values).lower()
+            if "luar nm" in row_str:
+                return ['background-color: #fef08a'] * len(row)
+            return [''] * len(row)
+
+        try:
+            df_show = df.drop(columns=['_ORIGINAL_IDX'], errors='ignore')
+            st.dataframe(df_show.style.apply(highlight_luar_nm, axis=1), use_container_width=True, hide_index=True)
+        except:
+            st.dataframe(df.drop(columns=['_ORIGINAL_IDX'], errors='ignore'), use_container_width=True, hide_index=True)
+
+        st.markdown("---")
+        st.markdown("### 🗑️ Mutasi Keluar / Penghapusan Data Penduduk")
+        col_del1, col_del2 = st.columns([2, 1])
+        with col_del1:
+            list_warga_pilih = [f"Baris {i+1} | Rumah: {row.get(col_rumah, '-')} | KK: {row.get(col_kk, '-')} | Nama: {row.get(col_nama, '-')}" for i, row in df.iterrows()]
+            target_hapus_str = st.selectbox("Pilih Penduduk yang Akan Dihapus / Mutasi Keluar:", ["(Pilih penduduk...)"] + list_warga_pilih, key="select_warga_hapus_dropdown")
+        with col_del2:
+            st.markdown("<br>", unsafe_allow_html=True)
+            btn_eksekusi_hapus = st.button("🗑️ Proses Penghapusan Permanen", use_container_width=True)
+
+        if btn_eksekusi_hapus:
+            if target_hapus_str == "(Pilih penduduk...)":
+                st.warning("⚠️ Silakan pilih data penduduk terlebih dahulu dari daftar.")
+            else:
+                try:
+                    selected_row = df.iloc[int(target_hapus_str.split("|")[0].replace("Baris", "").strip()) - 1]
+                    original_del_idx = int(selected_row['_ORIGINAL_IDX'])
+
+                    df_raw_del = pd.read_excel(FILE_EXCEL_WARGA, header=3, dtype=str)
+                    df_setelah_hapus = df_raw_del.drop(index=original_del_idx).reset_index(drop=True)
+
+                    import openpyxl
+                    wb = openpyxl.Workbook()
+                    ws = wb.active
+                    ws.title = "Data Warga"
+                    ws.append(["DATA WARGA RT 06 RW 14"])
+                    ws.append([])
+                    ws.append([])
+                    ws.append(list(df_setelah_hapus.columns))
+                    for _, r in df_setelah_hapus.iterrows():
+                        ws.append(list(r.values))
+                    wb.save(FILE_EXCEL_WARGA)
+
+                    st.session_state.df_warga_state = load_data_rt06_stable()
+                    st.success("✅ Data penduduk berhasil dihapus secara permanen dan real-time dari sistem!")
+                    time.sleep(1)
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Gagal memproses penghapusan data: {e}")
+
+        st.markdown("---")
+        st.markdown("### ➕ Formulir Registrasi Penduduk & Anggota Keluarga Baru")
+
+        with st.form("form_input_warga_stabil_v2", clear_on_submit=False):
+            col_f1, col_f2 = st.columns(2)
+            tgl_lhr, bln_lhr, thn_lhr = 1, 1, 1995
+
+            with col_f1:
+                in_no_rumah = st.selectbox("Nomor Rumah / Alamat Blok", sorted(list(set(daftar_blok_lengkap))), key="in_no_rmh_stabil_v2")
+                in_nama_kk = st.text_input("Nama Kepala Keluarga (KK)", key="in_nama_kk_stabil_v2")
+                in_nama_anggota = st.text_input("Nama Lengkap Penduduk / Anggota", key="in_nama_anggota_stabil_v2")
+                in_jk = st.selectbox("Jenis Kelamin", ["L", "P"], key="in_jk_stabil_v2")
+                in_hub = st.selectbox("Hubungan dalam Keluarga", ["Kepala Keluarga", "Istri", "Anak Kandung", "Famili Lain", "Mertua"], key="in_hub_stabil_v2
